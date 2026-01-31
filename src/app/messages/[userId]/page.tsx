@@ -1,0 +1,444 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useParams } from "next/navigation";
+import { Send, ArrowLeft, MoreVertical, Check, CheckCheck } from "lucide-react";
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+
+type Message = {
+    id: string;
+    content: string;
+    sender_id: string;
+    receiver_id: string;
+    created_at: string;
+    read_at: string | null;
+    reactions: Record<string, 'bow' | 'dislike'>; // userId -> reaction type
+    metadata?: {
+        type: 'post' | 'verse' | 'vibe' | 'question' | 'prayer';
+        id: string;
+        title?: string;
+        image?: string;
+        content?: string;
+    };
+};
+
+type Profile = {
+    id: string;
+    first_name: string;
+    last_name: string;
+    username: string;
+    avatar_url: string;
+};
+
+export default function ChatPage() {
+    const params = useParams();
+    const otherUserId = params.userId as string;
+
+    // State
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [newMessage, setNewMessage] = useState("");
+    const [otherUser, setOtherUser] = useState<Profile | null>(null);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Real-time State
+    const [isOnline, setIsOnline] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const supabase = createClient();
+
+    // 1. Fetch Current User (Once)
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) setCurrentUser(user);
+        };
+        getUser();
+    }, []);
+
+    // 2. Fetch Chat Data & Mark as Read
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const fetchChatData = async () => {
+            // Fetch other user profile
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", otherUserId)
+                .single();
+            setOtherUser(profile);
+
+            // Fetch messages
+            const { data: msgs } = await supabase
+                .from("direct_messages")
+                .select("*")
+                .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${currentUser.id})`)
+                .order("created_at", { ascending: true });
+
+            if (msgs) {
+                setMessages(msgs);
+
+                // Mark unread messages from other user as read
+                const unreadIds = msgs
+                    .filter(m => m.sender_id === otherUserId && !m.read_at)
+                    .map(m => m.id);
+
+                if (unreadIds.length > 0) {
+                    await supabase
+                        .from("direct_messages")
+                        .update({ read_at: new Date().toISOString() })
+                        .in("id", unreadIds);
+                }
+            }
+            setLoading(false);
+        };
+
+        fetchChatData();
+    }, [otherUserId, currentUser?.id]);
+
+    // 3. Real-time Subscription (Presence, Typing, Messages)
+    useEffect(() => {
+        if (!currentUser) return;
+
+        // generated shared room ID so both users are in the same channel
+        const roomId = [currentUser.id, otherUserId].sort().join('_');
+        const channel = supabase.channel(`chat_room:${roomId}`);
+
+        channel
+            // Presence: Track if friend is online
+            .on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                // Check if otherUserId is in the presence state
+                const isFriendOnline = Object.values(state).some((presences: any) =>
+                    presences.some((p: any) => p.user_id === otherUserId)
+                );
+                setIsOnline(isFriendOnline);
+            })
+            // Broadcast: Typing Indicators
+            .on('broadcast', { event: 'typing' }, (payload) => {
+                if (payload.payload.user_id === otherUserId) {
+                    setIsTyping(true);
+                    // Auto-clear typing after 3s if no new event
+                    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+                }
+            })
+            // Database: New Messages
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, async (payload) => {
+                const newMsg = payload.new as Message;
+
+                if (
+                    (newMsg.sender_id === otherUserId) ||
+                    (newMsg.sender_id === currentUser.id && newMsg.receiver_id === otherUserId)
+                ) {
+                    setMessages(prev => {
+                        if (prev.some(m => m.id === newMsg.id)) return prev;
+                        return [...prev, newMsg];
+                    });
+
+                    // If received while looking, mark as read immediately
+                    if (newMsg.sender_id === otherUserId) {
+                        await supabase
+                            .from("direct_messages")
+                            .update({ read_at: new Date().toISOString() })
+                            .eq("id", newMsg.id);
+                    }
+                }
+            })
+            // Database: Update (Read Receipts)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
+                const updatedMsg = payload.new as Message;
+                setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    // Track MY presence
+                    await channel.track({ user_id: currentUser.id, online_at: new Date().toISOString() });
+                }
+            });
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [otherUserId, currentUser?.id]);
+
+    // Scroll to bottom effect
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, isTyping]);
+
+    // Handle Typing Broadcast
+    const handleTyping = async () => {
+        const roomId = [currentUser.id, otherUserId].sort().join('_');
+        const channel = supabase.channel(`chat_room:${roomId}`);
+        await channel.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { user_id: currentUser?.id }
+        });
+    };
+
+    const handleReaction = async (messageId: string, type: 'bow' | 'dislike') => {
+        if (!currentUser) return;
+
+        // Find message
+        const msg = messages.find(m => m.id === messageId);
+        if (!msg) return;
+
+        // Current reactions
+        const currentReactions = msg.reactions || {};
+        const myReaction = currentReactions[currentUser.id];
+
+        // Toggle logic: if clicking same type, remove it. If different, update it.
+        let newReactions = { ...currentReactions };
+        if (myReaction === type) {
+            delete newReactions[currentUser.id];
+        } else {
+            newReactions[currentUser.id] = type;
+        }
+
+        // Optimistic Update
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, reactions: newReactions } : m));
+
+        // DB Update
+        await supabase
+            .from("direct_messages")
+            .update({ reactions: newReactions })
+            .eq("id", messageId);
+    };
+
+    const handleDoubleTap = (messageId: string) => {
+        handleReaction(messageId, 'bow');
+    };
+
+    const handleSend = async () => {
+        if (!newMessage.trim() || !currentUser) return;
+
+        const content = newMessage;
+        setNewMessage("");
+
+        // Optimistic Update
+        const tempMsg: Message = {
+            id: `temp-${Date.now()}`,
+            content: content,
+            sender_id: currentUser.id,
+            receiver_id: otherUserId,
+            created_at: new Date().toISOString(),
+            read_at: null,
+            reactions: {}
+        };
+
+        setMessages(prev => [...prev, tempMsg]);
+
+        // Send to DB
+        const { data, error } = await supabase.from("direct_messages").insert({
+            sender_id: currentUser.id,
+            receiver_id: otherUserId,
+            content: content,
+            reactions: {}
+        }).select().single();
+
+        if (error) {
+            console.error("Error sending message:", error);
+            alert("Failed to send message");
+            setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+        } else if (data) {
+            setMessages(prev => {
+                // If real message already exists (from Realtime), just remove the temp one
+                if (prev.some(m => m.id === data.id)) {
+                    return prev.filter(m => m.id !== tempMsg.id);
+                }
+                // Otherwise replace temp with real
+                return prev.map(m => m.id === tempMsg.id ? data : m);
+            });
+        }
+    };
+
+    if (loading) return (
+        <div className="h-full flex items-center justify-center text-warm-grey/40">Loading chat...</div>
+    );
+
+    return (
+        <div className="flex flex-col h-full bg-stone-50/30">
+            {/* Header */}
+            <header className="bg-white border-b border-warm-grey/5 p-4 flex items-center justify-between shadow-sm z-10">
+                <div className="flex items-center gap-3">
+                    <Link href="/messages" className="md:hidden p-2 -ml-2 text-warm-grey/60 hover:bg-stone-100 rounded-full">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+
+                    <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-stone-200 overflow-hidden border border-white shadow-sm">
+                            {otherUser?.avatar_url ? (
+                                <img src={otherUser.avatar_url} alt={otherUser.username} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-warm-grey font-serif">
+                                    {otherUser?.first_name?.[0]}
+                                </div>
+                            )}
+                        </div>
+                        {/* Real Presence Indicator */}
+                        {isOnline && (
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full animate-pulse-slow"></div>
+                        )}
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-warm-grey text-sm">
+                            {otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : "Sister"}
+                        </h1>
+                        <p className="text-xs text-warm-grey/40 font-medium">
+                            {isOnline ? "Online Now" : "Offline"}
+                        </p>
+                    </div>
+                </div>
+                <button className="p-2 text-warm-grey/40 hover:bg-stone-100 rounded-full">
+                    <MoreVertical className="w-5 h-5" />
+                </button>
+            </header>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.length === 0 ? (
+                    <div className="text-center py-10 text-warm-grey/40 text-sm">
+                        <p>No messages yet.</p>
+                        <p>Say hello to {otherUser?.first_name}! 👋</p>
+                    </div>
+                ) : (
+                    messages.map((msg, index) => {
+                        const isMe = msg.sender_id === currentUser?.id;
+                        const showAvatar = !isMe && (index === 0 || messages[index - 1].sender_id !== msg.sender_id);
+
+                        return (
+                            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2`}>
+                                <div className={`flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end max-w-[80%] group/message relative`}>
+                                    {!isMe && (
+                                        <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden mx-2 flex-shrink-0 mb-1 opacity-0" style={{ opacity: showAvatar ? 1 : 0 }}>
+                                            {otherUser?.avatar_url && <img src={otherUser.avatar_url} className="w-full h-full object-cover" />}
+                                        </div>
+                                    )}
+
+                                    {/* Hover Actions */}
+                                    <div className={`absolute top-0 opacity-0 group-hover/message:opacity-100 transition-opacity flex gap-1 -translate-y-1/2 z-10 ${isMe ? 'right-full mr-2' : 'left-full ml-2'}`}>
+                                        <button
+                                            onClick={() => handleReaction(msg.id, 'bow')}
+                                            className="w-7 h-7 bg-white rounded-full shadow-sm border border-warm-grey/10 flex items-center justify-center hover:scale-110 transition-transform text-muted-rose font-serif text-xs"
+                                        >
+                                            ౨ৎ
+                                        </button>
+                                        <button
+                                            onClick={() => handleReaction(msg.id, 'dislike')}
+                                            className="w-7 h-7 bg-white rounded-full shadow-sm border border-warm-grey/10 flex items-center justify-center hover:scale-110 transition-transform text-warm-grey/60 text-[10px]"
+                                        >
+                                            :(
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        onDoubleClick={() => handleDoubleTap(msg.id)}
+                                        className={`px-4 py-2 rounded-2xl text-sm leading-relaxed shadow-sm relative cursor-pointer select-none transition-all ${isMe
+                                            ? 'bg-muted-rose text-white rounded-tr-sm'
+                                            : 'bg-white text-warm-grey rounded-tl-sm border border-warm-grey/5'
+                                            }`}
+                                    >
+                                        {msg.metadata && (
+                                            <Link
+                                                href={
+                                                    msg.metadata.type === 'vibe' ? '/vibe-board' :
+                                                        msg.metadata.type === 'verse' ? '/diaries' :
+                                                            msg.metadata.type === 'question' ? '/velvet-vault' :
+                                                                msg.metadata.type === 'prayer' ? '/prayer-pocket' :
+                                                                    '/home'
+                                                }
+                                                className="block mb-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition-colors flex gap-3 items-center max-w-xs cursor-pointer text-left"
+                                            >
+                                                {msg.metadata.image && (
+                                                    <img src={msg.metadata.image} className="w-10 h-10 rounded-md object-cover bg-white" />
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-bold opacity-90 truncate">{msg.metadata.title || "Shared Content"}</p>
+                                                    <p className="text-[10px] opacity-70 capitalize">{msg.metadata.type}</p>
+                                                </div>
+                                            </Link>
+                                        )}
+
+                                        {msg.content}
+
+                                        <div className={`flex items-center gap-1 mt-1 text-[9px] ${isMe ? 'text-white/70 justify-end' : 'text-warm-grey/40 justify-start'}`}>
+                                            {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                                            {/* Read Receipt */}
+                                            {isMe && (
+                                                <span className="opacity-80">
+                                                    {msg.read_at ? (
+                                                        <CheckCheck className="w-3 h-3" />
+                                                    ) : (
+                                                        <Check className="w-3 h-3" />
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Reactions Display */}
+                                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                                            <div className={`absolute -bottom-2 ${isMe ? 'left-0 -translate-x-2' : 'right-0 translate-x-2'} flex gap-1`}>
+                                                {Object.entries(msg.reactions).map(([uid, r]) => (
+                                                    <div key={uid} className="bg-white border border-warm-grey/10 shadow-sm rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                                        {r === 'bow' ? <span className="text-muted-rose font-serif relative top-[1px]">౨ৎ</span> : <span className="text-warm-grey/60 relative -top-[1px]">:(</span>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+
+                {/* Typing Indicator */}
+                {isTyping && (
+                    <div className="flex items-center gap-2 ml-10 mb-2">
+                        <div className="bg-white border border-warm-grey/10 px-3 py-2 rounded-full rounded-tl-none shadow-sm flex items-center gap-1">
+                            <span className="animate-bounce font-serif text-muted-rose text-xs" style={{ animationDelay: '0ms' }}>౨ৎ</span>
+                            <span className="animate-bounce font-serif text-muted-rose text-xs" style={{ animationDelay: '150ms' }}>౨ৎ</span>
+                            <span className="animate-bounce font-serif text-muted-rose text-xs" style={{ animationDelay: '300ms' }}>౨ৎ</span>
+                        </div>
+                        <span className="text-xs text-warm-grey/40">{otherUser?.first_name} is typing...</span>
+                    </div>
+                )}
+
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="p-4 bg-white border-t border-warm-grey/5">
+                <form
+                    onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                    className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
+                >
+                    <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => {
+                            setNewMessage(e.target.value);
+                            handleTyping();
+                        }}
+                        placeholder="Type a message..."
+                        className="flex-1 bg-transparent px-4 py-2 text-sm text-warm-grey placeholder:text-warm-grey/40 focus:outline-none"
+                    />
+                    <button
+                        type="submit"
+                        disabled={!newMessage.trim()}
+                        className="p-2 bg-muted-rose text-white rounded-full hover:bg-muted-rose/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-muted-rose/20"
+                    >
+                        <Send className="w-4 h-4" />
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}

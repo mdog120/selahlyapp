@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --warm-paper: #FDFBF7;
+  --soft-blush: #FCEADE;
+  --sage-green: #E3E9E2;
+  --glass-white: rgba(255, 255, 255, 0.6);
+
+  /* Accents */
+  --muted-rose: #D4A5A5;
+  --warm-cocoa: #8D7B68;
+  --deep-velvet: #6B3E48;
+
+  /* Text */
+  --warm-grey: #4A4A4A;
+  --soft-black: #2A2A2A;
+
+  /* Misc */
+  --radius-xl: 1.5rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-warm-paper: var(--warm-paper);
+  --color-soft-blush: var(--soft-blush);
+  --color-sage-green: var(--sage-green);
+  --color-glass-white: var(--glass-white);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-muted-rose: var(--muted-rose);
+  --color-warm-cocoa: var(--warm-cocoa);
+  --color-deep-velvet: var(--deep-velvet);
+
+  --color-warm-grey: var(--warm-grey);
+
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-outfit);
+
+
+  --radius-xl: var(--radius-xl);
+
+  --animate-blob: blob 7s infinite;
+  --animate-fade-in-up: fadeInUp 0.5s ease-out forwards;
+
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+
+  /* Marquee */
+  --animate-marquee: marquee var(--duration) linear infinite;
+  --animate-marquee-reverse: marquee-reverse var(--duration) linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+
+  @keyframes marquee-reverse {
+    from {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
+/* Custom Utilities */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--warm-paper);
+  color: var(--warm-grey);
+  font-family: var(--font-outfit);
+}
+
+/* Custom Utilities */
+.glass-card {
+  background: var(--glass-white);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.02);
+}
+
+.text-balance {
+  text-wrap: balance;
 }
