@@ -364,6 +364,7 @@ export default function GroupChatPage() {
                     groupId={groupId}
                     isAdmin={isAdmin}
                     currentUserId={currentUser.id}
+                    isOpen={isSettingsOpen}
                     onClose={() => setIsSettingsOpen(false)}
                 />
             )}

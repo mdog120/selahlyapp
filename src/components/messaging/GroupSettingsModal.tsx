@@ -22,30 +22,45 @@ export function GroupSettingsModal({
     groupId,
     isAdmin,
     currentUserId,
+    isOpen,
     onClose
 }: {
     groupId: string;
     isAdmin: boolean;
     currentUserId: string;
+    isOpen: boolean;
     onClose: () => void;
 }) {
     const [members, setMembers] = useState<Member[]>([]);
     const [friends, setFriends] = useState<any[]>([]); // For adding new members
     const [search, setSearch] = useState("");
     const [isAddMode, setIsAddMode] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [editImage, setEditImage] = useState("");
     const supabase = createClient();
     const router = useRouter();
 
     useEffect(() => {
+        if (!isOpen) return; // Wait for modal to be open
         fetchMembers();
-    }, [groupId]);
+        fetchGroupDetails();
+    }, [groupId, isOpen]);
 
     useEffect(() => {
         if (isAddMode) fetchFriends();
     }, [isAddMode]);
 
+    const fetchGroupDetails = async () => {
+        const { data } = await supabase.from("groups").select("name, image_url").eq("id", groupId).single();
+        if (data) {
+            setEditName(data.name);
+            setEditImage(data.image_url || "");
+        }
+    };
+
     const fetchMembers = async () => {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from("group_members")
             .select(`
                 user_id,
@@ -54,7 +69,36 @@ export function GroupSettingsModal({
             `)
             .eq("group_id", groupId);
 
+        if (error) console.error("Error fetching members:", error);
         if (data) setMembers(data as any);
+    };
+
+    const handleUpdateGroup = async () => {
+        if (!editName.trim()) return;
+
+        const { error } = await supabase
+            .from("groups")
+            .update({ name: editName, image_url: editImage })
+            .eq("id", groupId);
+
+        if (error) {
+            alert(`Failed to update group: ${error.message}`);
+        } else {
+            setIsEditing(false);
+            window.location.reload(); // Refresh to show new details
+        }
+    };
+
+    const handleDeleteGroup = async () => {
+        if (!confirm("Are you sure? This will delete the group and all messages for everyone.")) return;
+
+        const { error } = await supabase.from("groups").delete().eq("id", groupId);
+
+        if (error) {
+            alert(`Failed to delete group: ${error.message}`);
+        } else {
+            router.push("/messages");
+        }
     };
 
     const fetchFriends = async () => {
@@ -94,8 +138,9 @@ export function GroupSettingsModal({
             fetchMembers();
             // Remove from available friends list locally
             setFriends(prev => prev.filter(f => f.id !== userId));
+            // setIsAddMode(false); // Optional: keep open to add more
         } else {
-            alert("Failed to add member");
+            alert(`Failed to add member: ${error.message}`);
         }
     };
 
@@ -110,7 +155,7 @@ export function GroupSettingsModal({
         if (!error) {
             fetchMembers();
         } else {
-            alert("Failed to remove member");
+            alert(`Failed to remove member: ${error.message}`);
         }
     };
 
@@ -125,9 +170,11 @@ export function GroupSettingsModal({
         if (!error) {
             router.push("/messages");
         } else {
-            alert("Failed to leave group");
+            alert(`Failed to leave group: ${error.message}`);
         }
     };
+
+    if (!isOpen) return null; // Logic controlled by parent usually, but good safeguard if we moved state up
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-warm-cocoa/20 backdrop-blur-sm p-4 animate-fade-in">
@@ -143,6 +190,49 @@ export function GroupSettingsModal({
 
                 {/* Body */}
                 <div className="p-6 overflow-y-auto flex-1 space-y-6">
+
+                    {/* Admin: Edit Details */}
+                    {isAdmin && (
+                        <div className="pb-6 border-b border-warm-grey/5">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-bold text-warm-grey">Group Details</h3>
+                                <button
+                                    onClick={() => {
+                                        if (isEditing) handleUpdateGroup();
+                                        else setIsEditing(true);
+                                    }}
+                                    className="text-xs text-muted-rose font-medium hover:underline"
+                                >
+                                    {isEditing ? "Save" : "Edit"}
+                                </button>
+                            </div>
+
+                            {isEditing ? (
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-warm-grey/60 mb-1">NAME</label>
+                                        <input
+                                            value={editName}
+                                            onChange={(e) => setEditName(e.target.value)}
+                                            className="w-full text-sm p-2 bg-stone-50 rounded-lg border border-warm-grey/10"
+                                            placeholder="Group Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-warm-grey/60 mb-1">IMAGE URL</label>
+                                        <input
+                                            value={editImage}
+                                            onChange={(e) => setEditImage(e.target.value)}
+                                            className="w-full text-sm p-2 bg-stone-50 rounded-lg border border-warm-grey/10"
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-warm-grey">{editName || "Loading..."}</p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Members List */}
                     <div>
@@ -228,14 +318,24 @@ export function GroupSettingsModal({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-warm-grey/5 flex justify-center">
+                <div className="p-4 border-t border-warm-grey/5 flex justify-center gap-4">
                     <button
                         onClick={handleLeaveGroup}
-                        className="flex items-center gap-2 text-red-400 hover:text-red-500 text-sm font-medium"
+                        className="flex items-center gap-2 text-warm-grey/60 hover:text-warm-grey text-sm font-medium"
                     >
                         <LogOut className="w-4 h-4" />
                         Leave Group
                     </button>
+
+                    {isAdmin && (
+                        <button
+                            onClick={handleDeleteGroup}
+                            className="flex items-center gap-2 text-red-300 hover:text-red-400 text-sm font-medium"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Group
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
