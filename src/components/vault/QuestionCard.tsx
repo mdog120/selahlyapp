@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquare, Eye, Clock, Share2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageSquare, Eye, Clock, Share2, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShareModal } from "../messaging/ShareModal";
+import { createClient } from "@/lib/supabase/client";
 
 type Thread = {
     id: string;
+    user_id: string;
     title: string;
     category: string;
     message_count: number;
@@ -36,6 +38,30 @@ export function QuestionCard({ thread }: { thread: Thread }) {
 
     const router = useRouter();
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const supabase = createClient();
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) setCurrentUserId(user.id);
+        });
+    }, []);
+
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to delete this question?")) return;
+
+        const { error } = await supabase
+            .from('threads')
+            .delete()
+            .eq('id', thread.id);
+
+        if (!error) {
+            window.location.reload();
+        } else {
+            alert("Error deleting thread");
+        }
+    };
 
     return (
         <>
@@ -78,6 +104,15 @@ export function QuestionCard({ thread }: { thread: Thread }) {
                     </Link>
 
                     <div className="flex items-center gap-3">
+                        {currentUserId === thread.user_id && (
+                            <button
+                                onClick={handleDelete}
+                                className="p-2 -mr-2 rounded-full hover:bg-red-50 text-warm-grey/40 hover:text-red-500 transition-colors"
+                                title="Delete Question"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
                         <button
                             onClick={(e) => {
                                 e.preventDefault();

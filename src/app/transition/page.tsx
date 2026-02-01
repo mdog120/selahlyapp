@@ -66,7 +66,7 @@ function TransitionContent() {
                     Entering Sanctuary...
                 </h2>
                 <p className="text-warm-cocoa/60 font-medium tracking-wide text-sm uppercase">
-                    Take a deep breath
+                    Locating Christian sisters near you...
                 </p>
             </div>
         </div>

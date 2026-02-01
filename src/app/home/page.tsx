@@ -1,34 +1,21 @@
-import { getDailyVerse } from "@/lib/dailyVerse";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
 import { Sparkles, MessageCircle, Heart, BookOpen, Flower2, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SocialFeed } from "@/components/social/SocialFeed";
+import { Greeting } from "@/components/home/Greeting";
+import { DailyVerseCard } from "@/components/home/DailyVerseCard";
+import { PrayerRequestList } from "@/components/home/PrayerRequestList";
+
+export const dynamic = "force-dynamic";
+
 export default async function UserHome(props: {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
     // ... params & auth logic ...
-    const dailyVerse = getDailyVerse();
 
     // ...
-    {/* Grace & Glow (Daily Verse) */ }
-    <div className="group relative overflow-hidden glass-card p-6 rounded-3xl border border-white/60">
-        <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-warm-cocoa">
-                <BookOpen className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-widest">Grace & Glow</span>
-            </div>
-            <a href="/diaries" className="text-[10px] text-warm-grey/40 hover:text-warm-grey underline">Open Journal</a>
-        </div>
-        <h3 className="font-serif text-xl mb-2">Verse of the Day</h3>
-        <p className="font-serif italic text-warm-grey/80 mb-4 line-clamp-3">
-            "{dailyVerse.text}"
-        </p>
-        <p className="text-xs text-right text-warm-grey/40 mb-4">— {dailyVerse.reference}</p>
-        <a href="/diaries" className="block w-full">
-            <Button variant="outline" size="sm" className="w-full">Reflect & Journal</Button>
-        </a>
-    </div>
+    // ...
     const searchParams = await props.searchParams;
 
     // Try to get real user from Supabase
@@ -76,9 +63,7 @@ export default async function UserHome(props: {
             <div className="container mx-auto px-4 pt-8 pb-20 max-w-5xl">
                 {/* Welcome Section */}
                 <header className="mb-8 text-center md:text-left animate-fade-in-up">
-                    <h1 className="font-serif text-3xl md:text-4xl text-warm-grey mb-2">
-                        Good Morning, <span className="text-warm-cocoa italic">{displayName}</span> ☁️
-                    </h1>
+                    <Greeting displayName={displayName} />
                     <p className="text-warm-grey/60">"She is clothed with strength and dignity..." — Proverbs 31:25</p>
                 </header>
 
@@ -99,54 +84,10 @@ export default async function UserHome(props: {
                     <div className="lg:col-span-4 flex flex-col gap-6">
 
                         {/* Grace & Glow (Daily Verse) */}
-                        <div className="group relative overflow-hidden glass-card p-6 rounded-3xl border border-white/60">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2 text-warm-cocoa">
-                                    <BookOpen className="w-4 h-4" />
-                                    <span className="text-xs font-bold uppercase tracking-widest">Grace & Glow</span>
-                                </div>
-                                <a href="/diaries" className="text-[10px] text-warm-grey/40 hover:text-warm-grey underline">Open Journal</a>
-                            </div>
-                            <h3 className="font-serif text-xl mb-2">Verse of the Day</h3>
-                            <p className="font-serif italic text-warm-grey/80 mb-4 h-16 line-clamp-3">
-                                "{dailyVerse.text}"
-                            </p>
-                            <p className="text-xs text-right text-warm-grey/40 mb-4">— {dailyVerse.reference}</p>
-                            <a href="/diaries" className="block w-full">
-                                <Button variant="outline" size="sm" className="w-full">Reflect & Journal</Button>
-                            </a>
-                        </div>
+                        <DailyVerseCard />
 
                         {/* Prayer Pocket (Requests) */}
-                        <div className="glass-card p-6 rounded-3xl border border-white/60">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2 text-muted-rose">
-                                    <Heart className="w-4 h-4" />
-                                    <span className="text-xs font-bold uppercase tracking-widest">Prayer Pocket</span>
-                                </div>
-                                <a href="/prayer-pocket" className="text-[10px] text-warm-grey/40 hover:text-warm-grey underline">View All</a>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="pb-3 border-b border-warm-grey/5 last:border-0 last:pb-0">
-                                    <p className="text-sm text-warm-grey mb-2">Please pray for my grandmother's surgery tomorrow. 🙏</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-warm-grey/40">Sarah J.</span>
-                                        <button className="text-[10px] bg-soft-blush/30 px-2 py-1 rounded-full text-warm-grey hover:bg-soft-blush transition-colors">
-                                            Praying (4)
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="pb-3 border-b border-warm-grey/5 last:border-0 last:pb-0">
-                                    <p className="text-sm text-warm-grey mb-2">Anxiety about finals week.</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-warm-grey/40">Mia K.</span>
-                                        <button className="text-[10px] bg-soft-blush/30 px-2 py-1 rounded-full text-warm-grey hover:bg-soft-blush transition-colors">
-                                            Praying (12)
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <PrayerRequestList />
 
                         {/* Velvet Vault (Discussions) */}
                         <div className="glass-card p-6 rounded-3xl border border-white/60 bg-gradient-to-b from-purple-50/30 to-transparent flex flex-col items-center text-center">
