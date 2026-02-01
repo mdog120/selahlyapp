@@ -110,8 +110,8 @@ export function CreateGroupModal({ onGroupCreated }: { onGroupCreated: () => voi
     };
 
     const filteredFriends = friends.filter(f =>
-        f.first_name.toLowerCase().includes(search.toLowerCase()) ||
-        f.last_name.toLowerCase().includes(search.toLowerCase())
+        (f.first_name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (f.last_name || "").toLowerCase().includes(search.toLowerCase())
     );
 
     return (

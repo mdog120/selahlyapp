@@ -97,7 +97,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                         name: g.group.name,
                         image_url: g.group.image_url,
                         type: 'group',
-                        lastMessage: lastMsg ? `${(lastMsg.sender as any).first_name}: ${lastMsg.content}` : "Group created",
+                        lastMessage: lastMsg ? `${(lastMsg.sender as any)?.first_name || "Sister"}: ${lastMsg.content}` : "Group created",
                         lastMessageTime: lastMsg?.created_at || g.created_at, // Fallback to group creation if no msg? Need group created_at but simpler to just use null or now
                         // actually fetch Groups table created_at if needed, but lastMsg check is fine
                     };

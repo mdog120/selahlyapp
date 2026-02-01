@@ -1,129 +1,130 @@
--- Create Groups Table
+-- Fix Infinite Recursion by using a Security Definer function
 create extension if not exists "pgcrypto";
 
+-- 1. Create helper function to get user's groups securely (Bypasses RLS recursion)
+create or replace function get_my_group_ids()
+returns setof uuid
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select group_id from group_members where user_id = auth.uid();
+$$;
+
+-- 2. Create Tables (Idempotent - ensures they exist before we drop policies on them)
 create table if not exists groups (
   id uuid default gen_random_uuid() primary key,
   name text not null,
-  admin_id uuid references auth.users(id) not null,
+  admin_id uuid references profiles(id) not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  image_url text -- Optional group avatar
+  image_url text
 );
 
--- Create Group Members Table
 create table if not exists group_members (
   group_id uuid references groups(id) on delete cascade not null,
-  user_id uuid references auth.users(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
   joined_at timestamp with time zone default timezone('utc'::text, now()) not null,
   primary key (group_id, user_id)
 );
 
--- Create Group Messages Table
 create table if not exists group_messages (
   id uuid default gen_random_uuid() primary key,
   group_id uuid references groups(id) on delete cascade not null,
-  sender_id uuid references auth.users(id) not null,
+  sender_id uuid references profiles(id) not null,
   content text not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  read_by jsonb default '[]'::jsonb, -- Array of user_ids who read it
-  reactions jsonb default '{}'::jsonb -- Similar to DMs
+  read_by jsonb default '[]'::jsonb,
+  reactions jsonb default '{}'::jsonb
 );
 
--- Enable RLS
+-- 3. Enable RLS
 alter table groups enable row level security;
 alter table group_members enable row level security;
 alter table group_messages enable row level security;
 
--- Policies
+-- 4. Drop potentially recursive policies (Clean slate)
+drop policy if exists "Groups are visible to members" on groups;
+drop policy if exists "Users can create groups" on groups;
+drop policy if exists "Admins can update group" on groups;
+drop policy if exists "Admins can delete group" on groups;
 
--- GROUPS: Visible if you are a member
+drop policy if exists "Members are visible to group members" on group_members;
+drop policy if exists "Admins can add members" on group_members;
+drop policy if exists "Admins remove or User leaves" on group_members;
+
+drop policy if exists "Messages visible to group members" on group_messages;
+drop policy if exists "Members can insert messages" on group_messages;
+drop policy if exists "Members can update messages" on group_messages;
+
+
+-- 5. Create Robust Policies
+
+-- GROUPS
 create policy "Groups are visible to members"
   on groups for select
   using (
-    exists (
-      select 1 from group_members
-      where group_members.group_id = groups.id
-      and group_members.user_id = auth.uid()
-    )
+    id in (select get_my_group_ids())
+    or admin_id = auth.uid()
   );
 
--- GROUPS: Insert allowed by authenticated users (Admin is set on creation)
 create policy "Users can create groups"
   on groups for insert
   with check (auth.uid() = admin_id);
 
--- GROUPS: Admin can update
 create policy "Admins can update group"
   on groups for update
   using (auth.uid() = admin_id);
+  
+create policy "Admins can delete group"
+  on groups for delete
+  using (auth.uid() = admin_id);
 
--- MEMBERS: Visible to other members of the same group
+-- MEMBERS
 create policy "Members are visible to group members"
   on group_members for select
   using (
-    exists (
-      select 1 from group_members as gm
-      where gm.group_id = group_members.group_id
-      and gm.user_id = auth.uid()
-    )
+    group_id in (select get_my_group_ids())
+    or exists (select 1 from groups where id = group_members.group_id and admin_id = auth.uid())
   );
 
--- MEMBERS: Insert allowed by Admin or Self (if invited? simplifying to Admin adds for now, or during creation)
--- Actually, we need to allow the creator to add themselves during creation.
--- And allow Admin to add others.
 create policy "Admins can add members"
   on group_members for insert
   with check (
     exists (
         select 1 from groups
-        where groups.id = group_members.group_id
-        and groups.admin_id = auth.uid()
-    ) 
-    OR 
-    (auth.uid() = user_id) -- Allow adding self (useful for initial creation transaction)
+        where id = group_members.group_id
+        and admin_id = auth.uid()
+    )
   );
 
--- MEMBERS: Admin can remove members, or member can remove themselves (leave)
 create policy "Admins remove or User leaves"
   on group_members for delete
   using (
     exists (
         select 1 from groups
-        where groups.id = group_members.group_id
-        and groups.admin_id = auth.uid()
+        where id = group_members.group_id
+        and admin_id = auth.uid()
     )
     OR
     auth.uid() = user_id
   );
 
--- MESSAGES: Visible to members
+-- MESSAGES
 create policy "Messages visible to group members"
   on group_messages for select
   using (
-    exists (
-      select 1 from group_members
-      where group_members.group_id = group_messages.group_id
-      and group_members.user_id = auth.uid()
-    )
+    group_id in (select get_my_group_ids())
   );
 
--- MESSAGES: Insert allowed by members
 create policy "Members can insert messages"
   on group_messages for insert
   with check (
-    exists (
-      select 1 from group_members
-      where group_members.group_id = group_messages.group_id
-      and group_members.user_id = auth.uid()
-    )
+    group_id in (select get_my_group_ids())
   );
     
--- MESSAGES: Update (for reactions/read receipts) allowed by members
 create policy "Members can update messages"
   on group_messages for update
   using (
-    exists (
-      select 1 from group_members
-      where group_members.group_id = group_messages.group_id
-      and group_members.user_id = auth.uid()
-    )
+    group_id in (select get_my_group_ids())
   );
