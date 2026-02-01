@@ -1,26 +1,15 @@
--- RESET GROUP CHAT TABLES
+-- RESET GROUP CHAT TABLES (FIXED ORDER)
 -- This script deletes all group data and recreates the tables with correct Foreign Keys.
--- Run this if you are experiencing "Foreign Key Violation", "400 Error", or "Cannot add member" issues.
+-- Run this to fix "Relation does not exist" or "Foreign Key" errors.
 
--- 1. Drop existing tables (CASCADE will remove policies and messages)
+-- 1. Drop existing tables (Start fresh)
 drop table if exists group_messages cascade;
 drop table if exists group_members cascade;
 drop table if exists groups cascade;
 
--- 2. Create helper function (Idempotent)
+-- 2. Create Tables (Must exist BEFORE function definition)
 create extension if not exists "pgcrypto";
 
-create or replace function get_my_group_ids()
-returns setof uuid
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select group_id from group_members where user_id = auth.uid();
-$$;
-
--- 3. Create Tables with CORRECT References to PROFILES
 create table groups (
   id uuid default gen_random_uuid() primary key,
   name text not null,
@@ -45,6 +34,17 @@ create table group_messages (
   read_by jsonb default '[]'::jsonb,
   reactions jsonb default '{}'::jsonb
 );
+
+-- 3. Create helper function (Now safe because tables exist)
+create or replace function get_my_group_ids()
+returns setof uuid
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select group_id from group_members where user_id = auth.uid();
+$$;
 
 -- 4. Enable RLS
 alter table groups enable row level security;

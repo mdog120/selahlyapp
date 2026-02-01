@@ -14,7 +14,7 @@ type Message = {
     sender_id: string;
     group_id: string; // Changed from receiver_id
     created_at: string;
-    // read_by: any[]; // handling read receipts in groups is complex, simplifying for now
+    read_by: string[];
     reactions: Record<string, 'bow' | 'dislike'>;
     sender?: {
         first_name: string;
@@ -135,11 +135,14 @@ export default function GroupChatPage() {
                     if (prev.some(m => m.id === newMsg.id)) return prev;
                     return [...prev, { ...newMsg, sender: sender as any }];
                 });
+
+                // Mark as read immediately if window is focused
+                markRead();
             })
             // Reactions update
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` }, (payload) => {
                 const updatedMsg = payload.new as Message;
-                setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, reactions: updatedMsg.reactions } : m));
+                setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, reactions: updatedMsg.reactions, read_by: updatedMsg.read_by } : m));
             })
             .subscribe();
 
@@ -147,6 +150,16 @@ export default function GroupChatPage() {
             supabase.removeChannel(channel);
         };
     }, [groupId, currentUser]);
+
+    // Mark read on load or view
+    const markRead = async () => {
+        if (!groupId || !currentUser) return;
+        await supabase.rpc('mark_group_messages_read', { p_group_id: groupId });
+    };
+
+    useEffect(() => {
+        markRead();
+    }, [messages.length, groupId]); // Mark read when messages update (load newly arrived)
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -200,6 +213,7 @@ export default function GroupChatPage() {
             group_id: groupId,
             created_at: new Date().toISOString(),
             reactions: {},
+            read_by: [],
             sender: {
                 first_name: currentUser.user_metadata?.first_name || "Me",
                 avatar_url: currentUser.user_metadata?.avatar_url || ""
