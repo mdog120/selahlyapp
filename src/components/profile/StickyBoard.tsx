@@ -39,9 +39,10 @@ export function StickyBoard({ profileId, isOwner, viewerId }: StickyBoardProps) 
     const supabase = createClient();
 
     const fetchStickies = async () => {
+        // Use !author_id to specify which FK to use for the join (resolves ambiguity)
         const { data, error } = await supabase
             .from('profile_stickies')
-            .select('*, author:profiles(first_name, last_name)')
+            .select('*, author:profiles!author_id(first_name, last_name)')
             .eq('profile_id', profileId)
             .order('created_at', { ascending: false });
 
