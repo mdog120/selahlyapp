@@ -86,7 +86,7 @@ export default function Onboarding() {
             if (error) throw error;
 
             // Redirect to home/dashboard
-            router.push("/dashboard"); // or /home depending on final structure
+            router.push("/home"); // or /home depending on final structure
         } catch (error) {
             console.error("Error accepting code of conduct:", error);
             setSubmitting(false);
