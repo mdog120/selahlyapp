@@ -162,10 +162,11 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
         };
     }, []);
 
-    const filteredFriends = friends.filter(friend =>
-        friend.first_name.toLowerCase().includes(search.toLowerCase()) ||
-        friend.last_name.toLowerCase().includes(search.toLowerCase()) ||
-        friend.username.toLowerCase().includes(search.toLowerCase())
+    const filteredFriends = friends.filter((friend: any) =>
+        (friend.first_name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (friend.last_name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (friend.username || "").toLowerCase().includes(search.toLowerCase()) ||
+        (friend.name || "").toLowerCase().includes(search.toLowerCase()) // For groups
     );
 
     return (
