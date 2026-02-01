@@ -1,4 +1,6 @@
 -- Create Groups Table
+create extension if not exists "pgcrypto";
+
 create table if not exists groups (
   id uuid default gen_random_uuid() primary key,
   name text not null,

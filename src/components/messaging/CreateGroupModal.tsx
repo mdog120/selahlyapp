@@ -81,7 +81,8 @@ export function CreateGroupModal({ onGroupCreated }: { onGroupCreated: () => voi
             .single();
 
         if (groupError || !group) {
-            alert("Failed to create group");
+            console.error("Group creation error:", groupError);
+            alert(`Failed to create group: ${groupError?.message || "Unknown error"}`);
             setLoading(false);
             return;
         }
