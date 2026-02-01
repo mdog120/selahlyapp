@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Search, Circle } from "lucide-react";
+import { Search, Circle, Users } from "lucide-react";
+import { CreateGroupModal } from "./CreateGroupModal";
 
 type Friend = {
     id: string;
@@ -32,7 +33,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // 1. Fetch Friends
+            // 1. Fetch Friends (DMs)
             const { data: friendshipsData } = await supabase
                 .from("friendships")
                 .select(`
@@ -44,13 +45,15 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                 .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
                 .eq("status", "accepted");
 
+            let conversationList: any[] = [];
+
             if (friendshipsData) {
                 const friendList = friendshipsData.map((f: any) => {
-                    if (f.user_id_1 === user.id) return f.user2;
-                    return f.user1;
+                    const friend = f.user_id_1 === user.id ? f.user2 : f.user1;
+                    return { ...friend, type: 'dm' };
                 });
 
-                // 2. Fetch Last Message for each friend (Parallel)
+                // Fetch Last Message for each friend
                 const friendsWithMsg = await Promise.all(friendList.map(async (friend: any) => {
                     const { data: lastMsg } = await supabase
                         .from("direct_messages")
@@ -67,16 +70,49 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                         lastSenderId: lastMsg?.sender_id
                     };
                 }));
-
-                // Sort by last message time
-                friendsWithMsg.sort((a, b) => {
-                    const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
-                    const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
-                    return timeB - timeA;
-                });
-
-                setFriends(friendsWithMsg);
+                conversationList = [...friendsWithMsg];
             }
+
+            // 2. Fetch Groups
+            const { data: userGroups } = await supabase
+                .from("group_members")
+                .select(`
+                    group_id,
+                    group:groups!group_members_group_id_fkey(id, name, image_url)
+                `)
+                .eq("user_id", user.id);
+
+            if (userGroups) {
+                const groupsWithMsg = await Promise.all(userGroups.map(async (g: any) => {
+                    const { data: lastMsg } = await supabase
+                        .from("group_messages")
+                        .select("content, created_at, sender_id, sender:profiles!group_messages_sender_id_fkey(first_name)")
+                        .eq("group_id", g.group.id)
+                        .order("created_at", { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    return {
+                        id: g.group.id,
+                        name: g.group.name,
+                        image_url: g.group.image_url,
+                        type: 'group',
+                        lastMessage: lastMsg ? `${(lastMsg.sender as any).first_name}: ${lastMsg.content}` : "Group created",
+                        lastMessageTime: lastMsg?.created_at || g.created_at, // Fallback to group creation if no msg? Need group created_at but simpler to just use null or now
+                        // actually fetch Groups table created_at if needed, but lastMsg check is fine
+                    };
+                }));
+                conversationList = [...conversationList, ...groupsWithMsg];
+            }
+
+            // Sort by last message time
+            conversationList.sort((a, b) => {
+                const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+                const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+                return timeB - timeA;
+            });
+
+            setFriends(conversationList);
             setLoading(false);
         };
         fetchFriendsAndMessages();
@@ -135,12 +171,15 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
     return (
         <div className={`flex flex-col h-full bg-white border-r border-warm-grey/5 ${className}`}>
             <div className="p-4 border-b border-warm-grey/5">
-                <h2 className="font-serif text-xl text-warm-cocoa mb-4">Messages</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="font-serif text-xl text-warm-cocoa">Messages</h2>
+                    <CreateGroupModal onGroupCreated={() => window.location.reload()} />
+                </div>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-grey/40" />
                     <input
                         type="text"
-                        placeholder="Search friends..."
+                        placeholder="Search..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 bg-stone-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-muted-rose/20 text-warm-grey"
@@ -153,51 +192,59 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                     <div className="p-4 text-center text-xs text-warm-grey/40">Loading conversations...</div>
                 ) : filteredFriends.length === 0 ? (
                     <div className="p-8 text-center text-warm-grey/40 text-sm">
-                        No friends found.
+                        No conversations found.
                         <br />
                         <Link href="/search" className="text-muted-rose hover:underline mt-2 inline-block">Find sisters</Link>
                     </div>
                 ) : (
-                    filteredFriends.map(friend => {
-                        const isActive = pathname === `/messages/${friend.id}`;
-                        const hasMessage = !!friend.lastMessage;
+                    filteredFriends.map((item: any) => {
+                        const isGroup = item.type === 'group';
+                        const linkHref = isGroup ? `/messages/group/${item.id}` : `/messages/${item.id}`;
+                        const isActive = pathname === linkHref;
+                        const hasMessage = !!item.lastMessage;
 
                         return (
                             <Link
-                                key={friend.id}
-                                href={`/messages/${friend.id}`}
+                                key={item.id}
+                                href={linkHref}
                                 className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${isActive ? "bg-soft-blush/20" : "hover:bg-stone-50"
                                     }`}
                             >
                                 <div className="relative">
                                     <div className="w-12 h-12 rounded-full bg-stone-200 overflow-hidden border border-white shadow-sm flex items-center justify-center flex-shrink-0">
-                                        {friend.avatar_url ? (
-                                            <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover" />
+                                        {isGroup ? (
+                                            <div className="w-full h-full bg-muted-rose/10 flex items-center justify-center text-muted-rose">
+                                                <Users className="w-6 h-6" />
+                                            </div>
+                                        ) : item.avatar_url ? (
+                                            <img src={item.avatar_url} alt={item.username} className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="text-warm-grey text-lg font-serif">
-                                                {(friend.first_name?.[0] || friend.username?.[0] || "?").toUpperCase()}
+                                                {(item.first_name?.[0] || item.username?.[0] || "?").toUpperCase()}
                                             </span>
                                         )}
                                     </div>
-                                    {/* Online indicator placeholder (requires global presence or similar check, omitted for simplicity in sidebar for now) */}
+                                    {/* Online indicator placeholder */}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-baseline mb-0.5">
-                                        <p className="font-bold text-warm-grey text-sm truncate">{friend.first_name} {friend.last_name}</p>
-                                        {friend.lastMessageTime && (
+                                        <p className="font-bold text-warm-grey text-sm truncate">
+                                            {isGroup ? item.name : `${item.first_name} ${item.last_name}`}
+                                        </p>
+                                        {item.lastMessageTime && (
                                             <span className="text-[10px] text-warm-grey/40 flex-shrink-0 ml-2">
-                                                {new Date(friend.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(item.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         )}
                                     </div>
                                     <p className={`text-xs truncate ${isActive ? "text-warm-grey/80" : "text-warm-grey/60"}`}>
                                         {hasMessage ? (
                                             <span>
-                                                {friend.lastSenderId !== friend.id && "You: "}
-                                                {friend.lastMessage}
+                                                {!isGroup && item.lastSenderId !== item.id && "You: "}
+                                                {item.lastMessage}
                                             </span>
                                         ) : (
-                                            <span className="italic opacity-70">Click to start chatting</span>
+                                            <span className="italic opacity-70">Start chatting</span>
                                         )}
                                     </p>
                                 </div>
