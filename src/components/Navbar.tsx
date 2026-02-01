@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { Menu, Heart, Bell, X, Search, User, Settings, LogOut, MessageCircle } from "lucide-react";
 import { NotificationDropdown } from "./NotificationDropdown";
-import { SelahOverlay } from "./selah/SelahOverlay";
 
 export function Navbar() {
     const pathname = usePathname();
@@ -15,7 +14,6 @@ export function Navbar() {
 
     // State
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isSelahOpen, setIsSelahOpen] = useState(false);
     const [userProfile, setUserProfile] = useState<{ name: string, email: string } | null>(null);
     const supabase = createClient();
 
@@ -37,7 +35,6 @@ export function Navbar() {
     // Close menu when route changes
     useEffect(() => {
         setIsMenuOpen(false);
-        setIsSelahOpen(false);
     }, [pathname]);
 
     // Close menu when clicking outside
@@ -80,24 +77,10 @@ export function Navbar() {
                     <Link href="/velvet-vault" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/velvet-vault' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
                         The Vault
                     </Link>
-                    <Link href="/vibe-board" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/vibe-board' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
-                        Vibes
-                    </Link>
                 </div>
 
                 {/* Right Actions */}
                 <div className="flex items-center gap-2 md:gap-4">
-                    {/* Selah Moment Button */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-10 h-10 rounded-full hover:bg-soft-sage/20 text-warm-grey/70 transition-colors"
-                        onClick={() => setIsSelahOpen(true)}
-                        title="Take a moment to breathe"
-                    >
-                        <span className="text-lg">☁️</span>
-                    </Button>
-
                     {/* Search Link */}
                     <Link href="/search" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors">
                         <Search className="w-5 h-5" />
@@ -171,8 +154,6 @@ export function Navbar() {
                 </div>
             </div>
 
-            {/* Selah Overlay */}
-            <SelahOverlay isOpen={isSelahOpen} onClose={() => setIsSelahOpen(false)} />
         </nav>
     );
 }
