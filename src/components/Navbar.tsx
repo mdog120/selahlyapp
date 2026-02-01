@@ -77,6 +77,9 @@ export function Navbar() {
                     <Link href="/velvet-vault" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/velvet-vault' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
                         The Vault
                     </Link>
+                    <Link href="/vibe-board" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/vibe-board' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
+                        Vibes
+                    </Link>
                 </div>
 
                 {/* Right Actions */}
