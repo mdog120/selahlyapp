@@ -8,6 +8,7 @@ import { Search } from "lucide-react";
 
 type Thread = {
     id: string;
+    user_id: string;
     title: string;
     category: string; // "Faith", "Relationships", etc
     message_count: number;
@@ -33,6 +34,7 @@ export function VaultFeed() {
             .from("threads")
             .select(`
                 *,
+                user_id,
                 author:profiles!threads_user_id_fkey (username, first_name, last_name, avatar_url)
             `)
             .order("created_at", { ascending: false });
