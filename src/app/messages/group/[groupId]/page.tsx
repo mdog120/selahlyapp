@@ -329,6 +329,24 @@ export default function GroupChatPage() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Read Receipts */}
+                                {msg.read_by && msg.read_by.length > 0 && (
+                                    <div className={`text-[9px] text-warm-grey/40 mt-1 px-1 ${isMe ? 'text-right mr-1' : 'ml-10'}`}>
+                                        {(() => {
+                                            const readers = (msg.read_by || [])
+                                                .filter((uid: string) => uid !== currentUser?.id && uid !== msg.sender_id) // Exclude me and sender
+                                                .map((uid: string) => {
+                                                    const member = group?.members?.find(m => m.user_id === uid);
+                                                    return member?.profile?.first_name;
+                                                })
+                                                .filter(Boolean); // Remove nulls
+
+                                            if (readers.length === 0) return null;
+                                            return `Read by ${readers.join(", ")}`;
+                                        })()}
+                                    </div>
+                                )}
                             </div>
                         );
                     })
