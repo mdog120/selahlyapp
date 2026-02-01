@@ -158,8 +158,10 @@ export default function GroupChatPage() {
     };
 
     useEffect(() => {
-        markRead();
-    }, [messages.length, groupId]); // Mark read when messages update (load newly arrived)
+        if (currentUser && groupId) {
+            markRead();
+        }
+    }, [messages.length, groupId, currentUser?.id]); // Retry when user loads
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
