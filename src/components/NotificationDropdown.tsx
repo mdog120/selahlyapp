@@ -113,7 +113,7 @@ export function NotificationDropdown() {
         if (n.type === 'friend_request') return `/profile/${n.actor?.username || "user"}`;
         if (n.type === 'message') return `/messages/${n.actor_id}`; // Correctly use UUID
         // For feeds, we might just go to base page if we don't have single post view yet
-        return `/lily-pad`;
+        return `/home`;
     };
 
     return (
