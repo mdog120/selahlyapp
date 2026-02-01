@@ -15,7 +15,7 @@ export function AddVibe({ onVibeAdded }: { onVibeAdded: () => void }) {
     const supabase = createClient();
 
     // Ordered same as filters but without "All"
-    const categories = ["Music", "Podcast", "Video", "Influencer"];
+    const categories = ["Music", "Podcast", "Video", "Influencer", "Product"];
 
     const handleAdd = async () => {
         if (!title.trim() || !url.trim()) return;
@@ -104,8 +104,8 @@ export function AddVibe({ onVibeAdded }: { onVibeAdded: () => void }) {
                                             key={cat}
                                             onClick={() => setCategory(cat)}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${category === cat
-                                                    ? "bg-sage-green text-white shadow-md shadow-sage-green/20"
-                                                    : "bg-stone-100 text-warm-grey/60 hover:bg-stone-200"
+                                                ? "bg-sage-green text-white shadow-md shadow-sage-green/20"
+                                                : "bg-stone-100 text-warm-grey/60 hover:bg-stone-200"
                                                 }`}
                                         >
                                             {cat}

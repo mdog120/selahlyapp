@@ -52,7 +52,7 @@ export function VibeFeed() {
         ? vibes
         : vibes.filter(v => v.category === filter);
 
-    const filters = ["All", "Music", "Podcast", "Video", "Influencer"];
+    const filters = ["All", "Music", "Podcast", "Video", "Influencer", "Product"];
 
     return (
         <div className="flex flex-col gap-8">
@@ -64,8 +64,8 @@ export function VibeFeed() {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-4 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap ${filter === f
-                                    ? "bg-sage-green text-white shadow-md shadow-sage-green/20"
-                                    : "bg-white text-warm-grey hover:bg-stone-50"
+                                ? "bg-sage-green text-white shadow-md shadow-sage-green/20"
+                                : "bg-white text-warm-grey hover:bg-stone-50"
                                 }`}
                         >
                             {f}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Youtube, Mic, Music, Users, ExternalLink, Play, Share2 } from "lucide-react";
+import { Youtube, Mic, Music, Users, ExternalLink, Play, Share2, ShoppingBag } from "lucide-react";
 import { ShareModal } from "../messaging/ShareModal";
 import { formatDistanceToNow } from "date-fns";
 
@@ -30,6 +30,7 @@ export function VibeCard({ vibe }: { vibe: Vibe }) {
             case "Podcast": return <Mic className="w-5 h-5" />;
             case "Music": return <Music className="w-5 h-5" />;
             case "Influencer": return <Users className="w-5 h-5" />;
+            case "Product": return <ShoppingBag className="w-5 h-5" />;
             default: return <ExternalLink className="w-5 h-5" />;
         }
     };
@@ -40,6 +41,7 @@ export function VibeCard({ vibe }: { vibe: Vibe }) {
             case "Podcast": return "bg-purple-50 text-purple-500 border-purple-100";
             case "Music": return "bg-blue-50 text-blue-500 border-blue-100";
             case "Influencer": return "bg-orange-50 text-orange-500 border-orange-100";
+            case "Product": return "bg-rose-50 text-rose-500 border-rose-100";
             default: return "bg-stone-50 text-warm-grey border-stone-200";
         }
     };

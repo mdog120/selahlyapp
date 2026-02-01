@@ -2,7 +2,6 @@
 
 import { Navbar } from "@/components/Navbar";
 import { VibeFeed } from "@/components/vibe/VibeFeed";
-import { MannaMachine } from "@/components/manna/MannaMachine";
 import { Sparkles } from "lucide-react";
 
 export default function VibeBoardPage() {
@@ -26,10 +25,6 @@ export default function VibeBoardPage() {
                 </div>
 
                 {/* Manna Machine */}
-                <div className="mb-16 animate-fade-in-up delay-100">
-                    <MannaMachine />
-                </div>
-
                 {/* Feed */}
                 <VibeFeed />
             </main>
