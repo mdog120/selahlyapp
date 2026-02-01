@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { formatDistanceToNow } from "date-fns";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { StickyBoard } from "@/components/profile/StickyBoard";
 
 type Profile = {
     id: string;
@@ -294,6 +295,15 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 )}
+
+                {/* Sticky Board */}
+                <div className="mb-12">
+                    <StickyBoard
+                        profileId={profile.id}
+                        isOwner={currentUser?.id === profile.id}
+                        viewerId={currentUser?.id}
+                    />
+                </div>
 
                 {/* Content Tabs */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

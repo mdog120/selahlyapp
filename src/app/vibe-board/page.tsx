@@ -2,7 +2,8 @@
 
 import { Navbar } from "@/components/Navbar";
 import { VibeFeed } from "@/components/vibe/VibeFeed";
-import { Sparkles, Music, Youtube, Mic, Users, Link as LinkIcon } from "lucide-react";
+import { MannaMachine } from "@/components/manna/MannaMachine";
+import { Sparkles } from "lucide-react";
 
 export default function VibeBoardPage() {
     return (
@@ -22,6 +23,11 @@ export default function VibeBoardPage() {
                         Discover music, podcasts, and creators that help you grow.
                         Share what's inspiring you lately. 🌱
                     </p>
+                </div>
+
+                {/* Manna Machine */}
+                <div className="mb-16 animate-fade-in-up delay-100">
+                    <MannaMachine />
                 </div>
 
                 {/* Feed */}
