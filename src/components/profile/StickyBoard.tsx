@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Trash2, Lock } from "lucide-react";
 import { format } from "date-fns";
-import { AddStickyModal } from "./AddStickyModal";
+import { AddStickyModal } from "@/components/profile/AddStickyModal";
 
 interface Sticky {
     id: string;

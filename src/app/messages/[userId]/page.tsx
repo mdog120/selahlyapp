@@ -273,24 +273,28 @@ export default function ChatPage() {
                     </Link>
 
                     <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-stone-200 overflow-hidden border border-white shadow-sm">
-                            {otherUser?.avatar_url ? (
-                                <img src={otherUser.avatar_url} alt={otherUser.username} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-warm-grey font-serif">
-                                    {otherUser?.first_name?.[0]}
-                                </div>
-                            )}
-                        </div>
+                        <Link href={`/profile/${otherUser?.username || otherUserId}`}>
+                            <div className="w-10 h-10 rounded-full bg-stone-200 overflow-hidden border border-white shadow-sm hover:opacity-90 transition-opacity">
+                                {otherUser?.avatar_url ? (
+                                    <img src={otherUser.avatar_url} alt={otherUser.username} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-warm-grey font-serif">
+                                        {otherUser?.first_name?.[0]}
+                                    </div>
+                                )}
+                            </div>
+                        </Link>
                         {/* Real Presence Indicator */}
                         {isOnline && (
                             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full animate-pulse-slow"></div>
                         )}
                     </div>
                     <div>
-                        <h1 className="font-bold text-warm-grey text-sm">
-                            {otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : "Sister"}
-                        </h1>
+                        <Link href={`/profile/${otherUser?.username || otherUserId}`} className="hover:underline decoration-warm-grey/40">
+                            <h1 className="font-bold text-warm-grey text-sm">
+                                {otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : "Sister"}
+                            </h1>
+                        </Link>
                         <p className="text-xs text-warm-grey/40 font-medium">
                             {isOnline ? "Online Now" : "Offline"}
                         </p>

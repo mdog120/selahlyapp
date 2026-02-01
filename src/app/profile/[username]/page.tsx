@@ -32,6 +32,7 @@ export default function ProfilePage() {
     const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'accepted' | 'self'>('none');
     const [requests, setRequests] = useState<any[]>([]);
     const [friends, setFriends] = useState<any[]>([]);
+    const [recentPosts, setRecentPosts] = useState<any[]>([]);
 
     const supabase = createClient();
 
@@ -101,6 +102,18 @@ export default function ProfilePage() {
                         return f.user1;
                     });
                     setFriends(friendList);
+                }
+
+                // 3. Fetch Recent Posts
+                const { data: postsData } = await supabase
+                    .from("posts")
+                    .select("*")
+                    .eq("user_id", profileData.id)
+                    .order("created_at", { ascending: false })
+                    .limit(5);
+
+                if (postsData) {
+                    setRecentPosts(postsData);
                 }
             }
             setLoading(false);
@@ -345,9 +358,35 @@ export default function ProfilePage() {
                     <div className="md:col-span-2">
                         <div className="bg-white/60 p-6 rounded-3xl border border-white min-h-[200px]">
                             <h3 className="font-serif text-lg text-warm-cocoa mb-4">Recent Activity</h3>
-                            <div className="text-center py-12 text-warm-grey/40 text-sm">
-                                No public activity to show.
-                            </div>
+
+                            {loading ? (
+                                <div className="text-center py-12 text-warm-grey/40 text-sm animate-pulse">
+                                    Loading activity...
+                                </div>
+                            ) : recentPosts.length === 0 ? (
+                                <div className="text-center py-12 text-warm-grey/40 text-sm">
+                                    No public activity to show.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {recentPosts.map((post) => (
+                                        <div key={post.id} className="bg-white p-4 rounded-2xl shadow-sm border border-warm-grey/5 flex gap-4">
+                                            {post.image_url && (
+                                                <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100">
+                                                    <img src={post.image_url} alt="Post" className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-warm-grey text-sm mb-2 line-clamp-3">{post.caption}</p>
+                                                <p className="text-xs text-warm-grey/40 flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
