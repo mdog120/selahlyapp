@@ -7,6 +7,7 @@ import { Search, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { SuggestedFriends } from "@/components/social/SuggestedFriends";
 
 type Profile = {
     id: string;
@@ -96,6 +97,8 @@ function SearchPageContent() {
                         {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
                     </Button>
                 </form>
+
+                {!query && !searching && <SuggestedFriends />}
 
                 <div className="space-y-4">
                     {results.length > 0 ? (
