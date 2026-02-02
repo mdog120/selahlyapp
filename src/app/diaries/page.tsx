@@ -200,13 +200,13 @@ export default function Diaries() {
                 </div>
 
                 {/* Past Reflections Section */}
-                {history.length > 0 && (
-                    <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                        <div className="flex items-center gap-3 mb-8">
-                            <BookOpen className="w-6 h-6 text-warm-cocoa" />
-                            <h2 className="font-serif text-3xl text-warm-cocoa">Past Reflection</h2>
-                        </div>
+                <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                    <div className="flex items-center gap-3 mb-8">
+                        <BookOpen className="w-6 h-6 text-warm-cocoa" />
+                        <h2 className="font-serif text-3xl text-warm-cocoa">Past Reflection</h2>
+                    </div>
 
+                    {history.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {history.map((entry) => (
                                 <div key={entry.id} className="glass-card p-6 rounded-2xl border border-white/60 hover:shadow-md transition-all duration-300 group">
@@ -229,8 +229,14 @@ export default function Diaries() {
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="text-center py-12 bg-white/30 rounded-3xl border border-white/40 dashed-border">
+                            <BookOpen className="w-12 h-12 text-warm-grey/20 mx-auto mb-4" />
+                            <p className="font-serif text-warm-grey text-xl italic mb-2">Your journey begins today.</p>
+                            <p className="text-sm text-warm-grey/60">Journal entries you save will appear here.</p>
+                        </div>
+                    )}
+                </div>
             </main>
         </div>
     );
