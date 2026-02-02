@@ -16,6 +16,9 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Selahly | Digital Sanctuary",
   description: "A peaceful digital pause for faith, sisterhood, and inspiration.",
+  icons: {
+    icon: '/brand-icon.png',
+  },
 };
 
 export default function RootLayout({
