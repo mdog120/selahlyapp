@@ -12,6 +12,13 @@ type Verse = {
     text: string;
 };
 
+type HistoryEntry = {
+    id: string;
+    content: string;
+    verse_reference: string;
+    created_at: string;
+};
+
 export default function Diaries() {
     const [verse, setVerse] = useState<Verse | null>(null);
     const [entry, setEntry] = useState("");
@@ -21,6 +28,7 @@ export default function Diaries() {
     const [streak, setStreak] = useState(0);
     const [hasJournaledToday, setHasJournaledToday] = useState(false);
     const [animatingStreak, setAnimatingStreak] = useState(false);
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
 
     const supabase = createClient();
 
@@ -56,6 +64,18 @@ export default function Diaries() {
                 }
             }
         }
+
+        // 3. Load Journal History
+        const { data: diaries } = await supabase
+            .from("diaries")
+            .select("id, content, verse_reference, created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false });
+
+        if (diaries) {
+            setHistory(diaries);
+        }
+
         setLoading(false);
         setLoadingStreak(false);
     };
@@ -178,6 +198,39 @@ export default function Diaries() {
                         </div>
                     </div>
                 </div>
+
+                {/* Past Reflections Section */}
+                {history.length > 0 && (
+                    <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                        <div className="flex items-center gap-3 mb-8">
+                            <BookOpen className="w-6 h-6 text-warm-cocoa" />
+                            <h2 className="font-serif text-3xl text-warm-cocoa">Past Reflection</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {history.map((entry) => (
+                                <div key={entry.id} className="glass-card p-6 rounded-2xl border border-white/60 hover:shadow-md transition-all duration-300 group">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className="text-xs font-bold uppercase tracking-widest text-sage-green">
+                                            {new Date(entry.created_at).toLocaleDateString('en-US', {
+                                                weekday: 'short',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            })}
+                                        </span>
+                                        <span className="text-xs text-warm-grey/40 font-serif italic">
+                                            {entry.verse_reference || "No Verse"}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-warm-grey font-serif leading-relaxed line-clamp-4 group-hover:line-clamp-none transition-all">
+                                        {entry.content}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
