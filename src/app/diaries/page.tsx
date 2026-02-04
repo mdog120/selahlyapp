@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { BookOpen, PenLine, Save, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -149,6 +150,12 @@ export default function Diaries() {
                                     "{verse?.text?.trim()}"
                                 </p>
                                 <p className="font-medium text-warm-cocoa">— {verse?.reference}</p>
+                                <Link
+                                    href={`/bible?book=${encodeURIComponent(verse?.reference.split(' ')[0] || '')}&chapter=${encodeURIComponent(verse?.reference.split(' ')[1]?.split(':')[0] || '1')}`}
+                                    className="inline-flex items-center gap-1 mt-4 text-xs font-serif italic text-warm-grey/60 hover:text-warm-cocoa transition-colors"
+                                >
+                                    <BookOpen className="w-3 h-3" /> Read Full Chapter
+                                </Link>
                             </div>
                         )}
                         <BookOpen className="absolute -bottom-10 -right-10 w-48 h-48 text-sage-green/5 -rotate-12 pointer-events-none" />

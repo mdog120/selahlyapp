@@ -5,12 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { Menu, Heart, Bell, X, Search, User, Settings, LogOut, MessageCircle } from "lucide-react";
+import { Menu, Heart, Bell, X, Search, User, Settings, LogOut, MessageCircle, BookOpen } from "lucide-react";
 import { NotificationDropdown } from "./NotificationDropdown";
 
 export function Navbar() {
     const pathname = usePathname();
-    const isPublicPage = pathname === "/" || pathname === "/transition" || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding";
+    const isPublicPage = pathname === "/" || pathname === "/transition" || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || pathname?.startsWith("/legal");
 
     // State
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -84,6 +84,11 @@ export function Navbar() {
 
                 {/* Right Actions */}
                 <div className="flex items-center gap-2 md:gap-4">
+                    {/* Bible Widget */}
+                    <Link href="/bible" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors" title="Read Bible">
+                        <BookOpen className="w-5 h-5" />
+                    </Link>
+
                     {/* Search Link */}
                     <Link href="/search" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors">
                         <Search className="w-5 h-5" />
