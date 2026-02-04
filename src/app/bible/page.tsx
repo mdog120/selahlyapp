@@ -12,7 +12,13 @@ const BOOKS = [
     "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
 ];
 
-export default function BiblePage() {
+import { Suspense } from "react";
+
+// ... existing imports ...
+
+// ... existing constants ...
+
+function BiblePageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -38,10 +44,6 @@ export default function BiblePage() {
     };
 
     const nextChapter = () => {
-        // Simple logic: increment chapter. Handling end-of-book requires knowing chapter counts.
-        // For MVP, we'll just increment and let the API return error or handling.
-        // Better: check API response for "next_chapter" (bible-api.com doesn't send structure, just text).
-        // We'll iterate happily.
         handleNavigate(book, chapter + 1);
     };
 
@@ -96,5 +98,13 @@ export default function BiblePage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function BiblePage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-warm-paper flex items-center justify-center text-warm-grey">Loading Scripture...</div>}>
+            <BiblePageContent />
+        </Suspense>
     );
 }
