@@ -17,7 +17,14 @@ type Note = {
         avatar_url: string;
         username?: string;
     };
-    note_likes: { user_id: string }[];
+    note_likes: {
+        user_id: string;
+        profiles: {
+            first_name: string;
+            avatar_url: string;
+            username?: string;
+        };
+    }[];
 };
 
 export function SelahlyNotes() {
@@ -25,13 +32,19 @@ export function SelahlyNotes() {
     const [loading, setLoading] = useState(true);
     const [newNote, setNewNote] = useState("");
     const [userId, setUserId] = useState<string | null>(null);
+    const [userProfile, setUserProfile] = useState<{ first_name: string; avatar_url: string; username?: string } | null>(null);
     const [isOpen, setIsOpen] = useState(false);
 
     const supabase = createClient();
 
     const fetchNotes = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) setUserId(user.id);
+        if (user) {
+            setUserId(user.id);
+            // Fetch own profile for optimistic updates
+            const { data: profile } = await supabase.from('profiles').select('first_name, avatar_url, username').eq('id', user.id).single();
+            if (profile) setUserProfile(profile);
+        }
 
         console.log("Fetching notes...");
         const { data, error } = await supabase
@@ -39,7 +52,10 @@ export function SelahlyNotes() {
             .select(`
                 id, content, style, created_at, user_id, expires_at,
                 profiles!notes_user_id_fkey_profiles (first_name, avatar_url, username),
-                note_likes (user_id)
+                note_likes (
+                    user_id,
+                    profiles (first_name, avatar_url, username)
+                )
             `)
             .gt('expires_at', new Date().toISOString()) // Only active notes
             .order('created_at', { ascending: false });
@@ -132,16 +148,33 @@ export function SelahlyNotes() {
 
         // Optimistic Update
         const isLiked = note.note_likes.some(l => l.user_id === userId);
+
+        const newLike = {
+            user_id: userId,
+            profiles: {
+                first_name: userProfile?.first_name || 'You',
+                avatar_url: userProfile?.avatar_url || '',
+                username: userProfile?.username
+            }
+        };
+
         const updatedLikes = isLiked
             ? note.note_likes.filter(l => l.user_id !== userId)
-            : [...note.note_likes, { user_id: userId }];
+            : [...note.note_likes, newLike];
 
         setNotes(prev => prev.map(n => n.id === note.id ? { ...n, note_likes: updatedLikes } : n));
 
         if (isLiked) {
             await supabase.from('note_likes').delete().eq('note_id', note.id).eq('user_id', userId);
         } else {
+            // We can't optimistically adding full profile easily without fetching it, 
+            // but we can try if we had current user profile stored.
+            // For now, let's just do the insert and re-fetch or live with partial data until refresh.
+            // Actually, the main fetch has the data structure we need.
+
             await supabase.from('note_likes').insert({ note_id: note.id, user_id: userId });
+            // Fetch to get the full joined data correctly so the modal shows the name immediately if I open it
+            fetchNotes();
         }
         // No need to refetch immediately for this interaction usually, relying on optimistic
     };
@@ -267,6 +300,39 @@ export function SelahlyNotes() {
                                 className="w-full bg-gray-50 border-none rounded-xl p-4 text-sm focus:ring-1 focus:ring-warm-cocoa/20 mb-4 h-32 resize-none"
                                 maxLength={60} // Instagram notes are short
                             />
+
+                            {/* Likers List (If My Note) */}
+                            {myNote && myNote.note_likes?.length > 0 && (
+                                <div className="mb-4 pt-4 border-t border-warm-grey/10">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Heart className="w-4 h-4 fill-muted-rose text-muted-rose" />
+                                        <span className="text-xs font-serif text-warm-cocoa">
+                                            Liked by {myNote.note_likes.length} sister{myNote.note_likes.length !== 1 && 's'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
+                                        {myNote.note_likes.map((like) => (
+                                            <a
+                                                key={like.user_id}
+                                                href={`/profile/${like.profiles.username || like.user_id}`}
+                                                className="flex items-center gap-2 p-1 rounded-lg hover:bg-stone-50 transition-colors"
+                                            >
+                                                <div className="w-6 h-6 rounded-full bg-stone-100 overflow-hidden shrink-0">
+                                                    {like.profiles.avatar_url ? (
+                                                        <img src={like.profiles.avatar_url} alt={like.profiles.first_name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-warm-grey/40">
+                                                            {like.profiles.first_name?.[0]}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-warm-grey truncate">{like.profiles.first_name}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex justify-end gap-2">
                                 <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>Cancel</Button>
                                 <Button size="sm" onClick={handleCreateNote}>{myNote ? "Update" : "Share"}</Button>
