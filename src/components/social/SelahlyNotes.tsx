@@ -36,7 +36,7 @@ export function SelahlyNotes() {
             .from('notes')
             .select(`
                 id, content, style, created_at, user_id, expires_at,
-                profiles!notes_user_id_fkey_profiles (first_name, avatar_url)
+                profiles!notes_user_id_fkey_profiles (first_name, avatar_url, username)
             `)
             .gt('expires_at', new Date().toISOString()) // Only active notes
             .order('created_at', { ascending: false });
@@ -74,22 +74,50 @@ export function SelahlyNotes() {
             return;
         }
 
-        console.log("Creating note for user:", userId);
+        console.log("Creating/Updating note for user:", userId);
 
-        const { error } = await supabase.from('notes').insert({
-            user_id: userId,
-            content: newNote,
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        });
+        let error;
+
+        // Check for existing notes to update instead of create
+        const existingNotes = notes.filter(n => n.user_id === userId);
+
+        if (existingNotes.length > 0) {
+            // Update the existing one
+            const noteToUpdate = existingNotes[0];
+
+            // Cleanup duplicates if any
+            if (existingNotes.length > 1) {
+                const idsToDelete = existingNotes.slice(1).map(n => n.id);
+                await supabase.from('notes').delete().in('id', idsToDelete);
+            }
+
+            const { error: updateError } = await supabase
+                .from('notes')
+                .update({
+                    content: newNote,
+                    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    created_at: new Date().toISOString()
+                })
+                .eq('id', noteToUpdate.id);
+            error = updateError;
+        } else {
+            // Create new
+            const { error: insertError } = await supabase.from('notes').insert({
+                user_id: userId,
+                content: newNote,
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+            });
+            error = insertError;
+        }
 
         if (error) {
-            console.error("Error creating note:", error);
+            console.error("Error saving note:", error);
             alert("Failed to share note. Please try again.");
             return;
         }
 
         // Success
-        console.log("Note created successfully");
+        console.log("Note saved successfully");
         setNewNote("");
         setIsOpen(false);
         // Manually fetch immediately to ensure UI update
@@ -142,37 +170,44 @@ export function SelahlyNotes() {
                 </div>
 
                 {/* Others */}
-                {otherNotes.map(note => (
-                    <div key={note.id} className="flex flex-col items-center gap-1 group w-[72px]">
-                        {/* Thought Bubble */}
-                        <div
-                            onClick={() => {
-                                const replyText = `Replying to note: "${note.content}"`;
-                                window.location.href = `/messages/${note.user_id}?reply=${encodeURIComponent(replyText)}`;
-                            }}
-                            className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
-                        >
-                            <span className="line-clamp-3 text-warm-grey/90">{note.content}</span>
-                            {/* Little triangle for speech bubble */}
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
-                        </div>
+                {otherNotes.map(note => {
+                    // Profile Link
+                    const profileLink = `/profile/${note.profiles?.username || note.user_id}`;
 
-                        {/* Avatar */}
-                        <div className="w-14 h-14 rounded-full bg-stone-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 cursor-pointer hover:border-soft-blush transition-colors">
-                            {note.profiles?.avatar_url ? (
-                                <img src={note.profiles.avatar_url} alt={note.profiles.first_name} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-warm-grey/30 text-xs font-bold">
-                                    {note.profiles?.first_name?.[0]}
+                    return (
+                        <div key={note.id} className="flex flex-col items-center gap-1 group w-[72px]">
+                            {/* Thought Bubble */}
+                            <div
+                                onClick={() => {
+                                    const replyText = `Replying to note: "${note.content}"`;
+                                    window.location.href = `/messages/${note.user_id}?reply=${encodeURIComponent(replyText)}`;
+                                }}
+                                className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
+                            >
+                                <span className="line-clamp-3 text-warm-grey/90">{note.content}</span>
+                                {/* Little triangle for speech bubble */}
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
+                            </div>
+
+                            {/* Avatar */}
+                            <a href={profileLink} className="block">
+                                <div className="w-14 h-14 rounded-full bg-stone-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 cursor-pointer hover:border-soft-blush transition-colors">
+                                    {note.profiles?.avatar_url ? (
+                                        <img src={note.profiles.avatar_url} alt={note.profiles.first_name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-warm-grey/30 text-xs font-bold">
+                                            {note.profiles?.first_name?.[0]}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </a>
 
-                        <span className="text-[10px] text-warm-grey/60 max-w-[64px] truncate text-center font-medium">
-                            {note.profiles?.first_name || "Sister"}
-                        </span>
-                    </div>
-                ))}
+                            <a href={profileLink} className="text-[10px] text-warm-grey/60 max-w-[64px] truncate text-center font-medium hover:underline hover:text-warm-cocoa">
+                                {note.profiles?.first_name || "Sister"}
+                            </a>
+                        </div>
+                    )
+                })}
 
                 {/* Creation Dialog */}
                 {isOpen && (
