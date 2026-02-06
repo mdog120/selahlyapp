@@ -1,26 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { HighlightMenu } from "./HighlightMenu";
-import { ShareModal } from "./ShareModal";
+import { HighlightMenu } from "@/components/bible/HighlightMenu";
+import { ShareModal } from "@/components/bible/ShareModal";
 import { Loader2 } from "lucide-react";
+import { BibleResponse, SelectedText } from "./types";
 
-type Verse = {
-    book_id: string;
-    book_name: string;
-    chapter: number;
-    verse: number;
-    text: string;
-};
 
-type BibleResponse = {
-    reference: string;
-    verses: Verse[];
-    text: string;
-    translation_id: string;
-    translation_name: string;
-    translation_note: string;
-};
 
 interface BibleReaderProps {
     book: string;
@@ -28,29 +14,17 @@ interface BibleReaderProps {
     onLoading: (loading: boolean) => void;
 }
 
-export type SelectedText = {
-    text: string;
-    rect: DOMRect | null;
-    verseRef?: string; // e.g. "John 3:16"
-};
+
 
 export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
     const [data, setData] = useState<BibleResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Selection State
+    // Selection & Highlight State
     const [selection, setSelection] = useState<SelectedText | null>(null);
     const [shareData, setShareData] = useState<{ content: string, reference: string } | null>(null);
-
-    // Highlights State (Mock persisting for now, implementation complexity for precise character range highlights is high, 
-    // so we'll do block-level or optimistic highlighting for this sprint, or just handle selection-actions)
-    // For MVP, "Highlighting" might just mean "Changing the background color of the selected text temporarily" or 
-    // simply "Opening the menu to *do* something with it".
-    // The user asked for "highlight options cute colors". 
-    // To do true persistent highlighting requires saving ranges to DB. 
-    // For this version, we will implement "Visual Selection -> Share". 
-    // We can add local-state coloring for the session.
+    const [highlights, setHighlights] = useState<{ verseId: number; text: string; color: string }[]>([]);
 
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -80,27 +54,119 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         const handleSelection = () => {
             const sel = window.getSelection();
             if (!sel || sel.isCollapsed || sel.toString().trim() === "") {
-                setSelection(null);
+                // Don't clear immediately if clicking menu
                 return;
             }
 
             const range = sel.getRangeAt(0);
             const rect = range.getBoundingClientRect();
+            const text = sel.toString();
 
-            // Try to find the verse reference context if possible
-            // (This assumes our structure below)
-            // For now, imply reference from the page header + selection text
+            // Find verse ID context
+            let verseId: number | undefined;
+            // Iterate up from start container to find verse wrapper
+            let node: Node | null = range.startContainer;
+            if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+
+            while (node && node instanceof HTMLElement) {
+                if (node.id?.startsWith("verse-")) {
+                    verseId = parseInt(node.id.replace("verse-", ""));
+                    break;
+                }
+                node = node.parentElement;
+            }
 
             setSelection({
-                text: sel.toString(),
-                rect: rect,
-                verseRef: `${book} ${chapter}` // Approximate
+                text,
+                rect,
+                verseRef: `${book} ${chapter}${verseId ? `:${verseId}` : ''}`,
+                verseId
             });
         };
 
+        const handleDocClick = (e: MouseEvent) => {
+            // Clear selection if clicking outside menu/selection
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed) {
+                setSelection(null);
+            }
+        };
+
         document.addEventListener("selectionchange", handleSelection);
-        return () => document.removeEventListener("selectionchange", handleSelection);
+        document.addEventListener("mousedown", handleDocClick);
+        return () => {
+            document.removeEventListener("selectionchange", handleSelection);
+            document.removeEventListener("mousedown", handleDocClick);
+        };
     }, [book, chapter]);
+
+    const addHighlight = (colorId: string) => {
+        if (!selection || !selection.verseId) return;
+
+        const colorMap: Record<string, string> = {
+            rose: "bg-soft-blush", // Changed from soft-rose to match globals
+            sage: "bg-sage-green",
+            lavender: "bg-purple-100",
+            blue: "bg-blue-100",
+        };
+
+        const newHighlight = {
+            verseId: selection.verseId,
+            text: selection.text,
+            color: colorMap[colorId] || "bg-yellow-200"
+        };
+
+        setHighlights(prev => [...prev, newHighlight]);
+
+        // Clear selection
+        window.getSelection()?.removeAllRanges();
+        setSelection(null);
+    };
+
+    const renderVerseText = (verseId: number, text: string) => {
+        const verseHighlights = highlights.filter(h => h.verseId === verseId);
+        if (verseHighlights.length === 0) return text;
+
+        // Simple overlay approach for MVP:
+        // Split text by highlight phrases. 
+        // Note: This is a basic implementation and won't handle overlapping highlights well.
+        // It blindly highlights the *first* occurrence of the text in the verse fragment.
+
+        let parts: React.ReactNode[] = [text];
+
+        verseHighlights.forEach(h => {
+            const newParts: React.ReactNode[] = [];
+            parts.forEach(part => {
+                if (typeof part === 'string') {
+                    if (part.includes(h.text)) {
+                        const split = part.split(h.text);
+                        // Join back with highlight wrapper
+                        // Limitation: split invalidates if text appears multiple times, it highlights all or complex.
+                        // We will just do the first split to be safe-ish for now.
+                        const pre = split[0];
+                        const post = split.slice(1).join(h.text); // reconstruct rest
+
+                        if (pre) newParts.push(pre);
+                        newParts.push(
+                            <span key={`${verseId}-${h.text}-${Math.random()}`} className={`${h.color} rounded px-0.5 box-decoration-clone`}>
+                                {h.text}
+                            </span>
+                        );
+                        if (post) newParts.push(post); // Should recurse? 
+                        // For MVP this simple split map is "Okay" but buggy for multiple same words.
+                        // A better approach is index-based but we don't have indexes from api easily without more logic.
+                    } else {
+                        newParts.push(part);
+                    }
+                } else {
+                    newParts.push(part);
+                }
+            });
+            parts = newParts;
+        });
+
+        return parts;
+    };
 
     if (loading) return <div className="flex h-40 items-center justify-center text-warm-grey/40"><Loader2 className="animate-spin w-8 h-8" /></div>;
     if (error) return <div className="text-red-400 text-center py-10 font-serif">{error}</div>;
@@ -109,27 +175,21 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         <div className="relative animate-fade-in" ref={contentRef}>
             <h2 className="font-serif text-3xl text-warm-cocoa mb-6 text-center">{data?.reference}</h2>
 
-            <div className="space-y-4 font-serif text-lg leading-loose text-warm-grey">
+            <div className="space-y-4 font-serif text-lg leading-loose text-warm-grey select-text">
                 {data?.verses.map((v) => (
-                    <span key={v.verse} className="relative hover:bg-warm-grey/5 transition-colors duration-300 rounded px-1 -mx-1" id={`verse-${v.verse}`}>
-                        <sup className="text-xs text-warm-grey/40 font-sans mr-1 select-none font-bold">{v.verse}</sup>
+                    <span key={v.verse} className="relative hover:bg-warm-grey/5 transition-colors duration-300 rounded px-1 -mx-1 block md:inline" id={`verse-${v.verse}`}>
+                        <sup className="text-xs text-warm-grey/40 font-sans mr-1 select-none font-bold align-top top-2">{v.verse}</sup>
                         <span className="selection:bg-soft-rose/30 selection:text-warm-cocoa">
-                            {v.text}
+                            {renderVerseText(v.verse, v.text)}
                         </span>{" "}
                     </span>
                 ))}
             </div>
 
-            {selection && (
+            {selection && selection.rect && (
                 <HighlightMenu
                     selection={selection}
-                    onHighlight={(color) => {
-                        // Just visual for now (console)
-                        console.log("Highlighted", color);
-                        // Clear selection
-                        window.getSelection()?.removeAllRanges();
-                        setSelection(null);
-                    }}
+                    onHighlight={addHighlight}
                     onShare={(type) => {
                         setShareData({
                             content: selection.text,

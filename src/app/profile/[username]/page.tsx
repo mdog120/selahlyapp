@@ -52,6 +52,19 @@ export default function ProfilePage() {
             const { data: profileData } = await query.single();
 
             if (profileData) {
+                // Check and fix streak display logic
+                if (profileData.last_journal_date) {
+                    const lastDate = new Date(profileData.last_journal_date);
+                    const today = new Date();
+                    lastDate.setHours(0, 0, 0, 0);
+                    today.setHours(0, 0, 0, 0);
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    if (lastDate.getTime() < yesterday.getTime()) {
+                        profileData.streak_count = 0;
+                    }
+                }
                 setProfile(profileData);
 
                 // 1. Check Friend Status (if not self)

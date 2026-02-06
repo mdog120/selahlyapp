@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { BibleReader } from "@/components/bible/BibleReader";
+import { BibleReader } from "../../components/bible/BibleReader";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, ArrowRight, Book } from "lucide-react";
 

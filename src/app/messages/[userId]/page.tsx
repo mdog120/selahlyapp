@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Send, ArrowLeft, MoreVertical, Check, CheckCheck } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -34,6 +34,7 @@ type Profile = {
 
 export default function ChatPage() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const otherUserId = params.userId as string;
 
     // State
@@ -50,6 +51,14 @@ export default function ChatPage() {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
+
+    // 0. Check for reply param
+    useEffect(() => {
+        const replyContent = searchParams.get('reply');
+        if (replyContent) {
+            setNewMessage(replyContent);
+        }
+    }, [searchParams]);
 
     // 1. Fetch Current User (Once)
     useEffect(() => {

@@ -52,18 +52,33 @@ export default function Diaries() {
             .single();
 
         if (profile) {
-            setStreak(profile.streak_count || 0);
+            let currentStreak = profile.streak_count || 0;
 
-            // 2. Check if already journaled today
             if (profile.last_journal_date) {
-                // Parse the DB date string carefully, or compare just date parts
-                const lastDate = new Date(profile.last_journal_date).toDateString();
-                const today = new Date().toDateString();
-                if (lastDate === today) {
+                // Check if streak should be reset
+                const lastDate = new Date(profile.last_journal_date);
+                const today = new Date();
+
+                // Reset hours to compare dates only
+                lastDate.setHours(0, 0, 0, 0);
+                today.setHours(0, 0, 0, 0);
+
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                // If last journal was not today AND not yesterday, streak relies broken
+                if (lastDate.getTime() < yesterday.getTime()) {
+                    currentStreak = 0;
+                    // Optimistically update local view, DB will correct on next save if logic mirrors
+                }
+
+                if (lastDate.getTime() === today.getTime()) {
                     setHasJournaledToday(true);
                     setEntry("You've already reflected today. See you tomorrow! 🤍");
                 }
             }
+
+            setStreak(currentStreak);
         }
 
         // 3. Load Journal History
@@ -97,11 +112,31 @@ export default function Diaries() {
             content: entry
         });
 
-        // 2. Update Streak
-        await supabase.rpc("update_journal_streak", { user_uuid: user.id });
+        // 2. Update Streak Logic Manually for immediate feedback
+        // If hasJournaledToday is true, we returned early, so this is a new entry for today.
+        // If streak was 0 (reset) -> becomes 1
+        // If streak was N (continued) -> becomes N + 1
 
-        // Update local state without full reload
-        setStreak(prev => prev + 1);
+        const newStreak = streak + 1;
+
+        const updates = {
+            streak_count: newStreak,
+            last_journal_date: new Date().toISOString()
+        };
+
+        const { error: updateError } = await supabase
+            .from("profiles")
+            .update(updates)
+            .eq("id", user.id);
+
+        if (updateError) {
+            console.error("Error updating streak:", updateError);
+            // Fallback to RPC if direct update fails (e.g. RLS issues)
+            await supabase.rpc("update_journal_streak", { user_uuid: user.id });
+        }
+
+        // Update local state
+        setStreak(newStreak);
         setHasJournaledToday(true);
 
         setTimeout(() => {

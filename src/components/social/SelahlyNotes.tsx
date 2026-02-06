@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, X } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/Dialog"; // MVP wrapping
+// MVP wrapping manual implementation below
 import { Button } from "@/components/ui/Button";
 
 type Note = {
@@ -27,38 +27,40 @@ export function SelahlyNotes() {
 
     const supabase = createClient();
 
+    const fetchNotes = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) setUserId(user.id);
+
+        console.log("Fetching notes...");
+        const { data, error } = await supabase
+            .from('notes')
+            .select(`
+                id, content, style, created_at, user_id, expires_at,
+                profiles!notes_user_id_fkey_profiles (first_name, avatar_url)
+            `)
+            .gt('expires_at', new Date().toISOString()) // Only active notes
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Error fetching notes:", error);
+        }
+
+        if (data) {
+            console.log("Notes fetched:", data.length);
+            // @ts-ignore
+            setNotes(data);
+        }
+        setLoading(false);
+    };
+
     useEffect(() => {
-        const fetchNotes = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) setUserId(user.id);
-
-            // Fetch active notes (expires_at > now)
-            // Note: If you didn't create the expires_at constraint or view, 
-            // you might fetch all and filter client side for MVP.
-            // We'll filter client side to be safe if DB logic isn't strictly enforcing yet.
-            const { data, error } = await supabase
-                .from('notes')
-                .select(`
-                    id, content, style, created_at, user_id, expires_at,
-                    profiles (first_name)
-                `)
-                .gt('expires_at', new Date().toISOString()) // Only active notes
-                .order('created_at', { ascending: false });
-
-            if (data) {
-                // @ts-ignore - Supabase types inference can be tricky without full generation
-                setNotes(data);
-            }
-            setLoading(false);
-        };
-
         fetchNotes();
 
         // Subscription for real-time updates
         const channel = supabase
             .channel('notes_channel')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notes' }, (payload) => {
-                // Ideally reload to get profile data, or optimistically update if we had user info
+                console.log("Realtime update received", payload);
                 fetchNotes();
             })
             .subscribe();
@@ -67,7 +69,12 @@ export function SelahlyNotes() {
     }, []);
 
     const handleCreateNote = async () => {
-        if (!newNote.trim() || !userId) return;
+        if (!newNote.trim() || !userId) {
+            console.error("Missing note content or user ID");
+            return;
+        }
+
+        console.log("Creating note for user:", userId);
 
         const { error } = await supabase.from('notes').insert({
             user_id: userId,
@@ -75,10 +82,18 @@ export function SelahlyNotes() {
             expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         });
 
-        if (!error) {
-            setNewNote("");
-            setIsOpen(false);
+        if (error) {
+            console.error("Error creating note:", error);
+            alert("Failed to share note. Please try again.");
+            return;
         }
+
+        // Success
+        console.log("Note created successfully");
+        setNewNote("");
+        setIsOpen(false);
+        // Manually fetch immediately to ensure UI update
+        await fetchNotes();
     };
 
     if (loading) return <div className="h-24 bg-gray-50/50 rounded-xl animate-pulse" />;
@@ -91,37 +106,69 @@ export function SelahlyNotes() {
             <div className="flex gap-4 min-w-max px-2">
 
                 {/* My Note / Add Note */}
-                <div className="flex flex-col items-center gap-2">
-                    <div className="relative">
-                        {myNote ? (
-                            <div className="w-16 h-16 rounded-full bg-soft-rose/20 border-2 border-soft-rose flex items-center justify-center p-2 text-center text-[10px] leading-tight overflow-hidden cursor-pointer hover:scale-105 transition-transform">
-                                <span className="line-clamp-3">{myNote.content}</span>
-                                {myNote.style === 'bible-quote' && <span className="absolute bottom-0 right-0 text-[8px] bg-white rounded px-1">✝</span>}
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setIsOpen(true)}
-                                className="w-16 h-16 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                            >
-                                <Plus className="w-6 h-6 text-gray-400" />
-                            </button>
-                        )}
-                        <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-warm-cocoa rounded-full flex items-center justify-center text-white text-xs border-2 border-white">
+                <div className="flex flex-col items-center gap-1 w-[72px]">
+                    {/* Note Bubble (if exists) */}
+                    {myNote ? (
+                        <div
+                            onClick={() => setIsOpen(true)}
+                            className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
+                        >
+                            <span className="line-clamp-3 text-warm-grey/90">{myNote.content}</span>
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-rose-50 border-b border-r border-soft-blush/20 rotate-45"></div>
+                        </div>
+                    ) : (
+                        <div className="h-[40px] mb-1 opacity-0 pointer-events-none"></div> // Spacer
+                    )}
+
+                    <div className="relative group">
+                        <div
+                            className="w-14 h-14 rounded-full bg-stone-100 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center cursor-pointer hover:bg-stone-200 transition-colors"
+                            onClick={() => setIsOpen(true)}
+                        >
+                            {/* We would need current user avatar here, but for now we just show a plus or placeholder if we don't have it locally in state easily without fetching profile. 
+                                Ideally populate currentUserAvatar in the fetchNotes or passed prop. For now, use a generic user icon or Plus if no note. 
+                            */}
+                            <Plus className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-warm-cocoa rounded-full flex items-center justify-center text-white text-xs border-2 border-white pointer-events-none">
                             +
                         </span>
                     </div>
-                    <span className="text-xs text-warm-grey">Your Note</span>
+
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-warm-grey">You</span>
+                        <button onClick={fetchNotes} className="text-[10px] text-warm-grey/50 hover:text-warm-cocoa" title="Refresh Notes">↻</button>
+                    </div>
                 </div>
 
                 {/* Others */}
                 {otherNotes.map(note => (
-                    <div key={note.id} className="flex flex-col items-center gap-2">
-                        <div className="w-16 h-16 rounded-full bg-white border border-warm-grey/10 shadow-sm flex items-center justify-center p-2 text-center text-[10px] leading-tight overflow-hidden hover:scale-105 transition-transform cursor-pointer relative group">
-                            <span className="line-clamp-3 text-warm-grey/80">{note.content}</span>
-
-                            {/* Full view tool tip styled via group-hover or click modal later. For now just visual. */}
+                    <div key={note.id} className="flex flex-col items-center gap-1 group w-[72px]">
+                        {/* Thought Bubble */}
+                        <div
+                            onClick={() => {
+                                const replyText = `Replying to note: "${note.content}"`;
+                                window.location.href = `/messages/${note.user_id}?reply=${encodeURIComponent(replyText)}`;
+                            }}
+                            className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
+                        >
+                            <span className="line-clamp-3 text-warm-grey/90">{note.content}</span>
+                            {/* Little triangle for speech bubble */}
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
                         </div>
-                        <span className="text-xs text-warm-grey/60 max-w-[64px] truncate text-center">
+
+                        {/* Avatar */}
+                        <div className="w-14 h-14 rounded-full bg-stone-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 cursor-pointer hover:border-soft-blush transition-colors">
+                            {note.profiles?.avatar_url ? (
+                                <img src={note.profiles.avatar_url} alt={note.profiles.first_name} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-warm-grey/30 text-xs font-bold">
+                                    {note.profiles?.first_name?.[0]}
+                                </div>
+                            )}
+                        </div>
+
+                        <span className="text-[10px] text-warm-grey/60 max-w-[64px] truncate text-center font-medium">
                             {note.profiles?.first_name || "Sister"}
                         </span>
                     </div>
@@ -133,7 +180,9 @@ export function SelahlyNotes() {
                         if (e.target === e.currentTarget) setIsOpen(false);
                     }}>
                         <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95">
-                            <h3 className="font-serif text-lg mb-4 text-warm-cocoa">New Selahly Note</h3>
+                            <h3 className="font-serif text-lg mb-4 text-warm-cocoa">
+                                {myNote ? "Update Your Note" : "New Selahly Note"}
+                            </h3>
                             <textarea
                                 value={newNote}
                                 onChange={e => setNewNote(e.target.value)}
@@ -143,7 +192,7 @@ export function SelahlyNotes() {
                             />
                             <div className="flex justify-end gap-2">
                                 <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>Cancel</Button>
-                                <Button size="sm" onClick={handleCreateNote}>Share</Button>
+                                <Button size="sm" onClick={handleCreateNote}>{myNote ? "Update" : "Share"}</Button>
                             </div>
                         </div>
                     </div>

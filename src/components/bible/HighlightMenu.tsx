@@ -1,6 +1,6 @@
 "use client";
 
-import { SelectedText } from "./BibleReader";
+import { SelectedText } from "./types";
 import { MessageCircle, PenLine, Share2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -12,7 +12,7 @@ interface HighlightMenuProps {
 }
 
 const COLORS = [
-    { id: "rose", bg: "bg-soft-rose", hex: "#F3E1E1" }, // Soft Pink
+    { id: "rose", bg: "bg-soft-blush", hex: "#FCEADE" }, // Soft Blush
     { id: "sage", bg: "bg-sage-green", hex: "#D8E2DC" }, // Sage
     { id: "lavender", bg: "bg-purple-100", hex: "#E9D5FF" }, // Lavender
     { id: "blue", bg: "bg-blue-100", hex: "#DBEAFE" }, // Sky
