@@ -86,8 +86,10 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             if (uploadError) {
                 console.error("Upload Error:", uploadError);
                 // @ts-ignore
-                alert(`Failed to upload ${file.name}: ${uploadError.message || uploadError.error || "Unknown error"}`);
-                continue; // Skip failed uploads
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                // @ts-ignore
+                alert(`Error uploading ${file.name} (${sizeMB}MB, ${file.type}): ${uploadError.message || uploadError.error || "Unknown error"}`);
+                continue;
             }
 
             const { data: { publicUrl } } = supabase.storage
