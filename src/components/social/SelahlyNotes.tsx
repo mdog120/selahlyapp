@@ -414,6 +414,6 @@ export function SelahlyNotes() {
                     </div>
                 )}
             </div>
-
-            );
+        </div>
+    );
 }
