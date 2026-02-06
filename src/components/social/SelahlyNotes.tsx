@@ -12,10 +12,10 @@ type Note = {
     style: string;
     created_at: string;
     user_id: string;
-    profiles: {
-        first_name: string;
-        avatar_url: string;
-    };
+    first_name: string;
+    avatar_url: string;
+    username?: string;
+};
 };
 
 export function SelahlyNotes() {
