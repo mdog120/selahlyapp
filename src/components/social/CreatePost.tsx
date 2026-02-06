@@ -85,7 +85,8 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
 
             if (uploadError) {
                 console.error("Upload Error:", uploadError);
-                alert(`Failed to upload ${file.name}`);
+                // @ts-ignore
+                alert(`Failed to upload ${file.name}: ${uploadError.message || uploadError.error || "Unknown error"}`);
                 continue; // Skip failed uploads or handle better
             }
 
