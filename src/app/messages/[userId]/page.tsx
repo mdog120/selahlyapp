@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useSearchParams } from "next/navigation";
-import { Send, ArrowLeft, MoreVertical, Check, CheckCheck } from "lucide-react";
+import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Trash2, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
@@ -14,6 +14,7 @@ type Message = {
     receiver_id: string;
     created_at: string;
     read_at: string | null;
+    is_edited?: boolean;
     reactions: Record<string, 'bow' | 'dislike'>; // userId -> reaction type
     metadata?: {
         type: 'post' | 'verse' | 'vibe' | 'question' | 'prayer';
@@ -40,6 +41,8 @@ export default function ChatPage() {
     // State
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
+    const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState("");
     const [otherUser, setOtherUser] = useState<Profile | null>(null);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -225,6 +228,47 @@ export default function ChatPage() {
         handleReaction(messageId, 'bow');
     };
 
+    const handleDelete = async (messageId: string) => {
+        if (!confirm("Are you sure you want to delete this message?")) return;
+
+        // Optimistic
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+
+        const { error } = await supabase.from("direct_messages").delete().eq("id", messageId);
+        if (error) {
+            console.error("Error deleting message:", error);
+            // Revert would be complex without refetch, but acceptable for MVP
+            alert("Failed to delete message");
+        }
+    };
+
+    const startEditing = (msg: Message) => {
+        setEditingMessageId(msg.id);
+        setEditContent(msg.content);
+    };
+
+    const saveEdit = async () => {
+        if (!editingMessageId || !editContent.trim()) return;
+
+        const updatedContent = editContent.trim();
+        const msgId = editingMessageId; // capture closure
+
+        // Optimistic
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: updatedContent, is_edited: true } : m));
+        setEditingMessageId(null);
+        setEditContent("");
+
+        const { error } = await supabase
+            .from("direct_messages")
+            .update({ content: updatedContent, is_edited: true })
+            .eq("id", msgId);
+
+        if (error) {
+            console.error("Error updating message:", error);
+            alert("Failed to update message");
+        }
+    };
+
     const handleSend = async () => {
         if (!newMessage.trim() || !currentUser) return;
 
@@ -340,15 +384,36 @@ export default function ChatPage() {
                                         <button
                                             onClick={() => handleReaction(msg.id, 'bow')}
                                             className="w-7 h-7 bg-white rounded-full shadow-sm border border-warm-grey/10 flex items-center justify-center hover:scale-110 transition-transform text-muted-rose font-serif text-xs"
+                                            title="Like"
                                         >
                                             ౨ৎ
                                         </button>
                                         <button
                                             onClick={() => handleReaction(msg.id, 'dislike')}
                                             className="w-7 h-7 bg-white rounded-full shadow-sm border border-warm-grey/10 flex items-center justify-center hover:scale-110 transition-transform text-warm-grey/60 text-[10px]"
+                                            title="Dislike"
                                         >
                                             :(
                                         </button>
+
+                                        {isMe && (
+                                            <>
+                                                <button
+                                                    onClick={() => startEditing(msg)}
+                                                    className="w-7 h-7 bg-white rounded-full shadow-sm border border-warm-grey/10 flex items-center justify-center hover:scale-110 transition-transform text-warm-grey/60"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="w-3 h-3" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(msg.id)}
+                                                    className="w-7 h-7 bg-white rounded-full shadow-sm border border-warm-grey/10 flex items-center justify-center hover:scale-110 transition-transform text-red-400"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
 
                                     <div
@@ -358,28 +423,47 @@ export default function ChatPage() {
                                             : 'bg-white text-warm-grey rounded-tl-sm border border-warm-grey/5'
                                             }`}
                                     >
-                                        {msg.metadata && (
-                                            <Link
-                                                href={
-                                                    msg.metadata.type === 'vibe' ? '/vibe-board' :
-                                                        msg.metadata.type === 'verse' ? '/diaries' :
-                                                            msg.metadata.type === 'question' ? '/velvet-vault' :
-                                                                msg.metadata.type === 'prayer' ? '/prayer-pocket' :
-                                                                    '/home'
-                                                }
-                                                className="block mb-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition-colors flex gap-3 items-center max-w-xs cursor-pointer text-left"
-                                            >
-                                                {msg.metadata.image && (
-                                                    <img src={msg.metadata.image} className="w-10 h-10 rounded-md object-cover bg-white" />
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-bold opacity-90 truncate">{msg.metadata.title || "Shared Content"}</p>
-                                                    <p className="text-[10px] opacity-70 capitalize">{msg.metadata.type}</p>
+                                        {/* Edit Mode vs View Mode */}
+                                        {editingMessageId === msg.id ? (
+                                            <div className="flex flex-col gap-2 min-w-[200px]" onClick={e => e.stopPropagation()}>
+                                                <input
+                                                    value={editContent}
+                                                    onChange={e => setEditContent(e.target.value)}
+                                                    className="text-black bg-white/90 rounded px-2 py-1 text-sm w-full"
+                                                    autoFocus
+                                                />
+                                                <div className="flex gap-2 justify-end">
+                                                    <button onClick={() => setEditingMessageId(null)} className="text-xs opacity-80 hover:opacity-100">Cancel</button>
+                                                    <button onClick={saveEdit} className="text-xs font-bold bg-white/20 px-2 py-1 rounded hover:bg-white/30">Save</button>
                                                 </div>
-                                            </Link>
-                                        )}
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {msg.metadata && (
+                                                    <Link
+                                                        href={
+                                                            msg.metadata.type === 'vibe' ? '/vibe-board' :
+                                                                msg.metadata.type === 'verse' ? '/diaries' :
+                                                                    msg.metadata.type === 'question' ? '/velvet-vault' :
+                                                                        msg.metadata.type === 'prayer' ? '/prayer-pocket' :
+                                                                            '/home'
+                                                        }
+                                                        className="block mb-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition-colors flex gap-3 items-center max-w-xs cursor-pointer text-left"
+                                                    >
+                                                        {msg.metadata.image && (
+                                                            <img src={msg.metadata.image} className="w-10 h-10 rounded-md object-cover bg-white" />
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-bold opacity-90 truncate">{msg.metadata.title || "Shared Content"}</p>
+                                                            <p className="text-[10px] opacity-70 capitalize">{msg.metadata.type}</p>
+                                                        </div>
+                                                    </Link>
+                                                )}
 
-                                        {msg.content}
+                                                {msg.content}
+                                                {msg.is_edited && <span className="text-[9px] opacity-60 ml-1 italic">(edited)</span>}
+                                            </>
+                                        )}
 
                                         <div className={`flex items-center gap-1 mt-1 text-[9px] ${isMe ? 'text-white/70 justify-end' : 'text-warm-grey/40 justify-start'}`}>
                                             {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
