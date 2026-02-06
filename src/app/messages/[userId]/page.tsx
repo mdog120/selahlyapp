@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useParams, useSearchParams } from "next/navigation";
 import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Trash2, Pencil, X } from "lucide-react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 
 type Message = {
     id: string;
@@ -60,8 +60,21 @@ export default function ChatPage() {
         const replyContent = searchParams.get('reply');
         if (replyContent) {
             setNewMessage(replyContent);
+            // Clear the param cleanly without refresh if possible, or just leave it.
+            // For now, let's just use it to init state.
         }
     }, [searchParams]);
+
+    const formatMessageTime = (dateString: string) => {
+        const date = new Date(dateString);
+        if (isToday(date)) {
+            return format(date, "h:mm a");
+        } else if (isYesterday(date)) {
+            return "Yesterday " + format(date, "h:mm a");
+        } else {
+            return format(date, "MMM d, h:mm a");
+        }
+    };
 
     // 1. Fetch Current User (Once)
     useEffect(() => {
@@ -466,7 +479,7 @@ export default function ChatPage() {
                                         )}
 
                                         <div className={`flex items-center gap-1 mt-1 text-[9px] ${isMe ? 'text-white/70 justify-end' : 'text-warm-grey/40 justify-start'}`}>
-                                            {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                                            {formatMessageTime(msg.created_at)}
                                             {/* Read Receipt */}
                                             {isMe && (
                                                 <span className="opacity-80">
