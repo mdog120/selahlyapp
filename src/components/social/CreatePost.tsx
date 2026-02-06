@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { Image, Send, X } from "lucide-react";
+import { Image, Send, X, Video, Layers } from "lucide-react";
 
 export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [caption, setCaption] = useState("");
-    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState("");
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    const [previewUrls, setPreviewUrls] = useState<{ url: string, type: 'image' | 'video' }[]>([]);
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
 
@@ -40,49 +40,77 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     }, []);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setUploadedFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
+        if (e.target.files && e.target.files.length > 0) {
+            const files = Array.from(e.target.files);
+
+            // Limit to 5 files for now
+            if (files.length + uploadedFiles.length > 5) {
+                alert("You can only select up to 5 items.");
+                return;
+            }
+
+            const newPreviews = files.map(file => ({
+                url: URL.createObjectURL(file),
+                type: file.type.startsWith('video/') ? 'video' : 'image'
+            }));
+
+            setUploadedFiles(prev => [...prev, ...files]);
+            // @ts-ignore
+            setPreviewUrls(prev => [...prev, ...newPreviews]);
         }
     };
 
+    const removeFile = (index: number) => {
+        setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handlePost = async () => {
-        if (!caption.trim()) return;
+        if (!caption.trim() && uploadedFiles.length === 0) return;
         setLoading(true);
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        let finalImageUrl = null;
+        const mediaUrls: string[] = [];
 
-        // Upload Image if present
-        if (uploadedFile) {
-            const fileExt = uploadedFile.name.split('.').pop();
-            const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        // Upload Files
+        for (const file of uploadedFiles) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('posts')
-                .upload(fileName, uploadedFile);
+                .upload(fileName, file);
 
             if (uploadError) {
                 console.error("Upload Error:", uploadError);
-                alert("Failed to upload image.");
-                setLoading(false);
-                return;
+                alert(`Failed to upload ${file.name}`);
+                continue; // Skip failed uploads or handle better
             }
 
             const { data: { publicUrl } } = supabase.storage
                 .from('posts')
                 .getPublicUrl(fileName);
 
-            finalImageUrl = publicUrl;
+            mediaUrls.push(publicUrl);
+        }
+
+        // Determine Post Type
+        let postType = 'text';
+        if (mediaUrls.length === 1) {
+            postType = uploadedFiles[0].type.startsWith('video/') ? 'video' : 'image';
+        } else if (mediaUrls.length > 1) {
+            postType = 'carousel';
         }
 
         const { error } = await supabase.from("posts").insert({
             user_id: user.id,
             caption: caption,
-            image_url: finalImageUrl
+            media_urls: mediaUrls,
+            type: postType,
+            // Backwards compatibility if needed, using first image
+            image_url: mediaUrls.length > 0 ? mediaUrls[0] : null
         });
 
         if (error) {
@@ -90,9 +118,9 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             alert("Failed to post. Please try again.");
         } else {
             setCaption("");
-            setUploadedFile(null);
-            setPreviewUrl("");
-            if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+            setUploadedFiles([]);
+            setPreviewUrls([]);
+            if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
             onPostCreated();
         }
@@ -121,19 +149,25 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
 
                     {expanded && (
                         <div className="mt-4 animate-fade-in-up">
-                            {/* Preview Area */}
-                            {previewUrl && (
-                                <div className="relative mb-4 w-full h-48 bg-stone-100 rounded-xl overflow-hidden group">
-                                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                                    <button
-                                        onClick={() => {
-                                            setUploadedFile(null);
-                                            setPreviewUrl("");
-                                        }}
-                                        className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
+                            {/* Preview Area (Horizontal Scroll for Carousel preview) */}
+                            {previewUrls.length > 0 && (
+                                <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+                                    {previewUrls.map((preview, index) => (
+                                        <div key={index} className="relative w-32 h-32 flex-shrink-0 bg-stone-100 rounded-xl overflow-hidden group">
+                                            {preview.type === 'video' ? (
+                                                <video src={preview.url} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <img src={preview.url} alt="Preview" className="w-full h-full object-cover" />
+                                            )}
+
+                                            <button
+                                                onClick={() => removeFile(index)}
+                                                className="absolute top-1 right-1 bg-black/50 text-white p-0.5 rounded-full hover:bg-black/70"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
 
@@ -142,7 +176,8 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                 type="file"
                                 ref={fileInputRef}
                                 className="hidden"
-                                accept="image/*"
+                                accept="image/*,video/*"
+                                multiple
                                 onChange={handleFileSelect}
                             />
 
@@ -151,12 +186,12 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                     onClick={() => fileInputRef.current?.click()}
                                     className="text-warm-grey/40 hover:text-sage-green transition-colors flex items-center gap-2 text-xs"
                                 >
-                                    <Image className="w-5 h-5" />
-                                    <span>Add Photo</span>
+                                    <Layers className="w-5 h-5" />
+                                    <span>Add Photos/Video</span>
                                 </button>
                                 <div className="flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>
-                                    <Button size="sm" onClick={handlePost} disabled={loading || !caption.trim()}>
+                                    <Button size="sm" onClick={handlePost} disabled={loading || (!caption.trim() && uploadedFiles.length === 0)}>
                                         {loading ? "Posting..." : "Post"}
                                     </Button>
                                 </div>

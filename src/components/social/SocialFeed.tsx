@@ -8,6 +8,8 @@ import { CreatePost } from "./CreatePost";
 type Post = {
     id: string;
     image_url: string;
+    media_urls: string[] | null;
+    type: 'image' | 'video' | 'carousel' | 'text';
     caption: string;
     likes_count: number;
     comments_count: number;
