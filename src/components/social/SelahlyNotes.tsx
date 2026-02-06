@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Heart } from "lucide-react";
 // MVP wrapping manual implementation below
 import { Button } from "@/components/ui/Button";
 
@@ -17,6 +17,7 @@ type Note = {
         avatar_url: string;
         username?: string;
     };
+    note_likes: { user_id: string }[];
 };
 
 export function SelahlyNotes() {
@@ -37,7 +38,8 @@ export function SelahlyNotes() {
             .from('notes')
             .select(`
                 id, content, style, created_at, user_id, expires_at,
-                profiles!notes_user_id_fkey_profiles (first_name, avatar_url, username)
+                profiles!notes_user_id_fkey_profiles (first_name, avatar_url, username),
+                note_likes (user_id)
             `)
             .gt('expires_at', new Date().toISOString()) // Only active notes
             .order('created_at', { ascending: false });
@@ -125,6 +127,25 @@ export function SelahlyNotes() {
         await fetchNotes();
     };
 
+    const handleLike = async (note: Note) => {
+        if (!userId) return;
+
+        // Optimistic Update
+        const isLiked = note.note_likes.some(l => l.user_id === userId);
+        const updatedLikes = isLiked
+            ? note.note_likes.filter(l => l.user_id !== userId)
+            : [...note.note_likes, { user_id: userId }];
+
+        setNotes(prev => prev.map(n => n.id === note.id ? { ...n, note_likes: updatedLikes } : n));
+
+        if (isLiked) {
+            await supabase.from('note_likes').delete().eq('note_id', note.id).eq('user_id', userId);
+        } else {
+            await supabase.from('note_likes').insert({ note_id: note.id, user_id: userId });
+        }
+        // No need to refetch immediately for this interaction usually, relying on optimistic
+    };
+
     if (loading) return <div className="h-24 bg-gray-50/50 rounded-xl animate-pulse" />;
 
     const myNote = notes.find(n => n.user_id === userId);
@@ -140,10 +161,17 @@ export function SelahlyNotes() {
                     {myNote ? (
                         <div
                             onClick={() => setIsOpen(true)}
-                            className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
+                            className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1 group/mynote"
                         >
                             <span className="line-clamp-3 text-warm-grey/90">{myNote.content}</span>
                             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-rose-50 border-b border-r border-soft-blush/20 rotate-45"></div>
+
+                            {/* Likers Count - Only visible to me */}
+                            {myNote.note_likes?.length > 0 && (
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-warm-cocoa/90 text-white text-[9px] px-2 py-1 rounded-full whitespace-nowrap opacity-0 group-hover/mynote:opacity-100 transition-opacity pointer-events-none z-10">
+                                    Liked by {myNote.note_likes.length} sister{myNote.note_likes.length !== 1 && 's'}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="h-[40px] mb-1 opacity-0 pointer-events-none"></div> // Spacer
@@ -174,20 +202,33 @@ export function SelahlyNotes() {
                 {otherNotes.map(note => {
                     // Profile Link
                     const profileLink = `/profile/${note.profiles?.username || note.user_id}`;
+                    const isLiked = note.note_likes?.some(l => l.user_id === userId);
 
                     return (
                         <div key={note.id} className="flex flex-col items-center gap-1 group w-[72px]">
                             {/* Thought Bubble */}
                             <div
-                                onClick={() => {
-                                    const replyText = `Replying to note: "${note.content}"`;
-                                    window.location.href = `/messages/${note.user_id}?reply=${encodeURIComponent(replyText)}`;
-                                }}
-                                className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
+                                className="relative"
                             >
-                                <span className="line-clamp-3 text-warm-grey/90">{note.content}</span>
-                                {/* Little triangle for speech bubble */}
-                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
+                                <div
+                                    onClick={() => {
+                                        const replyText = `Replying to note: "${note.content}"`;
+                                        window.location.href = `/messages/${note.user_id}?reply=${encodeURIComponent(replyText)}`;
+                                    }}
+                                    className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
+                                >
+                                    <span className="line-clamp-3 text-warm-grey/90">{note.content}</span>
+                                    {/* Little triangle for speech bubble */}
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
+                                </div>
+
+                                {/* Heart Button - Small overlay */}
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleLike(note); }}
+                                    className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-warm-grey/5 hover:scale-110 transition-transform"
+                                >
+                                    <Heart className={`w-3 h-3 ${isLiked ? "fill-muted-rose text-muted-rose" : "text-warm-grey/40"}`} />
+                                </button>
                             </div>
 
                             {/* Avatar */}
