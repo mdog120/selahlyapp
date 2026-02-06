@@ -359,61 +359,61 @@ export function SelahlyNotes() {
                             </div>
                         </div>
                     </div>
-                    </div>
+
                 )}
 
-            {/* Reply/View Modal */}
-            {viewingNote && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4" onClick={(e) => {
-                    if (e.target === e.currentTarget) setViewingNote(null);
-                }}>
-                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95">
-                        {/* Header: Author Info */}
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-stone-100 overflow-hidden border border-warm-grey/10">
-                                {viewingNote.profiles.avatar_url ? (
-                                    <img src={viewingNote.profiles.avatar_url} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-xs text-warm-grey/40 font-bold">
-                                        {viewingNote.profiles.first_name?.[0]}
-                                    </div>
-                                )}
+                {/* Reply/View Modal */}
+                {viewingNote && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4" onClick={(e) => {
+                        if (e.target === e.currentTarget) setViewingNote(null);
+                    }}>
+                        <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95">
+                            {/* Header: Author Info */}
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-stone-100 overflow-hidden border border-warm-grey/10">
+                                    {viewingNote.profiles.avatar_url ? (
+                                        <img src={viewingNote.profiles.avatar_url} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-xs text-warm-grey/40 font-bold">
+                                            {viewingNote.profiles.first_name?.[0]}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <h3 className="font-serif text-lg leading-none text-warm-cocoa">{viewingNote.profiles.first_name}</h3>
+                                    <p className="text-[10px] text-warm-grey/60">@{viewingNote.profiles.username || "sister"}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="font-serif text-lg leading-none text-warm-cocoa">{viewingNote.profiles.first_name}</h3>
-                                <p className="text-[10px] text-warm-grey/60">@{viewingNote.profiles.username || "sister"}</p>
+
+                            {/* The Note */}
+                            <div className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-4 text-center mb-6 relative">
+                                <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{viewingNote.content}"</p>
                             </div>
-                        </div>
 
-                        {/* The Note */}
-                        <div className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-4 text-center mb-6 relative">
-                            <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{viewingNote.content}"</p>
-                        </div>
-
-                        {/* Likers List (Now visible to everyone in modal as per newer request implication? Or stuck to privacy? 
+                            {/* Likers List (Now visible to everyone in modal as per newer request implication? Or stuck to privacy? 
                                User said: "when you click on the thought bubble of someone's note, it should show the whole note and then underneath a text box..."
                                User previously said: "only the person who posted the note can see who hearted their own".
                                So I will NOT show likers list here for visitors, respecting the privacy rule unless explicitly overridden.
                             */}
 
-                        {/* Reply Input */}
-                        <div>
-                            <label className="text-xs font-bold text-warm-grey/60 mb-2 block uppercase tracking-wider">Reply directly</label>
-                            <textarea
-                                value={replyContent}
-                                onChange={e => setReplyContent(e.target.value)}
-                                placeholder={`Message ${viewingNote.profiles.first_name}...`}
-                                className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm focus:ring-1 focus:ring-warm-cocoa/20 mb-3 h-20 resize-none"
-                            />
-                            <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => setViewingNote(null)}>Close</Button>
-                                <Button size="sm" onClick={handleSendReply}>Send</Button>
+                            {/* Reply Input */}
+                            <div>
+                                <label className="text-xs font-bold text-warm-grey/60 mb-2 block uppercase tracking-wider">Reply directly</label>
+                                <textarea
+                                    value={replyContent}
+                                    onChange={e => setReplyContent(e.target.value)}
+                                    placeholder={`Message ${viewingNote.profiles.first_name}...`}
+                                    className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm focus:ring-1 focus:ring-warm-cocoa/20 mb-3 h-20 resize-none"
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => setViewingNote(null)}>Close</Button>
+                                    <Button size="sm" onClick={handleSendReply}>Send</Button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
 
-    );
+            );
 }
