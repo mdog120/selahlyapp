@@ -87,7 +87,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                 console.error("Upload Error:", uploadError);
                 // @ts-ignore
                 alert(`Failed to upload ${file.name}: ${uploadError.message || uploadError.error || "Unknown error"}`);
-                continue; // Skip failed uploads or handle better
+                continue; // Skip failed uploads
             }
 
             const { data: { publicUrl } } = supabase.storage
@@ -97,10 +97,20 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             mediaUrls.push(publicUrl);
         }
 
+        // If user tried to upload files but all failed, DO NOT create the post
+        if (uploadedFiles.length > 0 && mediaUrls.length === 0) {
+            alert("Upload failed. Post cancelled.");
+            setLoading(false);
+            return;
+        }
+
         // Determine Post Type
         let postType = 'text';
         if (mediaUrls.length === 1) {
-            postType = uploadedFiles[0].type.startsWith('video/') ? 'video' : 'image';
+            // Robust check regarding file type - if original file was video or extension is video
+            const file = uploadedFiles[0];
+            const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|webm|quicktime)$/i);
+            postType = isVideo ? 'video' : 'image';
         } else if (mediaUrls.length > 1) {
             postType = 'carousel';
         }
