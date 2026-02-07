@@ -9,6 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
+import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 
 type Profile = {
     id: string;
@@ -402,6 +403,14 @@ export default function ProfilePage() {
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* Scrapbook Section */}
+                <div className="mt-12 border-t border-warm-grey/10 pt-12">
+                    <ScrapbookGrid
+                        userId={profile.id}
+                        isOwner={currentUser?.id === profile.id}
+                    />
                 </div>
             </main>
         </div>

@@ -1,0 +1,125 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Plus, X, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { ScrapbookModal } from "./ScrapbookModal";
+
+type ScrapbookEntry = {
+    id: string;
+    image_url: string;
+    caption: string;
+    created_at: string;
+    styles: any;
+};
+
+interface ScrapbookGridProps {
+    userId: string;
+    isOwner: boolean;
+}
+
+export function ScrapbookGrid({ userId, isOwner }: ScrapbookGridProps) {
+    const [entries, setEntries] = useState<ScrapbookEntry[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const supabase = createClient();
+
+    const fetchEntries = async () => {
+        const { data } = await supabase
+            .from("scrapbook_entries")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false });
+
+        if (data) setEntries(data);
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchEntries();
+    }, [userId]);
+
+    const handleDelete = async (id: string, imageUrl: string) => {
+        if (!confirm("Remove this memory?")) return;
+
+        // 1. Delete from storage (optional, but good practice)
+        const path = imageUrl.split("/").pop(); // Simple extraction, might need robustness
+        if (path) {
+            await supabase.storage.from("scrapbook").remove([path]);
+        }
+
+        // 2. Delete row
+        const { error } = await supabase.from("scrapbook_entries").delete().eq("id", id);
+        if (!error) {
+            setEntries(prev => prev.filter(e => e.id !== id));
+        }
+    };
+
+    return (
+        <div className="py-8">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="font-serif text-2xl text-warm-cocoa">My Scrapbook 📸</h3>
+                {isOwner && (
+                    <Button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-muted-rose text-white hover:bg-muted-rose/90 shadow-md shadow-muted-rose/20 rounded-full"
+                    >
+                        <Plus className="w-4 h-4 mr-2" /> Add Memory
+                    </Button>
+                )}
+            </div>
+
+            {loading ? (
+                <div className="text-center py-12 text-warm-grey/40 animate-pulse">Loading memories...</div>
+            ) : entries.length === 0 ? (
+                <div className="text-center py-16 bg-white/40 rounded-3xl border border-dashed border-warm-grey/20">
+                    <p className="text-warm-grey/60 mb-2">Your scrapbook is empty.</p>
+                    {isOwner && <p className="text-sm text-warm-grey/40">Upload a photo to start collecting memories! ✨</p>}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {entries.map((entry, index) => (
+                        <div
+                            key={entry.id}
+                            className="bg-white p-4 pb-12 shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1 relative group"
+                            style={{
+                                transform: `rotate(${index % 2 === 0 ? '-2deg' : '2deg'})`, // Slight random rotation
+                            }}
+                        >
+                            {/* Polaroid Image */}
+                            <div className="aspect-square bg-stone-100 mb-4 overflow-hidden relative filter sepia-[.2] contrast-110 brightness-110">
+                                <img src={entry.image_url} alt={entry.caption} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
+                            </div>
+
+                            {/* Caption */}
+                            <p className="font-handwriting text-center text-warm-grey text-lg leading-tight px-2">
+                                {entry.caption}
+                            </p>
+
+                            {/* Delete Button (Owner Only) */}
+                            {isOwner && (
+                                <button
+                                    onClick={() => handleDelete(entry.id, entry.image_url)}
+                                    className="absolute top-2 right-2 bg-white/80 p-2 rounded-full text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <ScrapbookModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={() => {
+                    fetchEntries();
+                    setIsModalOpen(false);
+                }}
+            />
+        </div>
+    );
+}
