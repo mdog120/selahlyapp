@@ -7,6 +7,7 @@ import { Greeting } from "@/components/home/Greeting";
 import { DailyVerseCard } from "@/components/home/DailyVerseCard";
 import { PrayerRequestList } from "@/components/home/PrayerRequestList";
 import { SelahlyNotes } from "@/components/social/SelahlyNotes";
+import { SelahSisterCard } from "@/components/SelahSisterCard";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,9 @@ export default async function UserHome(props: {
 
                     {/* Sidebar (Mature Widgets) */}
                     <div className="lg:col-span-4 flex flex-col gap-6">
+
+                        {/* Selah Sister Feature */}
+                        <SelahSisterCard />
 
                         {/* Grace & Glow (Daily Verse) */}
                         <DailyVerseCard />

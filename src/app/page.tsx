@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Marquee } from "@/components/ui/Marquee";
 import { Sparkles, Heart } from "lucide-react";
-import { SelahSisterCard } from "@/components/SelahSisterCard";
+
 
 const COMMUNITY_POSTS = [
   {
@@ -128,12 +128,6 @@ export default function Home() {
         </Marquee>
       </section>
 
-      {/* Selah Sister Feature */}
-      <section className="py-12 px-4">
-        <div className="container mx-auto max-w-md">
-          <SelahSisterCard />
-        </div>
-      </section>
 
       {/* About Section */}
       <section className="py-20 px-4">
