@@ -69,75 +69,86 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         if (!caption.trim() && uploadedFiles.length === 0) return;
         setLoading(true);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("User not authenticated");
 
-        const mediaUrls: string[] = [];
+            const mediaUrls: string[] = [];
 
-        // Upload Files
-        for (const file of uploadedFiles) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+            // Upload Files
+            for (const file of uploadedFiles) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('posts')
-                .upload(fileName, file);
+                console.log(`Attempting to upload: ${fileName}, size: ${file.size}, type: ${file.type}`);
 
-            if (uploadError) {
-                console.error("Upload Error:", uploadError);
-                // @ts-ignore
-                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                // @ts-ignore
-                alert(`Error uploading ${file.name} (${sizeMB}MB, ${file.type}): ${uploadError.message || uploadError.error || "Unknown error"}`);
-                continue;
+                const { data, error: uploadError } = await supabase.storage
+                    .from('posts')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (uploadError) {
+                    console.error("Upload Error Details:", uploadError);
+                    alert(`Upload failed for ${file.name}: ${uploadError.message}`);
+                    continue; // Skip this file but try others
+                }
+
+                if (data) {
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('posts')
+                        .getPublicUrl(fileName);
+
+                    console.log(`Upload success. Public URL: ${publicUrl}`);
+                    mediaUrls.push(publicUrl);
+                }
             }
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('posts')
-                .getPublicUrl(fileName);
+            // If user tried to upload files but all failed
+            if (uploadedFiles.length > 0 && mediaUrls.length === 0) {
+                throw new Error("All file uploads failed. Please check your connection or file format.");
+            }
 
-            mediaUrls.push(publicUrl);
-        }
+            // Determine Post Type
+            let postType = 'text';
+            if (mediaUrls.length === 1) {
+                const file = uploadedFiles[0];
+                const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|webm|quicktime)$/i);
+                postType = isVideo ? 'video' : 'image';
+            } else if (mediaUrls.length > 1) {
+                postType = 'carousel';
+            }
 
-        // If user tried to upload files but all failed, DO NOT create the post
-        if (uploadedFiles.length > 0 && mediaUrls.length === 0) {
-            alert("Upload failed. Post cancelled.");
-            setLoading(false);
-            return;
-        }
+            console.log("Creating post record...", { type: postType, mediaCount: mediaUrls.length });
 
-        // Determine Post Type
-        let postType = 'text';
-        if (mediaUrls.length === 1) {
-            // Robust check regarding file type - if original file was video or extension is video
-            const file = uploadedFiles[0];
-            const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|webm|quicktime)$/i);
-            postType = isVideo ? 'video' : 'image';
-        } else if (mediaUrls.length > 1) {
-            postType = 'carousel';
-        }
+            const { error: insertError } = await supabase.from("posts").insert({
+                user_id: user.id,
+                caption: caption,
+                media_urls: mediaUrls,
+                type: postType,
+                image_url: mediaUrls.length > 0 ? mediaUrls[0] : null
+            });
 
-        const { error } = await supabase.from("posts").insert({
-            user_id: user.id,
-            caption: caption,
-            media_urls: mediaUrls,
-            type: postType,
-            // Backwards compatibility if needed, using first image
-            image_url: mediaUrls.length > 0 ? mediaUrls[0] : null
-        });
+            if (insertError) {
+                console.error("Database Insert Error:", insertError);
+                throw new Error(`Failed to save post: ${insertError.message}`);
+            }
 
-        if (error) {
-            console.error("Error creating post:", error);
-            alert("Failed to post. Please try again.");
-        } else {
+            // Success
             setCaption("");
             setUploadedFiles([]);
             setPreviewUrls([]);
             if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
             onPostCreated();
+
+        } catch (error: any) {
+            console.error("Handle Post Error:", error);
+            alert(error.message || "An unexpected error occurred while posting.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
