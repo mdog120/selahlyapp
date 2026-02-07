@@ -40,7 +40,7 @@ export function SelahSisterCard() {
                     </span>
 
                     <Link
-                        href={`/bible/${sister.book}/${sister.chapter}`}
+                        href={`/bible?book=${encodeURIComponent(sister.book)}&chapter=${sister.chapter}`}
                         className="flex items-center gap-2 text-sm font-medium text-warm-cocoa hover:text-sage-green transition-colors group-hover:translate-x-1 duration-300"
                     >
                         Read Story <ArrowRight className="w-4 h-4" />
