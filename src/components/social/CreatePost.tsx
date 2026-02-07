@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { Image, Send, X, Video, Layers } from "lucide-react";
+import * as tus from 'tus-js-client';
 
 export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [caption, setCaption] = useState("");
@@ -70,39 +71,62 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         setLoading(true);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("User not authenticated");
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) throw new Error("User not authenticated");
 
             const mediaUrls: string[] = [];
+            const user = session.user;
 
-            // Upload Files
+            // Upload Files using TUS
             for (const file of uploadedFiles) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
-                console.log(`Attempting to upload: ${fileName}, size: ${file.size}, type: ${file.type}`);
+                console.log(`Starting TUS upload: ${fileName}, size: ${file.size}, type: ${file.type}`);
 
-                const { data, error: uploadError } = await supabase.storage
-                    .from('posts')
-                    .upload(fileName, file, {
-                        cacheControl: '3600',
-                        upsert: false
+                await new Promise<void>((resolve, reject) => {
+                    const upload = new tus.Upload(file, {
+                        endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`,
+                        retryDelays: [0, 3000, 5000, 10000, 20000],
+                        headers: {
+                            authorization: `Bearer ${session.access_token}`,
+                            'x-upsert': 'true',
+                        },
+                        uploadDataDuringCreation: true,
+                        removeFingerprintOnSuccess: true,
+                        metadata: {
+                            bucketName: 'posts',
+                            objectName: fileName,
+                            contentType: file.type,
+                            cacheControl: '3600',
+                        },
+                        chunkSize: 6 * 1024 * 1024,
+                        onError: function (error) {
+                            console.error('TUS Upload Failed:', error);
+                            reject(error);
+                        },
+                        onProgress: function (bytesUploaded, bytesTotal) {
+                            const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                            console.log(`Upload progress: ${percentage}%`);
+                        },
+                        onSuccess: function () {
+                            console.log(`Upload success: ${fileName}`);
+                            const { data: { publicUrl } } = supabase.storage
+                                .from('posts')
+                                .getPublicUrl(fileName);
+
+                            mediaUrls.push(publicUrl);
+                            resolve();
+                        },
                     });
 
-                if (uploadError) {
-                    console.error("Upload Error Details:", uploadError);
-                    alert(`Upload failed for ${file.name}: ${uploadError.message}`);
-                    continue; // Skip this file but try others
-                }
-
-                if (data) {
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('posts')
-                        .getPublicUrl(fileName);
-
-                    console.log(`Upload success. Public URL: ${publicUrl}`);
-                    mediaUrls.push(publicUrl);
-                }
+                    upload.findPreviousUploads().then(function (previousUploads) {
+                        if (previousUploads.length) {
+                            upload.resumeFromPreviousUpload(previousUploads[0]);
+                        }
+                        upload.start();
+                    });
+                });
             }
 
             // If user tried to upload files but all failed
