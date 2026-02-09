@@ -15,7 +15,7 @@ export function InstagramEmbed() {
         <div className="w-full flex justify-center my-8">
             <blockquote
                 className="instagram-media"
-                data-instgrm-permalink="https://www.instagram.com/selahly.app/"
+                data-instgrm-permalink="https://www.instagram.com/selahlyapp/"
                 data-instgrm-version="14"
                 style={{
                     background: "#FFF",
@@ -33,7 +33,7 @@ export function InstagramEmbed() {
                 }}
             >
                 <div style={{ padding: "16px" }}>
-                    <a href="https://www.instagram.com/selahly.app/" style={{ background: "#FFFFFF", lineHeight: "0", padding: "0 0", textAlign: "center", textDecoration: "none", width: "100%" }} target="_blank">
+                    <a href="https://www.instagram.com/selahlyapp/" style={{ background: "#FFFFFF", lineHeight: "0", padding: "0 0", textAlign: "center", textDecoration: "none", width: "100%" }} target="_blank">
                         <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
                             <div style={{ backgroundColor: "#F4F4F4", borderRadius: "50%", flexGrow: 0, height: "40px", marginRight: "14px", width: "40px" }}></div>
                             <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, justifyItems: "flex-start" }}>
