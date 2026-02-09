@@ -23,8 +23,31 @@ export function PrayerPartnerWidget() {
     const router = useRouter();
     const supabase = createClient();
 
+    const [hasPrayer, setHasPrayer] = useState<boolean | null>(null);
+
     const findPartners = async () => {
         setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
+        // Check if user has posted a prayer
+        const { count } = await supabase
+            .from('prayers')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+        if (!count || count === 0) {
+            setHasPrayer(false);
+            setSearched(true);
+            setLoading(false);
+            return;
+        }
+
+        setHasPrayer(true);
         const { data, error } = await supabase.rpc('match_prayer_partners');
 
         if (error) {
@@ -58,6 +81,31 @@ export function PrayerPartnerWidget() {
                     disabled={loading}
                 >
                     {loading ? "Searching..." : "Find My Match ✨"}
+                </Button>
+            </div>
+        );
+    }
+
+    if (hasPrayer === false) {
+        return (
+            <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40 mb-8 text-center animate-fade-in">
+                <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-serif text-lg text-warm-grey">Prayer Partners</h3>
+                    <button onClick={() => setSearched(false)} className="text-warm-grey/40 hover:text-warm-grey">
+                        <RefreshCw className="w-4 h-4" />
+                    </button>
+                </div>
+                <p className="text-sm text-warm-grey/60 mb-4">
+                    You haven't posted a prayer request yet! Share your heart above so we can match you with a sister praying for similar things. 🤍
+                </p>
+                <Button
+                    onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    variant="outline"
+                    className="w-full text-xs"
+                >
+                    Write a Prayer
                 </Button>
             </div>
         );
