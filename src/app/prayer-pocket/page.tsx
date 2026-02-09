@@ -7,6 +7,7 @@ import { Heart, Plus, X, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ShareModal } from "@/components/messaging/ShareModal";
+import { PrayerPartnerWidget } from "@/components/prayer-pocket/PrayerPartnerWidget";
 
 type Prayer = {
     id: string;
@@ -147,6 +148,9 @@ export default function PrayerPocket() {
                         "Carry each other’s burdens, and in this way you will fulfill the law of Christ." — Galatians 6:2
                     </p>
                 </div>
+
+                {/* Prayer Partner Widget */}
+                <PrayerPartnerWidget />
 
                 {/* Compose Button */}
                 <button
