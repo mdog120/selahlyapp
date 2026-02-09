@@ -8,6 +8,7 @@ import { DailyVerseCard } from "@/components/home/DailyVerseCard";
 import { PrayerRequestList } from "@/components/home/PrayerRequestList";
 import { SelahlyNotes } from "@/components/social/SelahlyNotes";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
+import { InstagramEmbed } from "@/components/social/InstagramEmbed";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +135,15 @@ export default async function UserHome(props: {
                                     Browse Vibes 🎧
                                 </Button>
                             </a>
+                        </div>
+
+                        {/* Instagram Embed (New Position) */}
+                        <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40">
+                            <div className="text-center mb-4">
+                                <h3 className="font-serif text-lg text-warm-cocoa">Follow our Journey</h3>
+                                <p className="text-xs text-warm-grey/60">Catch the latest vibes on Instagram.</p>
+                            </div>
+                            <InstagramEmbed />
                         </div>
 
                     </div>
