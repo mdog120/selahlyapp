@@ -20,9 +20,9 @@ type Profile = {
     biography: string;
     created_at: string;
     streak_count: number;
-    song_title?: string;
-    song_artist?: string;
-    song_link?: string;
+    song_title?: string | null;
+    song_artist?: string | null;
+    song_link?: string | null;
 };
 
 export default function ProfilePage() {
