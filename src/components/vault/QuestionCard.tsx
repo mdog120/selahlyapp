@@ -39,13 +39,95 @@ export function QuestionCard({ thread }: { thread: Thread }) {
     const router = useRouter();
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [upvoteCount, setUpvoteCount] = useState(0);
+    const [hasUpvoted, setHasUpvoted] = useState(false);
     const supabase = createClient();
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data: { user } }) => {
+        const fetchUserData = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
             if (user) setCurrentUserId(user.id);
-        });
-    }, []);
+        };
+        fetchUserData();
+        fetchUpvotes();
+
+        // Real-time subscription
+        const channel = supabase
+            .channel(`public:vault_question_upvotes:${thread.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'vault_question_upvotes',
+                    filter: `question_id=eq.${thread.id}`
+                },
+                () => {
+                    fetchUpvotes();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [thread.id]);
+
+    const fetchUpvotes = async () => {
+        // Get count
+        const { count } = await supabase
+            .from("vault_question_upvotes")
+            .select("*", { count: "exact", head: true })
+            .eq("question_id", thread.id);
+
+        setUpvoteCount(count || 0);
+
+        // Check if user upvoted (needs user id)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data } = await supabase
+                .from("vault_question_upvotes")
+                .select("id")
+                .eq("question_id", thread.id)
+                .eq("user_id", user.id)
+                .single();
+            if (data) setHasUpvoted(true);
+        }
+    };
+
+    const handleUpvote = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!currentUserId) {
+            router.push("/login");
+            return;
+        }
+
+        // Optimistic update
+        const newHasUpvoted = !hasUpvoted;
+        setHasUpvoted(newHasUpvoted);
+        setUpvoteCount(prev => newHasUpvoted ? prev + 1 : prev - 1);
+
+        try {
+            if (newHasUpvoted) {
+                const { error } = await supabase
+                    .from("vault_question_upvotes")
+                    .insert({ question_id: thread.id, user_id: currentUserId });
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from("vault_question_upvotes")
+                    .delete()
+                    .eq("question_id", thread.id)
+                    .eq("user_id", currentUserId);
+                if (error) throw error;
+            }
+        } catch (error) {
+            console.error("Error toggling upvote:", error);
+            // Revert on error
+            setHasUpvoted(!newHasUpvoted);
+            setUpvoteCount(prev => !newHasUpvoted ? prev + 1 : prev - 1);
+        }
+    };
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -104,6 +186,31 @@ export function QuestionCard({ thread }: { thread: Thread }) {
                     </Link>
 
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleUpvote}
+                            className={`flex items-center gap-1 text-xs font-medium transition-colors px-2 py-1 rounded-full ${hasUpvoted
+                                ? "bg-sage-green/10 text-sage-green"
+                                : "text-warm-grey/40 hover:text-warm-grey hover:bg-stone-100"
+                                }`}
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill={hasUpvoted ? "currentColor" : "none"}
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="m18 15-6-6-6 6" />
+                            </svg>
+                            {upvoteCount}
+                        </button>
+
+                        <div className="w-px h-4 bg-warm-grey/10"></div>
+
                         {currentUserId === thread.user_id && (
                             <button
                                 onClick={handleDelete}

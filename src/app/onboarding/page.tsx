@@ -61,10 +61,25 @@ const STATEMENT_OF_FAITH = [
     }
 ];
 
+const REFERRAL_OPTIONS = [
+    "Instagram",
+    "TikTok",
+    "Friend",
+    "Search",
+    "Other"
+];
+
 export default function Onboarding() {
     const router = useRouter();
+    const [step, setStep] = useState<"referral" | "covenant">("referral");
+    const [referralSource, setReferralSource] = useState("");
+    const [referralDetails, setReferralDetails] = useState("");
     const [accepted, setAccepted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+
+    const handleReferralSubmit = () => {
+        setStep("covenant");
+    };
 
     const handleAccept = async () => {
         setSubmitting(true);
@@ -77,10 +92,14 @@ export default function Onboarding() {
                 return;
             }
 
-            // Update profile
+            // Update profile with referral and covenant acceptance
             const { error } = await supabase
                 .from("profiles")
-                .update({ accepted_code_of_conduct: true })
+                .update({
+                    accepted_code_of_conduct: true,
+                    referral_source: referralSource,
+                    referral_details: referralDetails
+                })
                 .eq("id", user.id);
 
             if (error) throw error;
@@ -93,9 +112,75 @@ export default function Onboarding() {
         }
     };
 
+    if (step === "referral") {
+        return (
+            <div className="min-h-screen bg-warm-paper text-warm-grey flex flex-col items-center justify-center p-4">
+                <div className="max-w-md w-full glass-card p-8 rounded-3xl relative overflow-hidden animate-fade-in-up">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-soft-blush/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+
+                    <div className="text-center mb-8 relative z-10">
+                        <Image src="/logo.png" alt="Selahly" width={60} height={60} className="mx-auto mb-4" />
+                        <h1 className="font-serif text-3xl text-warm-cocoa mb-2">Welcome, Sister.</h1>
+                        <p className="text-warm-grey/70">We'd love to know how you found ur way here.</p>
+                    </div>
+
+                    <div className="space-y-3 relative z-10">
+                        {REFERRAL_OPTIONS.map((option) => (
+                            <button
+                                key={option}
+                                onClick={() => setReferralSource(option)}
+                                className={`w-full p-4 rounded-xl border text-left transition-all duration-200 ${referralSource === option
+                                        ? "bg-sage-green text-white border-sage-green shadow-lg scale-[1.02]"
+                                        : "bg-white/50 border-white/50 hover:border-sage-green/50 hover:bg-white/80"
+                                    }`}
+                            >
+                                {option}
+                            </button>
+                        ))}
+                    </div>
+
+                    {referralSource === "Friend" && (
+                        <div className="mt-4 animate-fade-in">
+                            <label className="block text-sm font-medium text-warm-grey/80 mb-2">Who invited you?</label>
+                            <input
+                                type="text"
+                                value={referralDetails}
+                                onChange={(e) => setReferralDetails(e.target.value)}
+                                placeholder="Enter your friend's name..."
+                                className="w-full p-3 rounded-xl bg-white/50 border border-white focus:ring-2 ring-sage-green/20 outline-none transition-all"
+                            />
+                        </div>
+                    )}
+
+                    {referralSource === "Other" && (
+                        <div className="mt-4 animate-fade-in">
+                            <label className="block text-sm font-medium text-warm-grey/80 mb-2">Please specify:</label>
+                            <input
+                                type="text"
+                                value={referralDetails}
+                                onChange={(e) => setReferralDetails(e.target.value)}
+                                placeholder="Tell us more..."
+                                className="w-full p-3 rounded-xl bg-white/50 border border-white focus:ring-2 ring-sage-green/20 outline-none transition-all"
+                            />
+                        </div>
+                    )}
+
+                    <Button
+                        onClick={handleReferralSubmit}
+                        disabled={!referralSource || (referralSource === "Friend" && !referralDetails)}
+                        size="lg"
+                        className="w-full mt-8"
+                    >
+                        Continue
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-warm-paper text-warm-grey flex flex-col items-center justify-center p-4">
-            <div className="max-w-2xl w-full glass-card p-8 rounded-3xl relative overflow-hidden">
+            <div className="max-w-2xl w-full glass-card p-8 rounded-3xl relative overflow-hidden animate-fade-in">
                 {/* Decoration */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-soft-blush/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Marquee } from "@/components/ui/Marquee";
 import { Sparkles, Heart } from "lucide-react";
+import { InstagramEmbed } from "@/components/social/InstagramEmbed";
 
 
 const COMMUNITY_POSTS = [
@@ -128,6 +129,21 @@ export default function Home() {
         </Marquee>
       </section>
 
+      {/* Instagram Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="font-serif text-3xl md:text-5xl text-warm-grey mb-6">
+            Follow our Journey
+          </h2>
+          <p className="text-lg text-warm-grey/80 mb-8">
+            Catch the latest updates and vibes on Instagram.
+          </p>
+          <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-6 border border-white/60 shadow-sm">
+            <InstagramEmbed />
+          </div>
+        </div>
+      </section>
+
 
       {/* About Section */}
       <section className="py-20 px-4">
@@ -161,6 +177,21 @@ export default function Home() {
               <h3 className="font-serif text-2xl text-warm-grey mb-3">Daily Growth</h3>
               <p className="text-warm-grey/70">Start every morning with a short, aesthetic devotional designed to help you connect with Jesus.</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Instagram Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="font-serif text-3xl md:text-5xl text-warm-grey mb-6">
+            Follow our Journey
+          </h2>
+          <p className="text-lg text-warm-grey/80 mb-8">
+            Catch the latest updates and vibes on Instagram.
+          </p>
+          <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-6 border border-white/60 shadow-sm">
+            <InstagramEmbed />
           </div>
         </div>
       </section>
