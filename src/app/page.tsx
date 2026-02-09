@@ -168,20 +168,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Instagram Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="font-serif text-3xl md:text-5xl text-warm-grey mb-6">
-            Follow our Journey
-          </h2>
-          <p className="text-lg text-warm-grey/80 mb-8">
-            Catch the latest updates and vibes on Instagram.
-          </p>
-          <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-6 border border-white/60 shadow-sm">
-            <InstagramEmbed />
-          </div>
-        </div>
-      </section>
+
 
       {/* FAQ Section */}
       <section className="py-24 px-4">
