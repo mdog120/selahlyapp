@@ -8,7 +8,7 @@ import { DailyVerseCard } from "@/components/home/DailyVerseCard";
 import { PrayerRequestList } from "@/components/home/PrayerRequestList";
 import { SelahlyNotes } from "@/components/social/SelahlyNotes";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
-import { InstagramEmbed } from "@/components/social/InstagramEmbed";
+import { InstagramFeed } from "@/components/social/InstagramFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -143,7 +143,7 @@ export default async function UserHome(props: {
                                 <h3 className="font-serif text-lg text-warm-cocoa">Follow our Journey</h3>
                                 <p className="text-xs text-warm-grey/60">Catch the latest vibes on Instagram.</p>
                             </div>
-                            <InstagramEmbed />
+                            <InstagramFeed />
                         </div>
 
                     </div>
