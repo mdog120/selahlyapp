@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { Image, Send, X, Video, Layers } from "lucide-react";
+import { Image, Send, X, Video, Layers, Music } from "lucide-react";
 import * as tus from 'tus-js-client';
 
 export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
@@ -12,6 +12,12 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [previewUrls, setPreviewUrls] = useState<{ url: string, type: 'image' | 'video' }[]>([]);
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
+
+    // Song State
+    const [songTitle, setSongTitle] = useState("");
+    const [songArtist, setSongArtist] = useState("");
+    const [songLink, setSongLink] = useState("");
+    const [showSongInput, setShowSongInput] = useState(false);
 
     // User Identity State
     const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -151,7 +157,10 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                 caption: caption,
                 media_urls: mediaUrls,
                 type: postType,
-                image_url: mediaUrls.length > 0 ? mediaUrls[0] : null
+                image_url: mediaUrls.length > 0 ? mediaUrls[0] : null,
+                song_title: songTitle.trim() || null,
+                song_artist: songArtist.trim() || null,
+                song_link: songLink.trim() || null
             });
 
             if (insertError) {
@@ -163,6 +172,10 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             setCaption("");
             setUploadedFiles([]);
             setPreviewUrls([]);
+            setSongTitle("");
+            setSongArtist("");
+            setSongLink("");
+            setShowSongInput(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
             onPostCreated();
@@ -219,6 +232,48 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                 </div>
                             )}
 
+                            {/* Song Inputs */}
+                            {showSongInput ? (
+                                <div className="bg-white/40 p-3 rounded-xl border border-warm-grey/10 mb-4 animate-fade-in">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-xs font-medium text-warm-grey flex items-center gap-1">
+                                            <Music className="w-3 h-3" /> Add Song
+                                        </label>
+                                        <button onClick={() => {
+                                            setShowSongInput(false);
+                                            setSongTitle("");
+                                            setSongArtist("");
+                                            setSongLink("");
+                                        }} className="text-warm-grey/40 hover:text-red-400">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                        <input
+                                            type="text"
+                                            value={songTitle}
+                                            onChange={e => setSongTitle(e.target.value)}
+                                            placeholder="Song Title"
+                                            className="bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-sage-green/30"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={songArtist}
+                                            onChange={e => setSongArtist(e.target.value)}
+                                            placeholder="Artist"
+                                            className="bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-sage-green/30"
+                                        />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={songLink}
+                                        onChange={e => setSongLink(e.target.value)}
+                                        placeholder="Link (Spotify/YouTube...)"
+                                        className="w-full bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-sage-green/30"
+                                    />
+                                </div>
+                            ) : null}
+
                             {/* Hidden File Input */}
                             <input
                                 type="file"
@@ -230,13 +285,24 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                             />
 
                             <div className="flex justify-between items-center">
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="text-warm-grey/40 hover:text-sage-green transition-colors flex items-center gap-2 text-xs"
-                                >
-                                    <Layers className="w-5 h-5" />
-                                    <span>Add Photos/Video</span>
-                                </button>
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="text-warm-grey/40 hover:text-sage-green transition-colors flex items-center gap-2 text-xs"
+                                    >
+                                        <Layers className="w-5 h-5" />
+                                        <span>Add Photos/Video</span>
+                                    </button>
+                                    {!showSongInput && (
+                                        <button
+                                            onClick={() => setShowSongInput(true)}
+                                            className="text-warm-grey/40 hover:text-sage-green transition-colors flex items-center gap-2 text-xs"
+                                        >
+                                            <Music className="w-5 h-5" />
+                                            <span>Add Song</span>
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>
                                     <Button size="sm" onClick={handlePost} disabled={loading || (!caption.trim() && uploadedFiles.length === 0)}>

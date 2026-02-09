@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, Heart } from "lucide-react";
+import { Plus, X, Heart, Music } from "lucide-react";
 // MVP wrapping manual implementation below
 import { Button } from "@/components/ui/Button";
 
@@ -12,6 +12,9 @@ type Note = {
     style: string;
     created_at: string;
     user_id: string;
+    song_title?: string;
+    song_artist?: string;
+    song_link?: string;
     profiles: {
         first_name: string;
         avatar_url: string;
@@ -31,6 +34,10 @@ export function SelahlyNotes() {
     const [notes, setNotes] = useState<Note[]>([]);
     const [loading, setLoading] = useState(true);
     const [newNote, setNewNote] = useState("");
+    const [songTitle, setSongTitle] = useState("");
+    const [songArtist, setSongArtist] = useState("");
+    const [songLink, setSongLink] = useState("");
+    const [showSongInput, setShowSongInput] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState<{ first_name: string; avatar_url: string; username?: string } | null>(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -52,7 +59,7 @@ export function SelahlyNotes() {
         const { data, error } = await supabase
             .from('notes')
             .select(`
-                id, content, style, created_at, user_id, expires_at,
+                id, content, style, created_at, user_id, expires_at, song_title, song_artist, song_link,
                 profiles!notes_user_id_fkey_profiles (first_name, avatar_url, username),
                 note_likes (
                     user_id,
@@ -102,6 +109,19 @@ export function SelahlyNotes() {
         // Check for existing notes to update instead of create
         const existingNotes = notes.filter(n => n.user_id === userId);
 
+        // Clean up song inputs if partial
+        const finalSongTitle = songTitle.trim() || null;
+        const finalSongArtist = songArtist.trim() || null;
+        const finalSongLink = songLink.trim() || null;
+
+        const noteData = {
+            content: newNote,
+            song_title: finalSongTitle,
+            song_artist: finalSongArtist,
+            song_link: finalSongLink,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        };
+
         if (existingNotes.length > 0) {
             // Update the existing one
             const noteToUpdate = existingNotes[0];
@@ -115,8 +135,7 @@ export function SelahlyNotes() {
             const { error: updateError } = await supabase
                 .from('notes')
                 .update({
-                    content: newNote,
-                    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    ...noteData,
                     created_at: new Date().toISOString()
                 })
                 .eq('id', noteToUpdate.id);
@@ -125,8 +144,7 @@ export function SelahlyNotes() {
             // Create new
             const { error: insertError } = await supabase.from('notes').insert({
                 user_id: userId,
-                content: newNote,
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                ...noteData
             });
             error = insertError;
         }
@@ -140,6 +158,10 @@ export function SelahlyNotes() {
         // Success
         console.log("Note saved successfully");
         setNewNote("");
+        setSongTitle("");
+        setSongArtist("");
+        setSongLink("");
+        setShowSongInput(false);
         setIsOpen(false);
         // Manually fetch immediately to ensure UI update
         await fetchNotes();
@@ -217,7 +239,10 @@ export function SelahlyNotes() {
                             onClick={() => setIsOpen(true)}
                             className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1 group/mynote"
                         >
-                            <span className="line-clamp-3 text-warm-grey/90">{myNote.content}</span>
+                            <span className="line-clamp-3 text-warm-grey/90">
+                                {myNote.song_title && <span className="block text-[8px] text-warm-cocoa mb-0.5">🎵 {myNote.song_title}</span>}
+                                {myNote.content}
+                            </span>
                             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-rose-50 border-b border-r border-soft-blush/20 rotate-45"></div>
 
                             {/* Likers Count - Only visible to me */}
@@ -270,7 +295,10 @@ export function SelahlyNotes() {
                                     }}
                                     className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
                                 >
-                                    <span className="line-clamp-3 text-warm-grey/90">{note.content}</span>
+                                    <span className="line-clamp-3 text-warm-grey/90">
+                                        {note.song_title && <span className="block text-[8px] text-purple-400 mb-0.5">🎵</span>}
+                                        {note.content}
+                                    </span>
                                     {/* Little triangle for speech bubble */}
                                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
                                 </div>
@@ -320,6 +348,55 @@ export function SelahlyNotes() {
                                 className="w-full bg-gray-50 border-none rounded-xl p-4 text-sm focus:ring-1 focus:ring-warm-cocoa/20 mb-4 h-32 resize-none"
                                 maxLength={60} // Instagram notes are short
                             />
+
+                            {/* Song Input Toggle */}
+                            <div className="mb-4">
+                                {!showSongInput && !myNote?.song_title ? (
+                                    <button
+                                        onClick={() => setShowSongInput(true)}
+                                        className="text-xs text-warm-grey/60 flex items-center gap-2 hover:text-warm-cocoa transition-colors"
+                                    >
+                                        <Music className="w-3 h-3" /> Add Song
+                                    </button>
+                                ) : (
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-warm-grey/5 animate-fade-in">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-xs font-medium text-warm-grey flex items-center gap-1">
+                                                <Music className="w-3 h-3" /> Song
+                                            </label>
+                                            <button onClick={() => {
+                                                setShowSongInput(false);
+                                                setSongTitle("");
+                                                setSongArtist("");
+                                                setSongLink("");
+                                            }} className="text-warm-grey/40 hover:text-red-400">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={songTitle}
+                                            onChange={e => setSongTitle(e.target.value)}
+                                            placeholder="Song Title"
+                                            className="w-full bg-white border-none rounded-lg p-2 text-xs mb-1 focus:ring-1 focus:ring-warm-cocoa/10"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={songArtist}
+                                            onChange={e => setSongArtist(e.target.value)}
+                                            placeholder="Artist"
+                                            className="w-full bg-white border-none rounded-lg p-2 text-xs mb-1 focus:ring-1 focus:ring-warm-cocoa/10"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={songLink}
+                                            onChange={e => setSongLink(e.target.value)}
+                                            placeholder="Link (Spotify/YouTube)"
+                                            className="w-full bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-warm-cocoa/10"
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Likers List (If My Note) */}
                             {myNote && myNote.note_likes?.length > 0 && (
@@ -388,6 +465,25 @@ export function SelahlyNotes() {
                             {/* The Note */}
                             <div className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-4 text-center mb-6 relative">
                                 <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{viewingNote.content}"</p>
+
+                                {viewingNote.song_title && (
+                                    <div className="mt-4 pt-4 border-t border-soft-blush/20 flex justify-center">
+                                        <a
+                                            href={viewingNote.song_link || "#"}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-white/60 rounded-full text-xs hover:bg-white transition-colors border border-soft-blush/20"
+                                        >
+                                            <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center text-white">
+                                                <Music className="w-2.5 h-2.5" />
+                                            </div>
+                                            <div className="text-left leading-tight">
+                                                <p className="font-bold text-warm-grey">{viewingNote.song_title}</p>
+                                                {viewingNote.song_artist && <p className="text-[9px] text-warm-grey/60">{viewingNote.song_artist}</p>}
+                                            </div>
+                                        </a>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Likers List (Now visible to everyone in modal as per newer request implication? Or stuck to privacy? 

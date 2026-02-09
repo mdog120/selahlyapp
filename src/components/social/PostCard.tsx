@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle, Music } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -13,6 +13,9 @@ type Post = {
     media_urls: string[] | null;
     type: 'image' | 'video' | 'carousel' | 'text';
     caption: string;
+    song_title?: string;
+    song_artist?: string;
+    song_link?: string;
     likes_count: number;
     comments_count: number;
     created_at: string;
@@ -300,6 +303,26 @@ export function PostCard({ post }: { post: Post }) {
             </div>
 
             {renderMedia()}
+
+            {/* Song Badge */}
+            {post.song_title && (
+                <div className="mb-4">
+                    <a
+                        href={post.song_link || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-stone-50 rounded-full text-xs hover:bg-stone-100 transition-colors border border-warm-grey/5 group"
+                    >
+                        <div className="w-5 h-5 bg-black/5 rounded-full flex items-center justify-center text-warm-grey group-hover:bg-warm-cocoa group-hover:text-white transition-colors">
+                            <Music className="w-2.5 h-2.5" />
+                        </div>
+                        <div className="text-left leading-tight">
+                            <span className="font-bold text-warm-grey block">{post.song_title}</span>
+                            {post.song_artist && <span className="text-warm-grey/60 block text-[9px]">{post.song_artist}</span>}
+                        </div>
+                    </a>
+                </div>
+            )}
 
             <p className="font-serif text-lg text-warm-grey mb-4 leading-relaxed">
                 {post.caption}
