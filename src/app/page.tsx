@@ -59,7 +59,7 @@ export default function Home() {
           {/* Logo */}
           <div className="mb-8 animate-fade-in-up">
             <Image
-              src="/logo.png"
+              src="/logo-v2.png"
               alt="Selahly Lotus Logo"
               width={120}
               height={120}
