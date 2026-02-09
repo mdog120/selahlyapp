@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "Selahly | Digital Sanctuary",
   description: "A peaceful digital pause for faith, sisterhood, and inspiration.",
   icons: {
-    icon: '/favicon-v2.png',
+    icon: '/logo-v2.png',
   },
 };
 
