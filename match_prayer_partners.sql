@@ -1,4 +1,9 @@
--- Function to find prayer partners with LOOSER matching (OR logic)
+-- Function to find prayer partners with SMART matching
+-- Logic:
+-- 1. Remove common "stop words" (prayer, god, help, etc) to focus on unique topics.
+-- 2. Use OR logic for remaining keywords.
+-- 3. Rank by relevance.
+
 create or replace function match_prayer_partners()
 returns table (
     partner_id uuid,
@@ -13,6 +18,7 @@ security definer
 as $$
 declare
     my_latest_prayer text;
+    cleaned_prayer text;
     my_id uuid;
     query_text tsquery;
 begin
@@ -31,32 +37,22 @@ begin
         return;
     end if;
 
-    -- Convert prayer to keywords OR-ed together
-    -- plainto_tsquery creates 'word' & 'word'. We replace & with | to find ANY match.
-    select replace(plainto_tsquery('english', my_latest_prayer)::text, '&', '|')::tsquery 
+    -- Clean the text: remove common words regarding prayer/faith to find the TOPIC
+    cleaned_prayer := lower(my_latest_prayer);
+    -- Replace common filler words with spaces
+    cleaned_prayer := regexp_replace(cleaned_prayer, '\y(prayer|pray|praying|prayed|god|lord|jesus|christ|father|please|help|need|want|feeling|feel)\y', ' ', 'g');
+    
+    -- Convert remaining keywords to OR-ed tsquery
+    -- If the cleaned string is empty (e.g. they only typed "prayer please"), fall back to original but it will match broadly
+    if trim(cleaned_prayer) = '' then
+        cleaned_prayer := my_latest_prayer;
+    end if;
+
+    select replace(plainto_tsquery('english', cleaned_prayer)::text, '&', '|')::tsquery 
     into query_text;
 
-    -- If query is empty (e.g. only stop words), just return recent prayers? 
-    -- Or fallback to websearch.
     if query_text is null then
-         -- Fallback: just simple text match or recent
-         return query
-         select 
-            p.user_id as partner_id,
-            prof.first_name,
-            prof.last_name,
-            prof.avatar_url,
-            p.content as prayer_content,
-            0.1::float as similarity_score
-        from public.prayers p
-        join public.profiles prof on p.user_id = prof.id
-        where 
-            p.user_id != my_id 
-            and p.created_at > now() - interval '30 days'
-            and p.is_anonymous = false
-        order by p.created_at desc
-        limit 3;
-        return;
+         return;
     end if;
 
     return query
@@ -70,10 +66,10 @@ begin
     from public.prayers p
     join public.profiles prof on p.user_id = prof.id
     where 
-        p.user_id != my_id -- Not myself
-        and p.created_at > now() - interval '30 days' -- Recent prayers
-        and p.is_anonymous = false -- Only non-anonymous
-        and to_tsvector('english', p.content) @@ query_text -- Match ANY keyword
+        p.user_id != my_id 
+        and p.created_at > now() - interval '30 days'
+        and p.is_anonymous = false
+        and to_tsvector('english', p.content) @@ query_text
     order by similarity_score desc
     limit 3;
 end;
