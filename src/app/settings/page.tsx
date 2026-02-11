@@ -34,6 +34,13 @@ export default function SettingsPage() {
     const [uploading, setUploading] = useState(false);
     const [isFriendsPublic, setIsFriendsPublic] = useState(true);
 
+    // New Bio Fields
+    const [school, setSchool] = useState("");
+    const [church, setChurch] = useState("");
+    const [sport, setSport] = useState("");
+    const [hobby, setHobby] = useState("");
+    const [favVerse, setFavVerse] = useState("");
+
     useEffect(() => {
         const getProfile = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -56,6 +63,11 @@ export default function SettingsPage() {
                 setBio(profile.biography || "");
                 setAvatarUrl(profile.avatar_url || "");
                 setIsFriendsPublic(profile.is_friends_public ?? true);
+                setSchool(profile.school || "");
+                setChurch(profile.church || "");
+                setSport(profile.sport || "");
+                setHobby(profile.hobby || "");
+                setFavVerse(profile.fav_verse || "");
             }
             setLoading(false);
         };
@@ -119,6 +131,11 @@ export default function SettingsPage() {
                 biography: bio,
                 avatar_url: avatarUrl,
                 is_friends_public: isFriendsPublic,
+                school: school,
+                church: church,
+                sport: sport,
+                hobby: hobby,
+                fav_verse: favVerse,
                 updated_at: new Date().toISOString(),
             })
             .eq("id", user.id);
@@ -260,6 +277,63 @@ export default function SettingsPage() {
                                 placeholder="Tell us a bit about your journey..."
                                 className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none h-24 resize-none"
                             />
+                        </div>
+
+                        {/* Extended Bio Details */}
+                        <div className="pt-6 border-t border-warm-grey/10">
+                            <h3 className="text-sm font-bold text-warm-cocoa mb-4">More About You</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My School</label>
+                                    <input
+                                        type="text"
+                                        value={school}
+                                        onChange={(e) => setSchool(e.target.value)}
+                                        placeholder="University of Grace"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Church</label>
+                                    <input
+                                        type="text"
+                                        value={church}
+                                        onChange={(e) => setChurch(e.target.value)}
+                                        placeholder="Selahly Chapel"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Sport</label>
+                                    <input
+                                        type="text"
+                                        value={sport}
+                                        onChange={(e) => setSport(e.target.value)}
+                                        placeholder="Volleyball"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Hobby</label>
+                                    <input
+                                        type="text"
+                                        value={hobby}
+                                        onChange={(e) => setHobby(e.target.value)}
+                                        placeholder="Painting"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Fav Verse</label>
+                                    <input
+                                        type="text"
+                                        value={favVerse}
+                                        onChange={(e) => setFavVerse(e.target.value)}
+                                        placeholder="Philippians 4:13"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                     </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/client";
-import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, Edit2 } from "lucide-react";
+import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, Edit2, GraduationCap, Church, Trophy, Palette, Heart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatDistanceToNow } from "date-fns";
 import { useParams } from "next/navigation";
@@ -24,6 +24,11 @@ type Profile = {
     song_artist?: string | null;
     song_link?: string | null;
     is_friends_public?: boolean;
+    school?: string | null;
+    church?: string | null;
+    sport?: string | null;
+    hobby?: string | null;
+    fav_verse?: string | null;
 };
 
 export default function ProfilePage() {
@@ -353,6 +358,40 @@ export default function ProfilePage() {
                                 </div>
                             )}
 
+                            {/* Extended Bio Fields */}
+                            <div className="flex flex-wrap gap-3 mb-6">
+                                {profile.school && (
+                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My School">
+                                        <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                                        {profile.school}
+                                    </div>
+                                )}
+                                {profile.church && (
+                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Church">
+                                        <Church className="w-3.5 h-3.5 text-muted-rose" />
+                                        {profile.church}
+                                    </div>
+                                )}
+                                {profile.sport && (
+                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Sport">
+                                        <Trophy className="w-3.5 h-3.5 text-orange-400" />
+                                        {profile.sport}
+                                    </div>
+                                )}
+                                {profile.hobby && (
+                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Hobby">
+                                        <Palette className="w-3.5 h-3.5 text-sage-green" />
+                                        {profile.hobby}
+                                    </div>
+                                )}
+                                {profile.fav_verse && (
+                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Fav Verse">
+                                        <Heart className="w-3.5 h-3.5 text-red-400" />
+                                        {profile.fav_verse}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Anthem Edit Modal */}
                             {editingAnthem && (
                                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
@@ -411,43 +450,45 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Friend Requests Section */}
-                {friendStatus === 'self' && requests.length > 0 && (
-                    <div className="mb-8">
-                        <div className="bg-gradient-to-r from-soft-blush/20 to-white p-6 rounded-3xl border border-soft-blush/20">
-                            <h3 className="font-serif text-lg text-warm-cocoa mb-4 flex items-center gap-2">
-                                <span className="bg-muted-rose text-white text-[10px] px-2 py-0.5 rounded-full">{requests.length}</span>
-                                Friend Requests
-                            </h3>
-                            <div className="space-y-3">
-                                {requests.map(req => (
-                                    <div key={req.user_id_1} className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm">
-                                        <Link href={`/profile/${req.requester.username}`} className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-stone-100 overflow-hidden">
-                                                {req.requester.avatar_url ? (
-                                                    <img src={req.requester.avatar_url} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="w-full h-full flex items-center justify-center text-warm-grey">{req.requester.first_name[0]}</span>
-                                                )}
+                {
+                    friendStatus === 'self' && requests.length > 0 && (
+                        <div className="mb-8">
+                            <div className="bg-gradient-to-r from-soft-blush/20 to-white p-6 rounded-3xl border border-soft-blush/20">
+                                <h3 className="font-serif text-lg text-warm-cocoa mb-4 flex items-center gap-2">
+                                    <span className="bg-muted-rose text-white text-[10px] px-2 py-0.5 rounded-full">{requests.length}</span>
+                                    Friend Requests
+                                </h3>
+                                <div className="space-y-3">
+                                    {requests.map(req => (
+                                        <div key={req.user_id_1} className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm">
+                                            <Link href={`/profile/${req.requester.username}`} className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-stone-100 overflow-hidden">
+                                                    {req.requester.avatar_url ? (
+                                                        <img src={req.requester.avatar_url} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="w-full h-full flex items-center justify-center text-warm-grey">{req.requester.first_name[0]}</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-warm-grey text-sm">{req.requester.first_name} {req.requester.last_name}</p>
+                                                    <p className="text-xs text-warm-grey/40">@{req.requester.username}</p>
+                                                </div>
+                                            </Link>
+                                            <div className="flex items-center gap-2">
+                                                <Button size="sm" onClick={() => handleAccept(req.user_id_1)} className="bg-muted-rose text-white hover:bg-muted-rose/90 rounded-full text-xs px-4">
+                                                    Accept
+                                                </Button>
+                                                <Button size="sm" variant="ghost" onClick={() => handleDecline(req.user_id_1)} className="text-warm-grey/40 hover:text-red-400 rounded-full w-8 h-8 p-0">
+                                                    <X className="w-4 h-4" />
+                                                </Button>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-warm-grey text-sm">{req.requester.first_name} {req.requester.last_name}</p>
-                                                <p className="text-xs text-warm-grey/40">@{req.requester.username}</p>
-                                            </div>
-                                        </Link>
-                                        <div className="flex items-center gap-2">
-                                            <Button size="sm" onClick={() => handleAccept(req.user_id_1)} className="bg-muted-rose text-white hover:bg-muted-rose/90 rounded-full text-xs px-4">
-                                                Accept
-                                            </Button>
-                                            <Button size="sm" variant="ghost" onClick={() => handleDecline(req.user_id_1)} className="text-warm-grey/40 hover:text-red-400 rounded-full w-8 h-8 p-0">
-                                                <X className="w-4 h-4" />
-                                            </Button>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* Sticky Board */}
                 <div className="mb-12">
@@ -538,7 +579,7 @@ export default function ProfilePage() {
                         isOwner={currentUser?.id === profile.id}
                     />
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }
