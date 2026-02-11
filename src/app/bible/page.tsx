@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { BibleReader } from "../../components/bible/BibleReader";
+import { CommunityHighlights } from "@/components/bible/CommunityHighlights";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, ArrowRight, Book } from "lucide-react";
 
@@ -55,7 +56,7 @@ function BiblePageContent() {
 
     return (
         <div className="min-h-screen bg-warm-paper font-serif transition-colors duration-500">
-            <div className="container mx-auto px-4 py-8 max-w-3xl">
+            <div className="container mx-auto px-4 py-8 max-w-6xl">
                 {/* Navigation Header */}
                 <div className="flex items-center justify-between mb-8 bg-white/50 p-4 rounded-2xl backdrop-blur-sm border border-warm-grey/10 sticky top-4 z-40 shadow-sm">
                     <Button variant="ghost" size="sm" onClick={() => router.push("/home")} className="text-warm-grey/50 hover:text-warm-cocoa">
@@ -89,12 +90,27 @@ function BiblePageContent() {
                     </div>
                 </div>
 
-                {/* Reader Content */}
-                <div className="min-h-[60vh] bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-warm-grey/5 mb-20 relative">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-soft-rose/10 to-transparent rounded-tr-3xl pointer-events-none" />
-                    <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-indigo-50/20 to-transparent rounded-tl-3xl pointer-events-none" />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Main Content: Bible Reader */}
+                    <div className="lg:col-span-8">
+                        <div className="min-h-[60vh] bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-warm-grey/5 mb-20 relative">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-soft-rose/10 to-transparent rounded-tr-3xl pointer-events-none" />
+                            <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-indigo-50/20 to-transparent rounded-tl-3xl pointer-events-none" />
 
-                    <BibleReader book={book} chapter={chapter} onLoading={setLoading} />
+                            <BibleReader book={book} chapter={chapter} onLoading={setLoading} />
+                        </div>
+                    </div>
+
+                    {/* Sidebar: Widgets */}
+                    <div className="lg:col-span-4 space-y-6">
+                        <CommunityHighlights />
+
+                        {/* Placeholder for future widgets (e.g. Daily Verse, Notes) */}
+                        <div className="bg-white/40 rounded-3xl p-6 border border-warm-grey/5 text-center">
+                            <h3 className="font-serif text-warm-cocoa mb-1">Your Notes</h3>
+                            <p className="text-xs text-warm-grey/60">Coming soon...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

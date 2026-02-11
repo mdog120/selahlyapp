@@ -5,6 +5,7 @@ import { HighlightMenu } from "@/components/bible/HighlightMenu";
 import { ShareModal } from "@/components/bible/ShareModal";
 import { Loader2 } from "lucide-react";
 import { BibleResponse, SelectedText } from "./types";
+import { createClient } from "@/lib/supabase/client";
 
 
 
@@ -24,7 +25,20 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
     // Selection & Highlight State
     const [selection, setSelection] = useState<SelectedText | null>(null);
     const [shareData, setShareData] = useState<{ content: string, reference: string } | null>(null);
-    const [highlights, setHighlights] = useState<{ verseId: number; text: string; color: string }[]>([]);
+    const [highlights, setHighlights] = useState<{ id?: string; verseId: number; text: string; color: string }[]>([]);
+
+    // Auth & DB
+    const supabase = createClient();
+    const [userId, setUserId] = useState<string | null>(null);
+
+    // Initial Auth Check
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) setUserId(user.id);
+        };
+        checkUser();
+    }, []);
 
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +61,31 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         };
 
         fetchChapter();
+        fetchChapter();
     }, [book, chapter, onLoading]);
+
+    // Fetch User Highlights
+    useEffect(() => {
+        const fetchHighlights = async () => {
+            if (!userId) return;
+            const { data } = await supabase
+                .from('bible_highlights')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('book', book)
+                .eq('chapter', chapter);
+
+            if (data) {
+                setHighlights(data.map(h => ({
+                    id: h.id,
+                    verseId: h.verse,
+                    text: h.text, // Assuming full text matches are okay for now
+                    color: h.color
+                })));
+            }
+        };
+        fetchHighlights();
+    }, [book, chapter, userId]);
 
     // Handle Text Selection
     useEffect(() => {
@@ -76,8 +114,14 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
                 node = node.parentElement;
             }
 
+            // Clean up text - Remove verse numbers if accidentally selected
+            // Regex to remove leading digits & whitespace if at start
+            const cleanText = text.replace(/^\d+\s*/, "").trim();
+
+            if (!cleanText) return;
+
             setSelection({
-                text,
+                text: cleanText,
                 rect,
                 verseRef: `${book} ${chapter}${verseId ? `:${verseId}` : ''}`,
                 verseId
@@ -117,6 +161,24 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         };
 
         setHighlights(prev => [...prev, newHighlight]);
+
+        // Persist to DB
+        if (userId) {
+            const saveHighlight = async () => {
+                const { error } = await supabase
+                    .from('bible_highlights')
+                    .insert({
+                        user_id: userId,
+                        book: book,
+                        chapter: chapter,
+                        verse: selection.verseId,
+                        text: selection.text,
+                        color: colorMap[colorId] || "yellow"
+                    });
+                if (error) console.error("Error saving highlight", error);
+            };
+            saveHighlight();
+        }
 
         // Clear selection
         window.getSelection()?.removeAllRanges();
