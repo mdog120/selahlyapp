@@ -59,6 +59,11 @@ export default function SettingsPage() {
     const [uploading, setUploading] = useState(false);
     const [isFriendsPublic, setIsFriendsPublic] = useState(true);
 
+    // Anthem Fields
+    const [songTitle, setSongTitle] = useState("");
+    const [songArtist, setSongArtist] = useState("");
+    const [songLink, setSongLink] = useState("");
+
     // New Bio Fields
     const [school, setSchool] = useState("");
     const [schoolColor, setSchoolColor] = useState("rose");
@@ -93,6 +98,9 @@ export default function SettingsPage() {
                 setBio(profile.biography || "");
                 setAvatarUrl(profile.avatar_url || "");
                 setIsFriendsPublic(profile.is_friends_public ?? true);
+                setSongTitle(profile.song_title || "");
+                setSongArtist(profile.song_artist || "");
+                setSongLink(profile.song_link || "");
                 setSchool(profile.school || "");
                 setSchoolColor(profile.school_color || "rose");
                 setChurch(profile.church || "");
@@ -166,6 +174,9 @@ export default function SettingsPage() {
                 biography: bio,
                 avatar_url: avatarUrl,
                 is_friends_public: isFriendsPublic,
+                song_title: songTitle,
+                song_artist: songArtist,
+                song_link: songLink,
                 school: school,
                 school_color: schoolColor,
                 church: church,
@@ -322,7 +333,38 @@ export default function SettingsPage() {
 
                         {/* Extended Bio Details */}
                         <div className="pt-6 border-t border-warm-grey/10">
-                            <h3 className="text-sm font-bold text-warm-cocoa mb-4">More About You</h3>
+                            <h3 className="text-sm font-bold text-warm-cocoa mb-4">Profile Details</h3>
+
+                            {/* Anthem Section */}
+                            <div className="mb-6 space-y-4">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Anthem</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input
+                                        type="text"
+                                        value={songTitle}
+                                        onChange={(e) => setSongTitle(e.target.value)}
+                                        placeholder="Song Title"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={songArtist}
+                                        onChange={(e) => setSongArtist(e.target.value)}
+                                        placeholder="Artist"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                    />
+                                    <div className="md:col-span-2">
+                                        <input
+                                            type="text"
+                                            value={songLink}
+                                            onChange={(e) => setSongLink(e.target.value)}
+                                            placeholder="Link (Spotify/YouTube)"
+                                            className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My School</label>
