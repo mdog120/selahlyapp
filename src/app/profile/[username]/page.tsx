@@ -12,12 +12,12 @@ import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 
 const COLOR_MAP: Record<string, string> = {
-    'rose': 'bg-muted-rose text-white border-muted-rose',
-    'blue': 'bg-indigo-400 text-white border-indigo-400',
-    'green': 'bg-sage-green text-white border-sage-green',
-    'orange': 'bg-orange-400 text-white border-orange-400',
-    'purple': 'bg-purple-400 text-white border-purple-400',
-    'yellow': 'bg-yellow-400 text-white border-yellow-400',
+    'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
+    'blue': 'bg-indigo-50 text-indigo-600 border-indigo-100',
+    'green': 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    'orange': 'bg-orange-50 text-orange-600 border-orange-100',
+    'purple': 'bg-purple-50 text-purple-600 border-purple-100',
+    'yellow': 'bg-yellow-50 text-yellow-600 border-yellow-100',
 };
 
 function getBadgeStyle(colorName: string | null | undefined) {
