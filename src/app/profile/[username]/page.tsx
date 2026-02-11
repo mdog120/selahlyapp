@@ -23,6 +23,7 @@ type Profile = {
     song_title?: string | null;
     song_artist?: string | null;
     song_link?: string | null;
+    is_friends_public?: boolean;
 };
 
 export default function ProfilePage() {
@@ -485,7 +486,7 @@ export default function ProfilePage() {
                                 </div>
                             ) : (
                                 <div className="text-center py-8 text-warm-grey/40 text-sm italic">
-                                    {friendStatus === 'accepted' || friendStatus === 'self'
+                                    {friendStatus === 'accepted' || friendStatus === 'self' || profile.is_friends_public
                                         ? "No friends added yet."
                                         : "Friend list private."}
                                 </div>
