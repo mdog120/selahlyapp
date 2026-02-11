@@ -24,7 +24,13 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
 
     // Selection & Highlight State
     const [selection, setSelection] = useState<SelectedText | null>(null);
-    const [shareData, setShareData] = useState<{ content: string, reference: string } | null>(null);
+    const [shareData, setShareData] = useState<{
+        content: string;
+        reference: string;
+        book?: string;
+        chapter?: number;
+        verse?: number;
+    } | null>(null);
     const [highlights, setHighlights] = useState<{ id?: string; verseId: number; text: string; color: string }[]>([]);
 
     // Auth & DB
@@ -255,7 +261,10 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
                     onShare={(type) => {
                         setShareData({
                             content: selection.text,
-                            reference: selection.verseRef || `${book} ${chapter}`
+                            reference: selection.verseRef || `${book} ${chapter}`,
+                            book: book,
+                            chapter: chapter,
+                            verse: selection.verseId
                         });
                         setSelection(null);
                     }}

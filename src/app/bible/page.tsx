@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { BibleReader } from "../../components/bible/BibleReader";
 import { CommunityHighlights } from "@/components/bible/CommunityHighlights";
+import { YourNotes } from "@/components/bible/YourNotes";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, ArrowRight, Book } from "lucide-react";
 
@@ -104,12 +105,7 @@ function BiblePageContent() {
                     {/* Sidebar: Widgets */}
                     <div className="lg:col-span-4 space-y-6">
                         <CommunityHighlights />
-
-                        {/* Placeholder for future widgets (e.g. Daily Verse, Notes) */}
-                        <div className="bg-white/40 rounded-3xl p-6 border border-warm-grey/5 text-center">
-                            <h3 className="font-serif text-warm-cocoa mb-1">Your Notes</h3>
-                            <p className="text-xs text-warm-grey/60">Coming soon...</p>
-                        </div>
+                        <YourNotes />
                     </div>
                 </div>
             </div>

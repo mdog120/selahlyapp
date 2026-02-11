@@ -19,12 +19,18 @@ function Modal({ children, onClose }: { children: React.ReactNode, onClose: () =
 }
 
 interface ShareModalProps {
-    data: { content: string, reference: string };
+    data: {
+        content: string;
+        reference: string;
+        book?: string;
+        chapter?: number;
+        verse?: number;
+    };
     onClose: () => void;
 }
 
 export function ShareModal({ data, onClose }: ShareModalProps) {
-    const [target, setTarget] = useState<'lilypad' | 'notes'>('lilypad');
+    const [target, setTarget] = useState<'lilypad' | 'public_note' | 'private_note'>('lilypad');
     const [comment, setComment] = useState("");
     const [sending, setSending] = useState(false);
     const supabase = createClient();
@@ -47,13 +53,28 @@ export function ShareModal({ data, onClose }: ShareModalProps) {
                     // image_url can be null or maybe we generate a quote card later
                 });
                 if (error) throw error;
-            } else {
-                // Insert into notes
+            } else if (target === 'public_note') {
+                // Insert into social notes (existing table)
                 const { error } = await supabase.from('notes').insert({
                     user_id: user.id,
                     content: textPayload,
-                    style: 'bible-quote', // Custom style trigger
+                    style: 'bible-quote',
                     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                });
+                if (error) throw error;
+            } else if (target === 'private_note') {
+                // Insert into PRIVATE bible_notes
+                if (!data.book || !data.chapter) {
+                    throw new Error("Missing Bible reference for private note");
+                }
+
+                const { error } = await supabase.from('bible_notes').insert({
+                    user_id: user.id,
+                    book: data.book,
+                    chapter: data.chapter,
+                    verse: data.verse,
+                    selected_text: data.content,
+                    comment: comment
                 });
                 if (error) throw error;
             }
@@ -91,10 +112,16 @@ export function ShareModal({ data, onClose }: ShareModalProps) {
                     To Lily Pad
                 </button>
                 <button
-                    onClick={() => setTarget('notes')}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${target === 'notes' ? 'bg-white shadow text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey'}`}
+                    onClick={() => setTarget('public_note')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${target === 'public_note' ? 'bg-white shadow text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey'}`}
                 >
-                    To Notes
+                    Selahly Note
+                </button>
+                <button
+                    onClick={() => setTarget('private_note')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${target === 'private_note' ? 'bg-white shadow text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey'}`}
+                >
+                    Your Note
                 </button>
             </div>
 
