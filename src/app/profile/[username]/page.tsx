@@ -11,6 +11,20 @@ import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 
+const COLOR_MAP: Record<string, string> = {
+    'rose': 'bg-muted-rose text-white border-muted-rose',
+    'blue': 'bg-indigo-400 text-white border-indigo-400',
+    'green': 'bg-sage-green text-white border-sage-green',
+    'orange': 'bg-orange-400 text-white border-orange-400',
+    'purple': 'bg-purple-400 text-white border-purple-400',
+    'yellow': 'bg-yellow-400 text-white border-yellow-400',
+};
+
+function getBadgeStyle(colorName: string | null | undefined) {
+    const color = colorName || 'rose';
+    return COLOR_MAP[color] || COLOR_MAP['rose'];
+}
+
 type Profile = {
     id: string;
     username: string;
@@ -25,10 +39,15 @@ type Profile = {
     song_link?: string | null;
     is_friends_public?: boolean;
     school?: string | null;
+    school_color?: string | null;
     church?: string | null;
+    church_color?: string | null;
     sport?: string | null;
+    sport_color?: string | null;
     hobby?: string | null;
+    hobby_color?: string | null;
     fav_verse?: string | null;
+    fav_verse_color?: string | null;
 };
 
 export default function ProfilePage() {
@@ -361,32 +380,32 @@ export default function ProfilePage() {
                             {/* Extended Bio Fields */}
                             <div className="flex flex-wrap gap-3 mb-6">
                                 {profile.school && (
-                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My School">
-                                        <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm ${getBadgeStyle(profile.school_color)}`} title="My School">
+                                        <GraduationCap className="w-3.5 h-3.5" />
                                         {profile.school}
                                     </div>
                                 )}
                                 {profile.church && (
-                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Church">
-                                        <Church className="w-3.5 h-3.5 text-muted-rose" />
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm ${getBadgeStyle(profile.church_color)}`} title="My Church">
+                                        <Church className="w-3.5 h-3.5" />
                                         {profile.church}
                                     </div>
                                 )}
                                 {profile.sport && (
-                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Sport">
-                                        <Trophy className="w-3.5 h-3.5 text-orange-400" />
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm ${getBadgeStyle(profile.sport_color)}`} title="My Sport">
+                                        <Trophy className="w-3.5 h-3.5" />
                                         {profile.sport}
                                     </div>
                                 )}
                                 {profile.hobby && (
-                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Hobby">
-                                        <Palette className="w-3.5 h-3.5 text-sage-green" />
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm ${getBadgeStyle(profile.hobby_color)}`} title="My Hobby">
+                                        <Palette className="w-3.5 h-3.5" />
                                         {profile.hobby}
                                     </div>
                                 )}
                                 {profile.fav_verse && (
-                                    <div className="inline-flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-warm-grey/5 text-warm-grey text-xs font-medium" title="My Fav Verse">
-                                        <Heart className="w-3.5 h-3.5 text-red-400" />
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm ${getBadgeStyle(profile.fav_verse_color)}`} title="My Fav Verse">
+                                        <Heart className="w-3.5 h-3.5" />
                                         {profile.fav_verse}
                                     </div>
                                 )}

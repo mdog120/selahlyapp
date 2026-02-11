@@ -17,6 +17,30 @@ function SettingsIcon({ className }: { className?: string }) {
     )
 }
 
+const PASTEL_COLORS = [
+    { name: 'rose', value: 'bg-muted-rose text-white', label: 'Rose' },
+    { name: 'blue', value: 'bg-indigo-400 text-white', label: 'Blue' },
+    { name: 'green', value: 'bg-sage-green text-white', label: 'Green' },
+    { name: 'orange', value: 'bg-orange-400 text-white', label: 'Orange' },
+    { name: 'purple', value: 'bg-purple-400 text-white', label: 'Purple' },
+    { name: 'yellow', value: 'bg-yellow-400 text-white', label: 'Yellow' },
+];
+
+function ColorPicker({ selected, onChange }: { selected: string, onChange: (color: string) => void }) {
+    return (
+        <div className="flex gap-2 mt-2">
+            {PASTEL_COLORS.map((color) => (
+                <button
+                    key={color.name}
+                    onClick={() => onChange(color.name)}
+                    className={`w-6 h-6 rounded-full border-2 ${color.value.split(' ')[0]} ${selected === color.name ? 'border-warm-grey' : 'border-transparent'} hover:scale-110 transition-transform`}
+                    title={color.label}
+                />
+            ))}
+        </div>
+    );
+}
+
 export default function SettingsPage() {
     const router = useRouter();
     const supabase = createClient();
@@ -36,10 +60,15 @@ export default function SettingsPage() {
 
     // New Bio Fields
     const [school, setSchool] = useState("");
+    const [schoolColor, setSchoolColor] = useState("rose");
     const [church, setChurch] = useState("");
+    const [churchColor, setChurchColor] = useState("blue");
     const [sport, setSport] = useState("");
+    const [sportColor, setSportColor] = useState("orange");
     const [hobby, setHobby] = useState("");
+    const [hobbyColor, setHobbyColor] = useState("green");
     const [favVerse, setFavVerse] = useState("");
+    const [favVerseColor, setFavVerseColor] = useState("purple");
 
     useEffect(() => {
         const getProfile = async () => {
@@ -64,10 +93,15 @@ export default function SettingsPage() {
                 setAvatarUrl(profile.avatar_url || "");
                 setIsFriendsPublic(profile.is_friends_public ?? true);
                 setSchool(profile.school || "");
+                setSchoolColor(profile.school_color || "rose");
                 setChurch(profile.church || "");
+                setChurchColor(profile.church_color || "blue");
                 setSport(profile.sport || "");
+                setSportColor(profile.sport_color || "orange");
                 setHobby(profile.hobby || "");
+                setHobbyColor(profile.hobby_color || "green");
                 setFavVerse(profile.fav_verse || "");
+                setFavVerseColor(profile.fav_verse_color || "purple");
             }
             setLoading(false);
         };
@@ -132,10 +166,15 @@ export default function SettingsPage() {
                 avatar_url: avatarUrl,
                 is_friends_public: isFriendsPublic,
                 school: school,
+                school_color: schoolColor,
                 church: church,
+                church_color: churchColor,
                 sport: sport,
+                sport_color: sportColor,
                 hobby: hobby,
+                hobby_color: hobbyColor,
                 fav_verse: favVerse,
+                fav_verse_color: favVerseColor,
                 updated_at: new Date().toISOString(),
             })
             .eq("id", user.id);
@@ -282,7 +321,7 @@ export default function SettingsPage() {
                         {/* Extended Bio Details */}
                         <div className="pt-6 border-t border-warm-grey/10">
                             <h3 className="text-sm font-bold text-warm-cocoa mb-4">More About You</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My School</label>
                                     <input
@@ -290,8 +329,9 @@ export default function SettingsPage() {
                                         value={school}
                                         onChange={(e) => setSchool(e.target.value)}
                                         placeholder="University of Grace"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none mb-2"
                                     />
+                                    <ColorPicker selected={schoolColor} onChange={setSchoolColor} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Church</label>
@@ -300,8 +340,9 @@ export default function SettingsPage() {
                                         value={church}
                                         onChange={(e) => setChurch(e.target.value)}
                                         placeholder="Selahly Chapel"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none mb-2"
                                     />
+                                    <ColorPicker selected={churchColor} onChange={setChurchColor} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Sport</label>
@@ -310,8 +351,9 @@ export default function SettingsPage() {
                                         value={sport}
                                         onChange={(e) => setSport(e.target.value)}
                                         placeholder="Volleyball"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none mb-2"
                                     />
+                                    <ColorPicker selected={sportColor} onChange={setSportColor} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Hobby</label>
@@ -320,8 +362,9 @@ export default function SettingsPage() {
                                         value={hobby}
                                         onChange={(e) => setHobby(e.target.value)}
                                         placeholder="Painting"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none mb-2"
                                     />
+                                    <ColorPicker selected={hobbyColor} onChange={setHobbyColor} />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Fav Verse</label>
@@ -330,8 +373,9 @@ export default function SettingsPage() {
                                         value={favVerse}
                                         onChange={(e) => setFavVerse(e.target.value)}
                                         placeholder="Philippians 4:13"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none mb-2"
                                     />
+                                    <ColorPicker selected={favVerseColor} onChange={setFavVerseColor} />
                                 </div>
                             </div>
                         </div>
