@@ -32,6 +32,7 @@ function ColorPicker({ selected, onChange }: { selected: string, onChange: (colo
             {PASTEL_COLORS.map((color) => (
                 <button
                     key={color.name}
+                    type="button"
                     onClick={() => onChange(color.name)}
                     className={`w-6 h-6 rounded-full border-2 ${color.value.split(' ')[0]} ${selected === color.name ? 'border-warm-grey' : 'border-transparent'} hover:scale-110 transition-transform`}
                     title={color.label}
@@ -180,7 +181,8 @@ export default function SettingsPage() {
             .eq("id", user.id);
 
         if (error) {
-            alert("Error updating profile!");
+            console.error("Profile update error:", error);
+            alert(`Error updating profile: ${error.message}`);
         } else {
             alert("Profile updated successfully!");
         }
