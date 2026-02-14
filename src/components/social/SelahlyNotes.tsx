@@ -108,7 +108,7 @@ export function SelahlyNotes() {
             const { data } = await supabase
                 .from('profiles')
                 .select('id, username, first_name, avatar_url')
-                .ilike('username', `${mentionQuery}%`)
+                .ilike('username', `%${mentionQuery}%`)
                 .limit(5);
 
             if (data && data.length > 0) {
