@@ -11,6 +11,7 @@ type SongResult = {
     artworkUrl100: string;
     previewUrl: string;
     collectionViewUrl: string;
+    primaryGenreName: string;
 };
 
 interface SongSearchModalProps {
@@ -38,10 +39,18 @@ export function SongSearchModal({ isOpen, onClose, onSelect }: SongSearchModalPr
         }
 
         try {
-            // Searching specifically in the music entity
-            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=10`);
+            // Searching specifically in the music entity with strict Christian filtering
+            const term = `${query} Christian`;
+            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=30`);
             const data = await res.json();
-            setResults(data.results || []);
+
+            // Client-side double check to ensure genre matches
+            const filteredResults = (data.results || []).filter((song: any) => {
+                const genre = (song.primaryGenreName || "").toLowerCase();
+                return genre.includes("christian") || genre.includes("gospel") || genre.includes("worship") || genre.includes("religious");
+            });
+
+            setResults(filteredResults);
         } catch (err) {
             console.error(err);
         } finally {
