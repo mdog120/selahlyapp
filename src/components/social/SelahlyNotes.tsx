@@ -424,6 +424,13 @@ export function SelahlyNotes() {
                                 maxLength={60} // Instagram notes are short
                             />
 
+                            {newNote.includes("[sticker:") && (
+                                <div className="mb-4 text-sm text-warm-grey/80 bg-stone-50 p-2 rounded-lg border border-warm-grey/5">
+                                    <span className="text-[10px] text-warm-grey/40 uppercase tracking-widest font-bold block mb-1">Preview</span>
+                                    {renderContentWithStickers(newNote)}
+                                </div>
+                            )}
+
                             {/* Song Input Toggle */}
                             <div className="mb-4">
                                 {!showSongInput && !myNote?.song_title ? (

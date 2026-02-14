@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { Image, Send, X, Video, Layers, Music } from "lucide-react";
+import { Image, Send, X, Video, Layers, Music, Star, Flame, Feather, Users, Heart, Mail, Sun, Flower2, TreeDeciduous } from "lucide-react";
 import * as tus from 'tus-js-client';
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { StickerPicker } from "@/components/gamification/StickerPicker";
@@ -258,6 +258,36 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         setCaption(prev => prev + " " + shortcode);
     };
 
+    // Helper to render stickers (duplicated for now to ensure self-contained component)
+    const renderContentWithStickers = (text: string) => {
+        if (!text) return null;
+        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        return parts.map((part, index) => {
+            const match = part.match(/\[sticker:(.+)\]/);
+            if (match) {
+                const stickerName = match[1];
+                let Icon = Star;
+                let color = "text-yellow-400";
+
+                switch (stickerName) {
+                    case 'Candle': Icon = Flame; color = "text-orange-300"; break;
+                    case 'Feather': Icon = Feather; color = "text-stone-400"; break;
+                    case 'Users': Icon = Users; color = "text-rose-400"; break;
+                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
+                    case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
+                    case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
+                    case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
+                    case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
+                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
+                    case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
+                    case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                }
+                return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
+            }
+            return part;
+        });
+    };
+
     return (
         <div className={`glass-card p-4 rounded-3xl transition-all duration-300 ${expanded ? "ring-2 ring-sage-green/20" : ""}`}>
             <div className="flex gap-4">
@@ -277,6 +307,14 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                         placeholder="Share a thought, verse, or OOTD..."
                         className="w-full bg-transparent border-none outline-none text-warm-grey placeholder:text-warm-grey/40 py-2"
                     />
+
+                    {/* Live Sticker Preview */}
+                    {caption.includes("[sticker:") && (
+                        <div className="mt-2 text-sm text-warm-grey/80 bg-white/50 p-3 rounded-xl border border-warm-grey/5 animate-fade-in shadow-sm">
+                            <span className="text-[10px] text-warm-grey/40 uppercase tracking-widest font-bold block mb-1">Preview</span>
+                            {renderContentWithStickers(caption)}
+                        </div>
+                    )}
 
                     {expanded && (
                         <div className="mt-4 animate-fade-in-up">
