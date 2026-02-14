@@ -57,7 +57,7 @@ export default function GroupChatPage() {
     const supabase = createClient();
 
     // Mention State
-    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
     const [isMentionOpen, setIsMentionOpen] = useState(false);
     const [cursorPosition, setCursorPosition] = useState<number | null>(null);
@@ -65,7 +65,7 @@ export default function GroupChatPage() {
 
     // Mention Search
     useEffect(() => {
-        if (!mentionQuery) {
+        if (mentionQuery === null) {
             setMentionResults([]);
             setIsMentionOpen(false);
             return;
@@ -99,7 +99,9 @@ export default function GroupChatPage() {
                 }
             }
         };
-        fetchProfiles();
+        // Debounce logic is a bit manual here, but since it's local filtering it's fine to run immediately or debounce slightly
+        const timeoutId = setTimeout(fetchProfiles, 100);
+        return () => clearTimeout(timeoutId);
     }, [mentionQuery, group]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,38 +113,31 @@ export default function GroupChatPage() {
 
         // Detect @ match
         const textBeforeCursor = value.slice(0, pos);
-        const lastAt = textBeforeCursor.lastIndexOf('@');
+        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
 
-        if (lastAt !== -1) {
-            const query = textBeforeCursor.slice(lastAt + 1);
-            if (!query.includes(' ')) {
-                setMentionQuery(query);
-            } else {
-                setMentionQuery("");
-                setIsMentionOpen(false);
-            }
+        if (match) {
+            setMentionQuery(match[1]);
         } else {
-            setMentionQuery("");
+            setMentionQuery(null);
             setIsMentionOpen(false);
         }
     };
 
     const insertMention = (username: string) => {
-        if (!cursorPosition) return; // Should track this better if possible or assume end if null
-        // If cursorPosition is null, we can't safely insert.
-        // But inputRef.current.selectionStart should give it if we needed.
-        // Let's use the state.
-
+        if (!cursorPosition) return;
         const textBeforeCursor = newMessage.slice(0, cursorPosition);
-        const lastAt = textBeforeCursor.lastIndexOf('@');
-        const textAfterCursor = newMessage.slice(cursorPosition);
+        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
 
-        const newText = newMessage.slice(0, lastAt) + `@${username} ` + textAfterCursor;
-        setNewMessage(newText);
-        setMentionQuery("");
-        setIsMentionOpen(false);
-        // Refocus handled by react usually, but let's encourage it
-        inputRef.current?.focus();
+        if (match) {
+            const matchIndex = match.index! + match[0].indexOf('@');
+            const textAfterCursor = newMessage.slice(cursorPosition);
+
+            const newText = newMessage.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
+            setNewMessage(newText);
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+            inputRef.current?.focus();
+        }
     }
 
     // 1. Fetch Current User

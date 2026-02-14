@@ -25,14 +25,14 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [suggestedLocations, setSuggestedLocations] = useState<string[]>([]);
 
     // Mention State
-    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
     const [isMentionOpen, setIsMentionOpen] = useState(false);
     const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
     // Mention Search
     useEffect(() => {
-        if (!mentionQuery) {
+        if (mentionQuery === null) {
             setMentionResults([]);
             setIsMentionOpen(false);
             return;
@@ -65,21 +65,14 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         setCursorPosition(pos);
 
         // Detect @ match
-        // Look for @ followed by characters up to the cursor
         const textBeforeCursor = value.slice(0, pos);
-        const lastAt = textBeforeCursor.lastIndexOf('@');
+        // Match @ at start or preceded by space, followed by optional word chars
+        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
 
-        if (lastAt !== -1) {
-            const query = textBeforeCursor.slice(lastAt + 1);
-            // Check if there are spaces, if so close unless it's the very start of typing or close to @
-            if (!query.includes(' ')) {
-                setMentionQuery(query);
-            } else {
-                setMentionQuery("");
-                setIsMentionOpen(false);
-            }
+        if (match) {
+            setMentionQuery(match[1]); // capture group 1 is the username part
         } else {
-            setMentionQuery("");
+            setMentionQuery(null);
             setIsMentionOpen(false);
         }
     };
@@ -87,14 +80,19 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const insertMention = (username: string) => {
         if (!cursorPosition) return;
         const textBeforeCursor = caption.slice(0, cursorPosition);
-        const lastAt = textBeforeCursor.lastIndexOf('@');
-        const textAfterCursor = caption.slice(cursorPosition);
+        // Find the triggering @
+        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
 
-        const newText = caption.slice(0, lastAt) + `@${username} ` + textAfterCursor;
-        setCaption(newText);
-        setMentionQuery("");
-        setIsMentionOpen(false);
-        // Focus back would be ideal but tricky with simple input ref logic here
+        if (match) {
+            const matchIndex = match.index! + match[0].indexOf('@'); // index of @
+            const textAfterCursor = caption.slice(cursorPosition);
+
+            // Reconstruct: valid text before @ + @username + space + text after
+            const newText = caption.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
+            setCaption(newText);
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+        }
     };
 
     // Simulated Location Database

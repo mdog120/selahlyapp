@@ -90,7 +90,7 @@ export function SelahlyNotes() {
     };
 
     // Mention State
-    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
     const [isMentionOpen, setIsMentionOpen] = useState(false);
     const [cursorPosition, setCursorPosition] = useState<number | null>(null);
@@ -98,7 +98,7 @@ export function SelahlyNotes() {
 
     // Mention Search
     useEffect(() => {
-        if (!mentionQuery) {
+        if (mentionQuery === null) {
             setMentionResults([]);
             setIsMentionOpen(false);
             return;
@@ -132,18 +132,13 @@ export function SelahlyNotes() {
 
         // Detect @ match
         const textBeforeCursor = value.slice(0, pos);
-        const lastAt = textBeforeCursor.lastIndexOf('@');
+        // Match @ at start or preceded by space, followed by optional word chars
+        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
 
-        if (lastAt !== -1) {
-            const query = textBeforeCursor.slice(lastAt + 1);
-            if (!query.includes(' ')) {
-                setMentionQuery(query);
-            } else {
-                setMentionQuery("");
-                setIsMentionOpen(false);
-            }
+        if (match) {
+            setMentionQuery(match[1]); // capture group 1 is the username part
         } else {
-            setMentionQuery("");
+            setMentionQuery(null);
             setIsMentionOpen(false);
         }
     };

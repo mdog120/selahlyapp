@@ -48,6 +48,77 @@ export default function ChatPage() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    // Mention State
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
+    const [isMentionOpen, setIsMentionOpen] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Mention Search
+    useEffect(() => {
+        if (mentionQuery === null) {
+            setMentionResults([]);
+            setIsMentionOpen(false);
+            return;
+        }
+
+        const fetchProfiles = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, username, first_name, avatar_url')
+                .ilike('username', `${mentionQuery}%`)
+                .limit(5);
+
+            if (data && data.length > 0) {
+                setMentionResults(data as any);
+                setIsMentionOpen(true);
+            } else {
+                setMentionResults([]);
+                setIsMentionOpen(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchProfiles, 300);
+        return () => clearTimeout(timeoutId);
+    }, [mentionQuery]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const pos = e.target.selectionStart || 0;
+        setNewMessage(value);
+        setCursorPosition(pos);
+        handleTyping();
+
+        // Detect @ match
+        const textBeforeCursor = value.slice(0, pos);
+        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+
+        if (match) {
+            setMentionQuery(match[1]);
+        } else {
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+        }
+    };
+
+    const insertMention = (username: string) => {
+        if (!cursorPosition) return;
+        const textBeforeCursor = newMessage.slice(0, cursorPosition);
+        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+
+        if (match) {
+            const matchIndex = match.index! + match[0].indexOf('@');
+            const textAfterCursor = newMessage.slice(cursorPosition);
+            const newText = newMessage.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
+
+            setNewMessage(newText);
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+            inputRef.current?.focus();
+        }
+    };
+
     // Real-time State
     const [isOnline, setIsOnline] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
@@ -600,16 +671,42 @@ export default function ChatPage() {
                 >
                     <StickerPicker onSelect={(badge) => setNewMessage(prev => `${prev} [sticker:${badge.name}]`)} />
 
-                    <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => {
-                            setNewMessage(e.target.value);
-                            handleTyping();
-                        }}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-transparent px-4 py-2 text-sm text-warm-grey placeholder:text-warm-grey/40 focus:outline-none"
-                    />
+                    <div className="relative flex-1">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={newMessage}
+                            onChange={handleInputChange}
+                            placeholder="Type a message..."
+                            className="w-full bg-transparent px-4 py-2 text-sm text-warm-grey placeholder:text-warm-grey/40 focus:outline-none"
+                        />
+                        {/* Mention Autocomplete Dropdown */}
+                        {isMentionOpen && mentionResults.length > 0 && (
+                            <div className="absolute left-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
+                                {mentionResults.map((profile) => (
+                                    <button
+                                        key={profile.id}
+                                        type="button"
+                                        className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
+                                        onClick={() => insertMention(profile.username)}
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
+                                            {profile.avatar_url ? (
+                                                <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
+                                                    {profile.first_name?.[0]}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <button
                         type="submit"
                         disabled={!newMessage.trim()}
