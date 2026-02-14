@@ -13,6 +13,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [previewUrls, setPreviewUrls] = useState<{ url: string, type: 'image' | 'video' }[]>([]);
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
+    const [location, setLocation] = useState("");
 
     // Song State
     const [songTitle, setSongTitle] = useState("");
@@ -167,6 +168,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                 song_link: songLink.trim() || null,
                 song_preview_url: songPreview?.trim() || null,
                 song_album_art: songArtwork?.trim() || null,
+                location: location.trim() || null,
             });
 
             if (insertError) {
@@ -184,6 +186,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             setSongPreview("");
             setSongArtwork("");
             setShowSongInput(false);
+            setLocation("");
             if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
             onPostCreated();
@@ -312,6 +315,16 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             <span>Add Song</span>
                                         </button>
                                     )}
+
+                                    <div className="h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
+
+                                    <input
+                                        type="text"
+                                        value={location}
+                                        onChange={(e) => setLocation(e.target.value)}
+                                        placeholder="Add Location"
+                                        className="bg-transparent text-xs text-warm-grey placeholder:text-warm-grey/40 outline-none w-24 focus:w-40 transition-all border-b border-transparent focus:border-sage-green/50 pb-0.5"
+                                    />
                                 </div>
                                 <div className="flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>

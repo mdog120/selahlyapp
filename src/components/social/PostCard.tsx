@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle, Music } from "lucide-react";
+import { useRef, useEffect, useState, useMemo } from "react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle, Music, Volume2, VolumeX, MapPin } from "lucide-react";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +19,7 @@ type Post = {
     song_link?: string;
     song_preview_url?: string;
     song_album_art?: string;
+    location?: string;
     likes_count: number;
     comments_count: number;
     created_at: string;
@@ -63,10 +64,44 @@ export function PostCard({ post }: { post: Post }) {
     const [isOwner, setIsOwner] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
+    // Audio State
+    const [isMuted, setIsMuted] = useState(true);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const cardRef = useRef<HTMLDivElement>(null);
+
+    // Header Cycling State
+    const [headerIndex, setHeaderIndex] = useState(0);
+
     const supabase = createClient();
 
     useEffect(() => {
         checkOwnership();
+
+        // Audio & Intersection Observer
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsPlaying(true);
+                    if (audioRef.current) {
+                        audioRef.current.play().catch(e => console.log("Autoplay blocked", e));
+                    }
+                } else {
+                    setIsPlaying(false);
+                    if (audioRef.current) {
+                        audioRef.current.pause();
+                    }
+                }
+            },
+            { threshold: 0.6 } // Play when 60% visible
+        );
+
+        if (cardRef.current) observer.observe(cardRef.current);
+
+        // Header Cycling Interval
+        const interval = setInterval(() => {
+            setHeaderIndex(prev => (prev + 1) % 2); // Cycle between 0 and 1
+        }, 4000); // 4 seconds per info
 
         // Close menu on click outside
         const handleClickOutside = (event: MouseEvent) => {
@@ -75,8 +110,23 @@ export function PostCard({ post }: { post: Post }) {
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            observer.disconnect();
+            clearInterval(interval);
+            if (audioRef.current) audioRef.current.pause();
+        };
     }, []);
+
+    // Handle Mute Toggle
+    const toggleMute = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsMuted(!isMuted);
+        if (audioRef.current) {
+            audioRef.current.muted = !isMuted;
+        }
+    };
 
     const checkOwnership = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -245,17 +295,68 @@ export function PostCard({ post }: { post: Post }) {
                         alt="Post content"
                         className="w-full h-full object-cover"
                     />
+
+                    {/* Volume Toggle Overlay */}
+                    {post.song_preview_url && (
+                        <button
+                            onClick={toggleMute}
+                            className="absolute bottom-3 right-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white p-2 rounded-full transition-all animate-fade-in"
+                        >
+                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                        </button>
+                    )}
                 </div>
             );
         }
-
         return null;
     };
 
     const formattedName = `${post.author?.first_name || "Sister"} ${post.author?.last_name ? post.author.last_name[0] + "." : ""}`;
 
+    // Derived State for Header Info
+    const displayInfos = useMemo(() => {
+        const infos = [];
+        // 1. Song (if exists)
+        if (post.song_title) {
+            infos.push(
+                <div className="flex items-center gap-1 text-xs font-medium text-warm-cocoa animate-fade-in">
+                    <Music className="w-3 h-3" />
+                    <span className="truncate max-w-[150px]">{post.song_title} {post.song_artist ? `- ${post.song_artist}` : ""}</span>
+                </div>
+            );
+        }
+        // 2. Location (if exists)
+        if (post.location) {
+            infos.push(
+                <div className="flex items-center gap-1 text-xs font-medium text-warm-grey animate-fade-in">
+                    <MapPin className="w-3 h-3" />
+                    <span className="truncate max-w-[150px]">{post.location}</span>
+                </div>
+            );
+        }
+        // Always add Timestamp as fallback or if list is empty
+        if (infos.length === 0) {
+            infos.push(<p className="text-xs text-warm-grey/40">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</p>);
+        }
+        return infos;
+    }, [post]);
+
+    const currentHeaderInfo = displayInfos.length > 1
+        ? displayInfos[headerIndex % displayInfos.length]
+        : displayInfos[0];
+
     return (
-        <div className="glass-card p-6 rounded-3xl animate-fade-in-up mb-6 relative">
+        <div className="glass-card p-6 rounded-3xl animate-fade-in-up mb-6 relative" ref={cardRef}>
+            {/* Hidden Audio Element */}
+            {post.song_preview_url && (
+                <audio
+                    ref={audioRef}
+                    src={post.song_preview_url}
+                    loop
+                    muted={isMuted}
+                />
+            )}
+
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <Link href={`/profile/${post.author?.username || ""}`} className="group flex items-center gap-3">
@@ -273,7 +374,11 @@ export function PostCard({ post }: { post: Post }) {
                             <p className="font-medium text-warm-grey text-sm group-hover:text-sage-green transition-colors">
                                 {formattedName}
                             </p>
-                            <p className="text-xs text-warm-grey/40">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</p>
+
+                            {/* Cycling Header Info */}
+                            <div className="h-4 flex items-center overflow-hidden">
+                                {currentHeaderInfo}
+                            </div>
                         </div>
                     </Link>
                 </div>
@@ -307,31 +412,7 @@ export function PostCard({ post }: { post: Post }) {
 
             {renderMedia()}
 
-            {/* Song Badge */}
-            {post.song_title && (
-                <div className="mb-4">
-                    <div className="flex items-center gap-4 bg-stone-50 p-2 rounded-xl border border-warm-grey/5">
-                        {post.song_album_art ? (
-                            <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm">
-                                <img src={post.song_album_art} alt="Cover" className="w-full h-full object-cover" />
-                            </div>
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
-                                <Music className="w-5 h-5 text-warm-grey/40" />
-                            </div>
-                        )}
-
-                        <div className="flex-1 min-w-0">
-                            <p className="font-bold text-warm-cocoa text-sm truncate">{post.song_title}</p>
-                            <p className="text-xs text-warm-grey/60 truncate">{post.song_artist}</p>
-                        </div>
-
-                        {post.song_preview_url && (
-                            <SongPlayer previewUrl={post.song_preview_url} />
-                        )}
-                    </div>
-                </div>
-            )}
+            {/* Removed separate Song Badge as it's now in header/auto-playing */}
 
             <p className="font-serif text-lg text-warm-grey mb-4 leading-relaxed">
                 {post.caption}
