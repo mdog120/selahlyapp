@@ -1,8 +1,10 @@
 "use client";
 
+
 import { useRef, useEffect, useState, useMemo } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Image as ImageIcon, X, Flame, Feather, Users, Mail, Sun, Flower2, Star, TreeDeciduous, CloudSun, Send, Trash2, Flag, AlertTriangle, Music, Volume2, VolumeX, MapPin, Smile } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Image as ImageIcon, X, Flame, Feather, Users, Mail, Sun, Flower2, Star, TreeDeciduous, CloudSun, Send, Trash2, Flag, AlertTriangle, Music, Volume2, VolumeX, MapPin, Smile, Edit2 } from "lucide-react";
 import { SongPlayer } from "@/components/ui/SongPlayer";
+import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -69,6 +71,13 @@ export function PostCard({ post }: { post: Post }) {
     // Edit State
     const [isEditing, setIsEditing] = useState(false);
     const [editCaption, setEditCaption] = useState(post.caption);
+    const [editLocation, setEditLocation] = useState(post.location || "");
+    const [editSongTitle, setEditSongTitle] = useState(post.song_title || "");
+    const [editSongArtist, setEditSongArtist] = useState(post.song_artist || "");
+    const [editSongLink, setEditSongLink] = useState(post.song_link || "");
+    const [editSongPreview, setEditSongPreview] = useState(post.song_preview_url || "");
+    const [editSongArtwork, setEditSongArtwork] = useState(post.song_album_art || "");
+    const [isSongModalOpen, setIsSongModalOpen] = useState(false);
 
     // Audio State
     const [isMuted, setIsMuted] = useState(false);
@@ -83,7 +92,13 @@ export function PostCard({ post }: { post: Post }) {
 
     useEffect(() => {
         setEditCaption(post.caption);
-    }, [post.caption]);
+        setEditLocation(post.location || "");
+        setEditSongTitle(post.song_title || "");
+        setEditSongArtist(post.song_artist || "");
+        setEditSongLink(post.song_link || "");
+        setEditSongPreview(post.song_preview_url || "");
+        setEditSongArtwork(post.song_album_art || "");
+    }, [post]);
 
     useEffect(() => {
         checkOwnership();
@@ -297,7 +312,15 @@ export function PostCard({ post }: { post: Post }) {
     const handleUpdatePost = async () => {
         const { error } = await supabase
             .from("posts")
-            .update({ caption: editCaption })
+            .update({
+                caption: editCaption,
+                location: editLocation,
+                song_title: editSongTitle,
+                song_artist: editSongArtist,
+                song_link: editSongLink,
+                song_preview_url: editSongPreview,
+                song_album_art: editSongArtwork
+            })
             .eq("id", post.id);
 
         if (!error) {
@@ -572,16 +595,67 @@ export function PostCard({ post }: { post: Post }) {
 
             <div className="font-serif text-lg text-warm-grey mb-4 leading-relaxed whitespace-pre-wrap">
                 {isEditing ? (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                         <textarea
                             value={editCaption}
                             onChange={(e) => setEditCaption(e.target.value)}
-                            className="w-full p-2 rounded-xl bg-white/50 border border-warm-grey/20 focus:ring-1 focus:ring-sage-green resize-none outline-none font-sans text-sm"
+                            className="w-full p-3 rounded-xl bg-white/50 border border-warm-grey/20 focus:ring-1 focus:ring-sage-green resize-none outline-none font-sans text-sm"
                             rows={3}
+                            placeholder="Edit caption..."
                         />
-                        <div className="flex gap-2 justify-end">
+
+                        {/* Location Edit */}
+                        <div className="flex items-center gap-2 bg-white/50 p-2 rounded-xl border border-warm-grey/10">
+                            <MapPin className="w-4 h-4 text-warm-grey/60" />
+                            <input
+                                type="text"
+                                value={editLocation}
+                                onChange={(e) => setEditLocation(e.target.value)}
+                                placeholder="Add location..."
+                                className="bg-transparent text-sm text-warm-grey outline-none w-full placeholder:text-warm-grey/40"
+                            />
+                        </div>
+
+                        {/* Music Edit */}
+                        <div className="flex items-center justify-between bg-white/50 p-2 rounded-xl border border-warm-grey/10">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <Music className="w-4 h-4 text-warm-grey/60 flex-shrink-0" />
+                                {editSongTitle ? (
+                                    <div className="truncate text-sm text-warm-cocoa">
+                                        <span className="font-medium">{editSongTitle}</span>
+                                        <span className="text-warm-grey/60"> - {editSongArtist}</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-sm text-warm-grey/40 italic">No song selected</span>
+                                )}
+                            </div>
+                            <div className="flex gap-1">
+                                {editSongTitle && (
+                                    <button
+                                        onClick={() => {
+                                            setEditSongTitle("");
+                                            setEditSongArtist("");
+                                            setEditSongLink("");
+                                            setEditSongPreview("");
+                                            setEditSongArtwork("");
+                                        }}
+                                        className="p-1.5 hover:bg-red-50 text-warm-grey/40 hover:text-red-400 rounded-full transition-colors"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsSongModalOpen(true)}
+                                    className="p-1.5 hover:bg-stone-100 text-warm-grey/60 hover:text-sage-green rounded-full transition-colors"
+                                >
+                                    <Edit2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 justify-end pt-2">
                             <Button variant="secondary" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
-                            <Button size="sm" onClick={handleUpdatePost}>Save</Button>
+                            <Button size="sm" onClick={handleUpdatePost}>Save Changes</Button>
                         </div>
                     </div>
                 ) : (
@@ -700,6 +774,18 @@ export function PostCard({ post }: { post: Post }) {
                     </div>
                 </div>
             )}
+
+            <SongSearchModal
+                isOpen={isSongModalOpen}
+                onClose={() => setIsSongModalOpen(false)}
+                onSelect={(song) => {
+                    setEditSongTitle(song.title);
+                    setEditSongArtist(song.artist);
+                    setEditSongLink(song.link);
+                    setEditSongPreview(song.previewUrl);
+                    setEditSongArtwork(song.artwork);
+                }}
+            />
         </div>
     );
 }
