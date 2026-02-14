@@ -104,8 +104,11 @@ export function SelahlyNotes() {
     }, []);
 
     const handleCreateNote = async () => {
-        if (!newNote.trim() || !userId) {
-            console.error("Missing note content or user ID");
+        const hasContent = newNote.trim().length > 0;
+        const hasSong = !!(songTitle.trim() || songLink.trim());
+
+        if ((!hasContent && !hasSong) || !userId) {
+            console.error("Missing note content/song or user ID");
             return;
         }
 
@@ -310,7 +313,7 @@ export function SelahlyNotes() {
                                 >
                                     <span className="line-clamp-3 text-warm-grey/90">
                                         {note.song_title && <span className="block text-[8px] text-purple-400 mb-0.5">🎵</span>}
-                                        {note.content}
+                                        {note.content || <span className="italic text-warm-grey/40">Listening to music...</span>}
                                     </span>
                                     {/* Little triangle for speech bubble */}
                                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
@@ -449,7 +452,7 @@ export function SelahlyNotes() {
 
                             <div className="flex justify-end gap-2">
                                 <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>Cancel</Button>
-                                <Button size="sm" onClick={handleCreateNote}>{myNote ? "Update" : "Share"}</Button>
+                                <Button size="sm" onClick={handleCreateNote} disabled={!newNote.trim() && !songTitle && !songLink}>{myNote ? "Update" : "Share"}</Button>
                             </div>
                         </div>
                     </div>
@@ -481,7 +484,9 @@ export function SelahlyNotes() {
 
                             {/* The Note */}
                             <div className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-4 text-center mb-6 relative">
-                                <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{viewingNote.content}"</p>
+                                {viewingNote.content && (
+                                    <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{viewingNote.content}"</p>
+                                )}
 
 
 
