@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
-import { Camera, Save, Trash2, Loader2, User, Mail } from "lucide-react";
+import { SongSearchModal } from "@/components/ui/SongSearchModal";
+import { Camera, Save, Trash2, Loader2, User, Mail, Music, X } from "lucide-react";
 
 // Icon helper
 function SettingsIcon({ className }: { className?: string }) {
@@ -63,6 +64,9 @@ export default function SettingsPage() {
     const [songTitle, setSongTitle] = useState("");
     const [songArtist, setSongArtist] = useState("");
     const [songLink, setSongLink] = useState("");
+    const [songPreview, setSongPreview] = useState("");
+    const [songArtwork, setSongArtwork] = useState("");
+    const [isSongModalOpen, setIsSongModalOpen] = useState(false);
 
     // New Bio Fields
     const [school, setSchool] = useState("");
@@ -101,6 +105,8 @@ export default function SettingsPage() {
                 setSongTitle(profile.song_title || "");
                 setSongArtist(profile.song_artist || "");
                 setSongLink(profile.song_link || "");
+                setSongPreview(profile.song_preview_url || "");
+                setSongArtwork(profile.song_album_art || "");
                 setSchool(profile.school || "");
                 setSchoolColor(profile.school_color || "rose");
                 setChurch(profile.church || "");
@@ -177,6 +183,8 @@ export default function SettingsPage() {
                 song_title: songTitle,
                 song_artist: songArtist,
                 song_link: songLink,
+                song_preview_url: songPreview,
+                song_album_art: songArtwork,
                 school: school,
                 school_color: schoolColor,
                 church: church,
@@ -336,33 +344,59 @@ export default function SettingsPage() {
                             <h3 className="text-sm font-bold text-warm-cocoa mb-4">Profile Details</h3>
 
                             {/* Anthem Section */}
-                            <div className="mb-6 space-y-4">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Anthem</label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <input
-                                        type="text"
-                                        value={songTitle}
-                                        onChange={(e) => setSongTitle(e.target.value)}
-                                        placeholder="Song Title"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={songArtist}
-                                        onChange={(e) => setSongArtist(e.target.value)}
-                                        placeholder="Artist"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
-                                    />
-                                    <div className="md:col-span-2">
-                                        <input
-                                            type="text"
-                                            value={songLink}
-                                            onChange={(e) => setSongLink(e.target.value)}
-                                            placeholder="Link (Spotify/YouTube)"
-                                            className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
-                                        />
+                            <div className="mb-8">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-3">My Anthem</label>
+
+                                {songTitle ? (
+                                    <div className="flex items-center gap-4 p-4 bg-stone-50 border border-stone-100 rounded-xl relative group">
+                                        <div className="w-12 h-12 rounded-lg bg-stone-200 overflow-hidden shrink-0 shadow-sm">
+                                            {songArtwork ? (
+                                                <img src={songArtwork} alt="Cover" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-stone-200">
+                                                    <Music className="w-5 h-5 text-warm-grey/40" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-warm-cocoa truncate">{songTitle}</div>
+                                            <div className="text-xs text-warm-grey/60 truncate">{songArtist}</div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setSongTitle("");
+                                                setSongArtist("");
+                                                setSongLink("");
+                                                setSongPreview("");
+                                                setSongArtwork("");
+                                            }}
+                                            className="p-2 text-warm-grey/40 hover:text-red-400 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Remove Song"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsSongModalOpen(true)}
+                                        className="w-full py-4 border-2 border-dashed border-warm-grey/20 rounded-xl text-warm-grey/60 hover:border-muted-rose/40 hover:text-muted-rose hover:bg-soft-blush/10 transition-all flex flex-col items-center gap-2 group"
+                                    >
+                                        <Music className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                                        <span className="text-sm font-medium">Search for an Anthem</span>
+                                    </button>
+                                )}
+
+                                <SongSearchModal
+                                    isOpen={isSongModalOpen}
+                                    onClose={() => setIsSongModalOpen(false)}
+                                    onSelect={(song) => {
+                                        setSongTitle(song.title);
+                                        setSongArtist(song.artist);
+                                        setSongLink(song.link);
+                                        setSongPreview(song.previewUrl);
+                                        setSongArtwork(song.artwork);
+                                    }}
+                                />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

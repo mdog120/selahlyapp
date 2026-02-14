@@ -10,6 +10,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
+import { SongPlayer } from "@/components/ui/SongPlayer";
 
 const COLOR_MAP: Record<string, string> = {
     'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
