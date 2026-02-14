@@ -11,6 +11,7 @@ import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 import { SongPlayer } from "@/components/ui/SongPlayer";
+import { BadgeGrid } from "@/components/gamification/BadgeGrid";
 
 const COLOR_MAP: Record<string, string> = {
     'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
@@ -527,6 +528,11 @@ export default function ProfilePage() {
                         isOwner={currentUser?.id === profile.id}
                         viewerId={currentUser?.id}
                     />
+                </div>
+
+                {/* Badge Grid (Stickers) */}
+                <div className="mb-12 bg-white/60 p-6 rounded-3xl border border-white">
+                    <BadgeGrid userId={profile.id} />
                 </div>
 
                 {/* Content Tabs */}

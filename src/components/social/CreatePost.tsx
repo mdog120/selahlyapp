@@ -6,10 +6,17 @@ import { createClient } from "@/lib/supabase/client";
 import { Image, Send, X, Video, Layers, Music } from "lucide-react";
 import * as tus from 'tus-js-client';
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
+import { StickerPicker } from "@/components/gamification/StickerPicker";
 
 export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [caption, setCaption] = useState("");
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    const [stickers, setStickers] = useState<{ id: string, icon: string, x: number, y: number }[]>([]); // For overlay or just appended to text for now? 
+    // Simplified: Append sticker to caption for now or just treat as a separate attachment type
+    // Better: Allow appending one sticker as a "reaction" style or inline if possible. 
+    // Let's go with: StickerPicker appends the sticker emoji/icon to the caption for simplicity and "cutesy" inline feel.
+    // OR: Visual sticker attachment. Let's do inline caption for now as they are emojis/icons in our current implementation.
+
     const [previewUrls, setPreviewUrls] = useState<{ url: string, type: 'image' | 'video' }[]>([]);
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
@@ -189,7 +196,22 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             setLocation("");
             if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
-            onPostCreated();
+            setSongArtwork("");
+            setShowSongInput(false);
+            setLocation("");
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            setExpanded(false);
+            if (onPostCreated) onPostCreated();
+
+            // 3. Award "Voice of Grace" Badge (First Post)
+            const { error: badgeError } = await supabase.rpc('award_badge', {
+                p_user_id: user.id,
+                p_badge_name: 'Voice of Grace'
+            });
+
+            if (!badgeError) {
+                console.log("Checked for 'Voice of Grace' badge.");
+            }
 
         } catch (error: any) {
             console.error("Handle Post Error:", error);
@@ -197,6 +219,16 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleStickerSelect = (badge: any) => {
+        // Appending icon to caption
+        const icon = badge.icon_name === 'Candle' ? '🕯️' :
+            badge.icon_name === 'Feather' ? '🪶' :
+                badge.icon_name === 'Users' ? '👯‍♀️' :
+                    badge.icon_name === 'Heart' ? '💖' : '✨';
+
+        setCaption(prev => prev + " " + icon);
     };
 
     return (
@@ -315,6 +347,8 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             <span>Add Song</span>
                                         </button>
                                     )}
+
+                                    <StickerPicker onSelect={handleStickerSelect} />
 
                                     <div className="h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
 
