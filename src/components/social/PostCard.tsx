@@ -71,7 +71,7 @@ export function PostCard({ post }: { post: Post }) {
     const [editCaption, setEditCaption] = useState(post.caption);
 
     // Audio State
-    const [isMuted, setIsMuted] = useState(true);
+    const [isMuted, setIsMuted] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const cardRef = useRef<HTMLDivElement>(null);
@@ -94,7 +94,18 @@ export function PostCard({ post }: { post: Post }) {
                 if (entry.isIntersecting) {
                     setIsPlaying(true);
                     if (audioRef.current) {
-                        audioRef.current.play().catch(e => console.log("Autoplay blocked", e));
+                        const playPromise = audioRef.current.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.log("Autoplay blocked, falling back to muted", error);
+                                // If unmuted autoplay fails, mute and try again
+                                setIsMuted(true);
+                                if (audioRef.current) {
+                                    audioRef.current.muted = true;
+                                    audioRef.current.play().catch(e => console.error("Muted autoplay also failed", e));
+                                }
+                            });
+                        }
                     }
                 } else {
                     setIsPlaying(false);
