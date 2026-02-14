@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Instagram, Heart } from "lucide-react";
+import { Instagram, Heart, Coins } from "lucide-react";
 
 export function Footer() {
     return (
@@ -10,11 +10,12 @@ export function Footer() {
                     <span className="text-xs text-warm-grey">© {new Date().getFullYear()}</span>
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-8">
                     <Link
                         href="/donate"
-                        className="text-warm-grey hover:text-muted-rose transition-colors text-sm font-medium"
+                        className="flex items-center gap-1.5 text-warm-grey hover:text-muted-rose transition-colors text-sm font-medium"
                     >
+                        <Coins className="w-4 h-4" />
                         Support Selahly
                     </Link>
                     <a

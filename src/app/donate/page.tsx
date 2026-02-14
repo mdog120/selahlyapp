@@ -18,7 +18,6 @@ export default function DonatePage() {
 
     return (
         <div className="min-h-screen bg-warm-paper font-serif selection:bg-muted-rose/20">
-            <Navbar />
 
             <main className="container mx-auto px-4 pt-32 pb-20 max-w-2xl">
                 {/* Article Header */}
@@ -91,8 +90,6 @@ export default function DonatePage() {
                     </Link>
                 </div>
             </main>
-
-            <Footer />
         </div>
     );
 }
