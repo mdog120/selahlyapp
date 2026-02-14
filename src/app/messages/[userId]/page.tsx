@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useSearchParams } from "next/navigation";
-import { Send, Phone, Video, Info, Smile, Image as ImageIcon, Mic, X, MoreVertical, Flame, Feather, Users, Heart, Mail, Sun, Flower2, CloudSun, TreeDeciduous, Star, ArrowLeft, Check, CheckCheck, Trash2, Pencil } from "lucide-react";
+import { Send, Phone, Video, Info, Smile, Image as ImageIcon, Mic, X, MoreVertical, Flame, Feather, Users, Heart, Mail, Sun, Flower2, CloudSun, TreeDeciduous, Star, ArrowLeft, Check, CheckCheck, Trash2, Pencil, User, Ban, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 import { StickerPicker } from "@/components/gamification/StickerPicker";
