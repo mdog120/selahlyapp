@@ -362,19 +362,28 @@ export default function SettingsPage() {
                                             <div className="font-bold text-warm-cocoa truncate">{songTitle}</div>
                                             <div className="text-xs text-warm-grey/60 truncate">{songArtist}</div>
                                         </div>
-                                        <button
-                                            onClick={() => {
-                                                setSongTitle("");
-                                                setSongArtist("");
-                                                setSongLink("");
-                                                setSongPreview("");
-                                                setSongArtwork("");
-                                            }}
-                                            className="p-2 text-warm-grey/40 hover:text-red-400 hover:bg-red-50 rounded-full transition-colors"
-                                            title="Remove Song"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex flex-col gap-1">
+                                            <button
+                                                onClick={() => setIsSongModalOpen(true)}
+                                                className="p-2 text-warm-grey/40 hover:text-deep-velvet hover:bg-warm-grey/5 rounded-full transition-colors"
+                                                title="Change Song"
+                                            >
+                                                <Music className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setSongTitle("");
+                                                    setSongArtist("");
+                                                    setSongLink("");
+                                                    setSongPreview("");
+                                                    setSongArtwork("");
+                                                }}
+                                                className="p-2 text-warm-grey/40 hover:text-red-400 hover:bg-red-50 rounded-full transition-colors"
+                                                title="Remove Song"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <button

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 import { SongPlayer } from "@/components/ui/SongPlayer";
+import { SongPlayer } from "@/components/ui/SongPlayer";
 
 const COLOR_MAP: Record<string, string> = {
     'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
@@ -352,28 +353,36 @@ export default function ProfilePage() {
                                     </div>
 
                                     {profile.song_title ? (
-                                        <a
-                                            href={profile.song_link || "#"}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-3 bg-white/50 border border-white p-2 pr-4 rounded-xl hover:bg-white transition-colors group"
-                                        >
-                                            <div className="w-8 h-8 bg-stone-100 rounded-full flex items-center justify-center text-warm-grey group-hover:bg-warm-cocoa group-hover:text-white transition-colors">
-                                                <Music className="w-4 h-4" />
+                                        <div className="flex items-center gap-4 bg-white/50 p-3 rounded-2xl border border-white shadow-sm backdrop-blur-sm">
+                                            {profile.song_album_art ? (
+                                                <div className="w-10 h-10 rounded-lg overflow-hidden shadow-sm shrink-0">
+                                                    <img src={profile.song_album_art} alt="Cover" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-soft-blush/50 flex items-center justify-center shrink-0">
+                                                    <Music className="w-5 h-5 text-muted-rose" />
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-warm-cocoa text-sm truncate">{profile.song_title || "My Anthem"}</p>
+                                                <p className="text-xs text-warm-grey/60 truncate">{profile.song_artist || "Unknown Artist"}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-warm-grey leading-none mb-0.5">{profile.song_title}</p>
-                                                <p className="text-xs text-warm-grey/60 leading-none">{profile.song_artist}</p>
-                                            </div>
-                                        </a>
+
+                                            {profile.song_preview_url && (
+                                                <SongPlayer previewUrl={profile.song_preview_url} />
+                                            )}
+                                        </div>
                                     ) : (
                                         // Only shown to owner if empty
-                                        <button
-                                            onClick={() => setEditingAnthem(true)}
-                                            className="text-xs text-warm-grey/40 italic hover:text-muted-rose"
-                                        >
-                                            + Add your anthem song
-                                        </button>
+                                        profile.id === user?.id && (
+                                            <Link
+                                                href="/settings"
+                                                className="text-xs text-warm-grey/40 italic hover:text-muted-rose"
+                                            >
+                                                + Add your anthem song
+                                            </Link>
+                                        )
                                     )}
                                 </div>
                             )}
