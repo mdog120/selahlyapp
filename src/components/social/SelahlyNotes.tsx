@@ -238,6 +238,28 @@ export function SelahlyNotes() {
         }
     };
 
+    const openEditModal = () => {
+        const existing = notes.find(n => n.user_id === userId);
+        if (existing) {
+            setNewNote(existing.content);
+            setSongTitle(existing.song_title || "");
+            setSongArtist(existing.song_artist || "");
+            setSongLink(existing.song_link || "");
+            setSongPreview(existing.song_preview_url || "");
+            setSongArtwork(existing.song_album_art || "");
+            setShowSongInput(!!existing.song_title);
+        } else {
+            setNewNote("");
+            setSongTitle("");
+            setSongArtist("");
+            setSongLink("");
+            setSongPreview("");
+            setSongArtwork("");
+            setShowSongInput(false);
+        }
+        setIsOpen(true);
+    };
+
     if (loading) return <div className="h-24 bg-gray-50/50 rounded-xl animate-pulse" />;
 
     const myNote = notes.find(n => n.user_id === userId);
@@ -252,7 +274,7 @@ export function SelahlyNotes() {
                     {/* Note Bubble (if exists) */}
                     {myNote ? (
                         <div
-                            onClick={() => setIsOpen(true)}
+                            onClick={openEditModal}
                             className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1 group/mynote"
                         >
                             <span className="line-clamp-3 text-warm-grey/90">
@@ -275,7 +297,7 @@ export function SelahlyNotes() {
                     <div className="relative group">
                         <div
                             className="w-14 h-14 rounded-full bg-stone-100 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center cursor-pointer hover:bg-stone-200 transition-colors"
-                            onClick={() => setIsOpen(true)}
+                            onClick={openEditModal}
                         >
                             {/* We would need current user avatar here, but for now we just show a plus or placeholder if we don't have it locally in state easily without fetching profile. 
                                 Ideally populate currentUserAvatar in the fetchNotes or passed prop. For now, use a generic user icon or Plus if no note. 
