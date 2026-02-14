@@ -9,6 +9,7 @@ import { PrayerRequestList } from "@/components/home/PrayerRequestList";
 import { SelahlyNotes } from "@/components/social/SelahlyNotes";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
 import { InstagramEmbed } from "@/components/social/InstagramEmbed";
+import { HomeOnboarding } from "@/components/home/HomeOnboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,9 @@ export default async function UserHome(props: {
             {/* Note: Navbar is handled in Layout, but we might want a user-specific one. 
           For now, we'll reuse the layout's Navbar or assume it handles state. 
           If Layout has fixed Navbar, this content pushes down. */}
+
+            {/* Onboarding Pop-up */}
+            <HomeOnboarding />
 
             <div className="container mx-auto px-4 pt-8 pb-20 max-w-5xl">
                 {/* Welcome Section */}

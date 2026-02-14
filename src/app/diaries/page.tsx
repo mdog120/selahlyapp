@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { BookOpen, PenLine, Save, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getDailyVerse } from "@/lib/dailyVerse";
+import { BadgeUnlockModal } from "@/components/gamification/BadgeUnlockModal";
+import { Flame } from "lucide-react";
 
 type Verse = {
     reference: string;
@@ -30,6 +32,10 @@ export default function Diaries() {
     const [hasJournaledToday, setHasJournaledToday] = useState(false);
     const [animatingStreak, setAnimatingStreak] = useState(false);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+    // Badge State
+    const [showBadgeModal, setShowBadgeModal] = useState(false);
+    const [justEarnedBadge, setJustEarnedBadge] = useState<{ name: string, description: string } | null>(null);
 
     const supabase = createClient();
 
@@ -133,6 +139,20 @@ export default function Diaries() {
             console.error("Error updating streak:", updateError);
             // Fallback to RPC if direct update fails (e.g. RLS issues)
             await supabase.rpc("update_journal_streak", { user_uuid: user.id });
+        }
+
+        // 3. Check for First Glow Badge
+        const { data: badgeAwarded } = await supabase.rpc("award_badge", {
+            p_user_id: user.id,
+            p_badge_name: 'First Glow'
+        });
+
+        if (badgeAwarded) {
+            setJustEarnedBadge({
+                name: "First Glow",
+                description: "Completed your first Grace & Glow diary entry."
+            });
+            setShowBadgeModal(true);
         }
 
         // Update local state
@@ -280,6 +300,15 @@ export default function Diaries() {
                     )}
                 </div>
             </main>
+
+            {/* Unlock Modal */}
+            <BadgeUnlockModal
+                isOpen={showBadgeModal}
+                onClose={() => setShowBadgeModal(false)}
+                badgeName={justEarnedBadge?.name || ""}
+                badgeDescription={justEarnedBadge?.description || ""}
+                icon={<Flame className="w-12 h-12 text-orange-400 fill-orange-400/20" />}
+            />
         </div>
     );
 }
