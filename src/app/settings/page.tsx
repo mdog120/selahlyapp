@@ -58,7 +58,15 @@ export default function SettingsPage() {
     const [bio, setBio] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("");
     const [uploading, setUploading] = useState(false);
+
     const [isFriendsPublic, setIsFriendsPublic] = useState(true);
+
+    // Account Security State
+    const [email, setEmail] = useState("");
+    const [newEmail, setNewEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [updatingAccount, setUpdatingAccount] = useState(false);
 
     // Anthem Fields
     const [songTitle, setSongTitle] = useState("");
@@ -88,6 +96,7 @@ export default function SettingsPage() {
                 return;
             }
             setUser(user);
+            setEmail(user.email || "");
 
             const { data: profile } = await supabase
                 .from("profiles")
@@ -208,6 +217,36 @@ export default function SettingsPage() {
         setSaving(false);
     };
 
+    const handleUpdateEmail = async () => {
+        if (!newEmail || newEmail === email) return;
+        setUpdatingAccount(true);
+        const { error } = await supabase.auth.updateUser({ email: newEmail });
+        if (error) {
+            alert(`Error updating email: ${error.message}`);
+        } else {
+            alert("Confirmation link sent to both old and new email addresses. Please check your inbox.");
+            setNewEmail("");
+        }
+        setUpdatingAccount(false);
+    };
+
+    const handleUpdatePassword = async () => {
+        if (!password || password !== confirmPassword) {
+            alert("Passwords do not match or are empty.");
+            return;
+        }
+        setUpdatingAccount(true);
+        const { error } = await supabase.auth.updateUser({ password: password });
+        if (error) {
+            alert(`Error updating password: ${error.message}`);
+        } else {
+            alert("Password updated successfully!");
+            setPassword("");
+            setConfirmPassword("");
+        }
+        setUpdatingAccount(false);
+    };
+
     const handleDeleteAccount = async () => {
         if (confirm("Are you sure? This will delete your profile and data. This action cannot be undone.")) {
             try {
@@ -322,10 +361,67 @@ export default function SettingsPage() {
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-grey/30" />
                                 <input
                                     type="text"
-                                    value={user?.email || ""}
+                                    value={email}
                                     disabled
                                     className="w-full bg-stone-50 border-none rounded-xl pl-10 pr-4 py-3 text-sm text-warm-grey cursor-not-allowed"
                                 />
+                            </div>
+                        </div>
+
+                        {/* Account Security Section */}
+                        <div className="pt-6 border-t border-warm-grey/10">
+                            <h3 className="text-sm font-bold text-warm-cocoa mb-4">Account Security</h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">Update Email</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="email"
+                                            value={newEmail}
+                                            onChange={(e) => setNewEmail(e.target.value)}
+                                            placeholder="new.email@example.com"
+                                            className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={handleUpdateEmail}
+                                            disabled={updatingAccount || !newEmail || newEmail === email}
+                                        >
+                                            Update
+                                        </Button>
+                                    </div>
+                                    <p className="text-[10px] text-warm-grey/40 mt-1">You will need to confirm this change via email.</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">Change Password</label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="New Password"
+                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none mb-2"
+                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            placeholder="Confirm Password"
+                                            className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={handleUpdatePassword}
+                                            disabled={updatingAccount || !password || password !== confirmPassword}
+                                        >
+                                            Save
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
