@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/client";
-import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, Edit2, GraduationCap, Church, Trophy, Palette, Heart } from "lucide-react";
+import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, GraduationCap, Church, Trophy, Palette, Heart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatDistanceToNow } from "date-fns";
 import { useParams } from "next/navigation";
@@ -67,11 +67,7 @@ export default function ProfilePage() {
     const [friends, setFriends] = useState<any[]>([]);
     const [recentPosts, setRecentPosts] = useState<any[]>([]);
 
-    // Anthem State
-    const [editingAnthem, setEditingAnthem] = useState(false);
-    const [anthemTitle, setAnthemTitle] = useState("");
-    const [anthemArtist, setAnthemArtist] = useState("");
-    const [anthemLink, setAnthemLink] = useState("");
+
 
     const supabase = createClient();
 
@@ -223,27 +219,7 @@ export default function ProfilePage() {
         }
     };
 
-    const handleSaveAnthem = async () => {
-        if (!currentUser) return;
 
-        const updates = {
-            song_title: anthemTitle.trim() || null,
-            song_artist: anthemArtist.trim() || null,
-            song_link: anthemLink.trim() || null
-        };
-
-        const { error } = await supabase
-            .from('profiles')
-            .update(updates)
-            .eq('id', currentUser.id);
-
-        if (!error) {
-            setProfile(prev => prev ? ({ ...prev, ...updates }) : null);
-            setEditingAnthem(false);
-        } else {
-            alert("Failed to update anthem.");
-        }
-    };
 
 
     if (loading) return (
@@ -339,19 +315,7 @@ export default function ProfilePage() {
                                         <h3 className="text-xs font-bold text-warm-grey/40 uppercase tracking-widest flex items-center gap-1">
                                             <Music className="w-3 h-3" /> My Anthem
                                         </h3>
-                                        {currentUser?.id === profile.id && (
-                                            <button
-                                                onClick={() => {
-                                                    setAnthemTitle(profile.song_title || "");
-                                                    setAnthemArtist(profile.song_artist || "");
-                                                    setAnthemLink(profile.song_link || "");
-                                                    setEditingAnthem(true);
-                                                }}
-                                                className="text-warm-grey/40 hover:text-warm-cocoa transition-colors"
-                                            >
-                                                <Edit2 className="w-3 h-3" />
-                                            </button>
-                                        )}
+
                                     </div>
 
                                     {profile.song_title ? (
@@ -423,50 +387,7 @@ export default function ProfilePage() {
                                 )}
                             </div>
 
-                            {/* Anthem Edit Modal */}
-                            {editingAnthem && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
-                                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="font-serif text-lg text-warm-cocoa">Update Anthem</h3>
-                                            <button onClick={() => setEditingAnthem(false)}><X className="w-5 h-5 text-warm-grey/40" /></button>
-                                        </div>
-                                        <div className="space-y-3 mb-6">
-                                            <div>
-                                                <label className="text-xs font-bold text-warm-grey/60 block mb-1">Song Title</label>
-                                                <input
-                                                    value={anthemTitle}
-                                                    onChange={e => setAnthemTitle(e.target.value)}
-                                                    className="w-full bg-stone-50 border-none rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-warm-cocoa/20"
-                                                    placeholder="e.g. Oceans"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-warm-grey/60 block mb-1">Artist</label>
-                                                <input
-                                                    value={anthemArtist}
-                                                    onChange={e => setAnthemArtist(e.target.value)}
-                                                    className="w-full bg-stone-50 border-none rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-warm-cocoa/20"
-                                                    placeholder="e.g. Hillsong United"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-warm-grey/60 block mb-1">Link (Spotify/YouTube)</label>
-                                                <input
-                                                    value={anthemLink}
-                                                    onChange={e => setAnthemLink(e.target.value)}
-                                                    className="w-full bg-stone-50 border-none rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-warm-cocoa/20"
-                                                    placeholder="https://..."
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="sm" onClick={() => setEditingAnthem(false)}>Cancel</Button>
-                                            <Button size="sm" onClick={handleSaveAnthem}>Save Anthem</Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+
 
                             <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                                 <div className="px-4 py-2 rounded-2xl bg-stone-50 border border-warm-grey/5 flex items-center gap-2 text-xs font-medium text-warm-grey">
