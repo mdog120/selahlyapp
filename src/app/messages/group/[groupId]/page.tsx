@@ -260,7 +260,7 @@ export default function GroupChatPage() {
                     <div>
                         <h1 className="font-bold text-warm-grey text-sm">{group?.name}</h1>
                         <p className="text-xs text-warm-grey/40 font-medium">
-                            {group?.members?.length || 0} members
+                            {group?.members?.length || 0} sisters
                         </p>
                     </div>
                 </div>

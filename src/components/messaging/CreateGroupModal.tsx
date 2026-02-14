@@ -119,7 +119,7 @@ export function CreateGroupModal({ onGroupCreated }: { onGroupCreated: () => voi
             <button
                 onClick={() => setIsOpen(true)}
                 className="p-2 ml-2 bg-stone-100 hover:bg-stone-200 rounded-full text-warm-grey transition-colors"
-                title="Create Group"
+                title="Create Circle"
             >
                 <Plus className="w-5 h-5" />
             </button>
@@ -129,7 +129,7 @@ export function CreateGroupModal({ onGroupCreated }: { onGroupCreated: () => voi
                     <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-white/50 flex flex-col max-h-[80vh]">
                         {/* Header */}
                         <div className="p-6 border-b border-warm-grey/5 flex justify-between items-center">
-                            <h2 className="font-serif text-xl text-warm-cocoa">New Group Chat</h2>
+                            <h2 className="font-serif text-xl text-warm-cocoa">New Selah Circle</h2>
                             <button onClick={() => setIsOpen(false)} className="text-warm-grey/40 hover:text-warm-grey">
                                 <X className="w-5 h-5" />
                             </button>
@@ -139,7 +139,7 @@ export function CreateGroupModal({ onGroupCreated }: { onGroupCreated: () => voi
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
                             {/* Group Name */}
                             <div>
-                                <label className="block text-xs font-medium text-warm-grey mb-2 ml-1">GROUP NAME</label>
+                                <label className="block text-xs font-medium text-warm-grey mb-2 ml-1">CIRCLE NAME</label>
                                 <div className="relative">
                                     <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-grey/40" />
                                     <input
@@ -154,7 +154,7 @@ export function CreateGroupModal({ onGroupCreated }: { onGroupCreated: () => voi
 
                             {/* Friend Selection */}
                             <div>
-                                <label className="block text-xs font-medium text-warm-grey mb-2 ml-1">ADD FRIENDS</label>
+                                <label className="block text-xs font-medium text-warm-grey mb-2 ml-1">ADD SISTERS</label>
                                 <div className="relative mb-3">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-warm-grey/40" />
                                     <input
@@ -206,7 +206,7 @@ export function CreateGroupModal({ onGroupCreated }: { onGroupCreated: () => voi
                                 disabled={!groupName.trim() || selectedFriendIds.size === 0 || loading}
                                 className="w-full bg-muted-rose hover:bg-muted-rose/90 text-white rounded-xl h-11 shadow-md shadow-muted-rose/20"
                             >
-                                {loading ? "Creating..." : `Create Group (${selectedFriendIds.size})`}
+                                {loading ? "Creating..." : `Create Circle (${selectedFriendIds.size})`}
                             </Button>
                         </div>
                     </div>
