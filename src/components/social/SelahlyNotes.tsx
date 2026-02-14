@@ -240,6 +240,11 @@ export function SelahlyNotes() {
                 .single();
             error = updateError;
 
+            // Delete previous likes on update (as requested)
+            if (!updateError) {
+                await supabase.from('note_likes').delete().eq('note_id', noteToUpdate.id);
+            }
+
             // Notify mentioned users (Update case)
             if (updatedData) {
                 const mentions = newNote.match(/@([\w.-]+)/g);
