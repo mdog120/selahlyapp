@@ -16,6 +16,7 @@ export default function Signup() {
         email: "",
         password: ""
     });
+    const [ageVerified, setAgeVerified] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -27,6 +28,12 @@ export default function Signup() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+
+        if (!ageVerified) {
+            setError("You must be between 13-25 years old to join.");
+            setLoading(false);
+            return;
+        }
 
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
             setError("Supabase keys are missing in .env.local");
@@ -149,6 +156,27 @@ export default function Signup() {
                                 className="w-full px-4 py-3 rounded-xl bg-white/50 border border-white focus:outline-none focus:ring-2 focus:ring-sage-green/50 transition-all text-warm-grey"
                                 placeholder="••••••••"
                             />
+                        </div>
+
+                        <div className="flex items-start gap-3 p-3 bg-white/30 rounded-xl border border-white/50">
+                            <div className="flex items-center h-5">
+                                <input
+                                    id="age-verification"
+                                    name="age-verification"
+                                    type="checkbox"
+                                    checked={ageVerified}
+                                    onChange={(e) => setAgeVerified(e.target.checked)}
+                                    className="h-4 w-4 rounded border-warm-grey/30 text-sage-green focus:ring-sage-green"
+                                />
+                            </div>
+                            <div className="text-sm">
+                                <label htmlFor="age-verification" className="font-medium text-warm-cocoa">
+                                    I verify that I am 13-25 years old
+                                </label>
+                                <p className="text-warm-grey/60 text-xs">
+                                    Selahly is designed specifically for this age group.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="pt-4">

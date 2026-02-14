@@ -10,7 +10,7 @@ import { NotificationDropdown } from "./NotificationDropdown";
 
 export function Navbar() {
     const pathname = usePathname();
-    const isPublicPage = pathname === "/" || pathname === "/transition" || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || pathname?.startsWith("/legal");
+    const isPublicPage = pathname === "/" || pathname === "/transition" || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || pathname === "/donate" || pathname?.startsWith("/legal");
 
     // State
     const [isMenuOpen, setIsMenuOpen] = useState(false);

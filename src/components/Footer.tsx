@@ -13,6 +13,8 @@ export function Footer() {
                 <div className="flex items-center gap-8">
                     <Link
                         href="/donate"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-warm-grey hover:text-muted-rose transition-colors text-sm font-serif italic tracking-wide"
                     >
                         <Coins className="w-4 h-4" />
