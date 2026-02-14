@@ -155,6 +155,25 @@ export default function Diaries() {
             setShowBadgeModal(true);
         }
 
+        // 4. Check for Bloom Badge (3-day streak)
+        if (newStreak === 3) {
+            const { data: bloomAwarded } = await supabase.rpc("award_badge", {
+                p_user_id: user.id,
+                p_badge_name: 'Bloom'
+            });
+
+            if (bloomAwarded) {
+                // If we already showed a modal for First Glow (unlikely to get both at same exact moment unless 1st entry somehow counts as 3rd streak? Impossible logic unless manual hack), 
+                // but if we did, we might want to queue them.
+                // For now, let's assume valid flow: First Glow is day 1. Bloom is day 3. They won't overlap.
+                setJustEarnedBadge({
+                    name: "Bloom",
+                    description: "You've grown in grace with a 3-day streak! 🌸"
+                });
+                setShowBadgeModal(true);
+            }
+        }
+
         // Update local state
         setStreak(newStreak);
         setHasJournaledToday(true);

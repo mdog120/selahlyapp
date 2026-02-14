@@ -172,6 +172,24 @@ export function PostCard({ post }: { post: Post }) {
         if (newLiked) {
             await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id });
             await supabase.rpc("increment_post_likes", { post_uuid: post.id });
+
+            // Check for Star Badge (10 likes)
+            // We need to fetch the fresh count because likesCount state might be stale or optimistic
+            const { count } = await supabase
+                .from('post_likes')
+                .select('*', { count: 'exact', head: true })
+                .eq('post_id', post.id);
+
+            if (count && count >= 10) {
+                // Award to the AUTHOR of the post, NOT the liker (unless they are same, but usually badge is for content creator)
+                // The badge description "Get 10 likes on a post" implies the author gets it.
+                if (post.user_id) {
+                    await supabase.rpc("award_badge", {
+                        p_user_id: post.user_id,
+                        p_badge_name: 'Star'
+                    });
+                }
+            }
         } else {
             await supabase.from("post_likes").delete().match({ post_id: post.id, user_id: user.id });
             await supabase.rpc("decrement_post_likes", { post_uuid: post.id });
