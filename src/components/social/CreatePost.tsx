@@ -24,6 +24,79 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [isLocationOpen, setIsLocationOpen] = useState(false);
     const [suggestedLocations, setSuggestedLocations] = useState<string[]>([]);
 
+    // Mention State
+    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
+    const [isMentionOpen, setIsMentionOpen] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+
+    // Mention Search
+    useEffect(() => {
+        if (!mentionQuery) {
+            setMentionResults([]);
+            setIsMentionOpen(false);
+            return;
+        }
+
+        const fetchProfiles = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, username, first_name, avatar_url')
+                .ilike('username', `${mentionQuery}%`)
+                .limit(5);
+
+            if (data && data.length > 0) {
+                setMentionResults(data as any);
+                setIsMentionOpen(true);
+            } else {
+                setMentionResults([]);
+                setIsMentionOpen(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchProfiles, 300);
+        return () => clearTimeout(timeoutId);
+    }, [mentionQuery]);
+
+    const handleCaptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const pos = e.target.selectionStart || 0;
+        setCaption(value);
+        setCursorPosition(pos);
+
+        // Detect @ match
+        // Look for @ followed by characters up to the cursor
+        const textBeforeCursor = value.slice(0, pos);
+        const lastAt = textBeforeCursor.lastIndexOf('@');
+
+        if (lastAt !== -1) {
+            const query = textBeforeCursor.slice(lastAt + 1);
+            // Check if there are spaces, if so close unless it's the very start of typing or close to @
+            if (!query.includes(' ')) {
+                setMentionQuery(query);
+            } else {
+                setMentionQuery("");
+                setIsMentionOpen(false);
+            }
+        } else {
+            setMentionQuery("");
+            setIsMentionOpen(false);
+        }
+    };
+
+    const insertMention = (username: string) => {
+        if (!cursorPosition) return;
+        const textBeforeCursor = caption.slice(0, cursorPosition);
+        const lastAt = textBeforeCursor.lastIndexOf('@');
+        const textAfterCursor = caption.slice(cursorPosition);
+
+        const newText = caption.slice(0, lastAt) + `@${username} ` + textAfterCursor;
+        setCaption(newText);
+        setMentionQuery("");
+        setIsMentionOpen(false);
+        // Focus back would be ideal but tricky with simple input ref logic here
+    };
+
     // Simulated Location Database
 
 
@@ -194,7 +267,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
 
             console.log("Creating post record...", { type: postType, mediaCount: mediaUrls.length });
 
-            const { error: insertError } = await supabase.from("posts").insert({
+            const insertResult = await supabase.from("posts").insert({
                 user_id: user.id,
                 caption: caption,
                 media_urls: mediaUrls,
@@ -206,7 +279,10 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                 song_preview_url: songPreview?.trim() || null,
                 song_album_art: songArtwork?.trim() || null,
                 location: location.trim() || null,
-            });
+            }).select().single();
+
+            const data = insertResult.data;
+            const insertError = insertResult.error;
 
             if (insertError) {
                 console.error("Database Insert Error:", insertError);
@@ -267,6 +343,21 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
             setIsLocationOpen(false);
+
+            // 2. Notify Mentioned Users
+            const mentions = caption.match(/@(\w+)/g);
+            if (mentions) {
+                const uniqueMentions = [...new Set(mentions)]; // Dedup
+                for (const mention of uniqueMentions) {
+                    const username = mention.substring(1); // Remove @
+                    await supabase.rpc('notify_mention', {
+                        target_username: username,
+                        resource_id: data ? data.id : null, // Wait! We didn't capture data from insert!
+                        resource_type: 'post'
+                    });
+                }
+            }
+
             if (onPostCreated) onPostCreated();
 
             // 3. Award "Voice of Grace" Badge (First Post)
@@ -337,7 +428,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                     <input
                         type="text"
                         value={caption}
-                        onChange={(e) => setCaption(e.target.value)}
+                        onChange={handleCaptionChange}
                         onFocus={() => setExpanded(true)}
                         placeholder="Share a thought, verse, or OOTD..."
                         className="w-full bg-transparent border-none outline-none text-warm-grey placeholder:text-warm-grey/40 py-2"
@@ -492,6 +583,32 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             </div>
                                         )}
                                     </div>
+                                    {/* Mention Autocomplete Dropdown */}
+                                    {isMentionOpen && mentionResults.length > 0 && (
+                                        <div className="absolute left-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
+                                            {mentionResults.map((profile) => (
+                                                <button
+                                                    key={profile.id}
+                                                    className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
+                                                    onClick={() => insertMention(profile.username)}
+                                                >
+                                                    <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
+                                                        {profile.avatar_url ? (
+                                                            <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
+                                                                {profile.first_name?.[0]}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
+                                                        <p className="text-[10px] text-warm-grey/60 truncate">{profile.first_name}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>

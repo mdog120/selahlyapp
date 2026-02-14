@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle, Music, Volume2, VolumeX, MapPin, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Image as ImageIcon, X, Flame, Feather, Users, Mail, Sun, Flower2, Star, TreeDeciduous, CloudSun, Send, Trash2, Flag, AlertTriangle, Music, Volume2, VolumeX, MapPin, Smile } from "lucide-react";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -392,29 +392,52 @@ export function PostCard({ post }: { post: Post }) {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
         return parts.map((part, index) => {
-            const match = part.match(/\[sticker:(.+)\]/);
-            if (match) {
-                const stickerName = match[1];
-                let Icon = Star; // Default
+            const stickerMatch = part.match(/\[sticker:(.+)\]/);
+            if (stickerMatch) {
+                const stickerName = stickerMatch[1];
+                let Icon = Star;
                 let color = "text-yellow-400";
 
-                switch (stickerName) {
-                    case 'Candle': Icon = Flame; color = "text-orange-300"; break;
-                    case 'Feather': Icon = Feather; color = "text-stone-400"; break;
-                    case 'Users': Icon = Users; color = "text-rose-400"; break;
-                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
-                    case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
-                    case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
-                    case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
-                    case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
-                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
-                    case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
-                    case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                // Map sticker names to icons and colors
+                const stickerMap: any = {
+                    'Candle': { icon: Flame, color: "text-orange-300" },
+                    'Feather': { icon: Feather, color: "text-stone-400" },
+                    'Users': { icon: Users, color: "text-rose-400" },
+                    'Heart': { icon: Heart, color: "text-pink-400" },
+                    'Prayer Warrior': { icon: Users, color: "text-blue-400" },
+                    'Encourager': { icon: Mail, color: "text-purple-400" },
+                    'Sunshine': { icon: Sun, color: "text-yellow-400" },
+                    'Bloom': { icon: Flower2, color: "text-pink-300" },
+                    'Peace': { icon: CloudSun, color: "text-sky-400" },
+                    'Rooted': { icon: TreeDeciduous, color: "text-green-600" },
+                    'Star': { icon: Star, color: "text-yellow-400" },
+                    'Selah Circle': { icon: Users, color: "text-sage-green" },
+                };
+
+                if (stickerMap[stickerName]) {
+                    Icon = stickerMap[stickerName].icon;
+                    color = stickerMap[stickerName].color;
                 }
-                return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-5 h-5 ${color} fill-current`} /></span>;
+
+                return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
             }
+
+            const mentionMatch = part.match(/^@(\w+)$/);
+            if (mentionMatch) {
+                const username = mentionMatch[1];
+                return (
+                    <a
+                        key={index}
+                        href={`/profile/${username}`}
+                        className="text-muted-rose hover:underline font-medium"
+                    >
+                        {part}
+                    </a>
+                );
+            }
+
             return part;
         });
     };

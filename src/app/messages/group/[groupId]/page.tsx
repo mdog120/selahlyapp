@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
-import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Settings, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, Heart, CloudSun, X } from "lucide-react";
+import { Send, Phone, Video, Info, Smile, Image as ImageIcon, Mic, X, MoreVertical, Users, Hash, Flame, Feather, Heart, Mail, Sun, Flower2, CloudSun, TreeDeciduous, Star, ArrowLeft, Check, CheckCheck, Settings } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { GroupSettingsModal } from "@/components/messaging/GroupSettingsModal";
@@ -55,6 +55,95 @@ export default function GroupChatPage() {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
+
+    // Mention State
+    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
+    const [isMentionOpen, setIsMentionOpen] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Mention Search
+    useEffect(() => {
+        if (!mentionQuery) {
+            setMentionResults([]);
+            setIsMentionOpen(false);
+            return;
+        }
+
+        const fetchProfiles = async () => {
+            // In a group chat, we should ideally restrict mentions to GROUP MEMBERS.
+            // But for now, global search is easier, or we filter `group.members`.
+            // Filtering group members is better UX.
+            if (group?.members) {
+                const lowerQuery = mentionQuery.toLowerCase();
+                const matches = group.members
+                    .filter((m: any) =>
+                        m.profile.username?.toLowerCase().includes(lowerQuery) ||
+                        m.profile.first_name.toLowerCase().includes(lowerQuery)
+                    )
+                    .map((m: any) => ({
+                        id: m.user_id,
+                        username: m.profile.username,
+                        first_name: m.profile.first_name,
+                        avatar_url: m.profile.avatar_url
+                    }))
+                    .slice(0, 5);
+
+                if (matches.length > 0) {
+                    setMentionResults(matches);
+                    setIsMentionOpen(true);
+                } else {
+                    setMentionResults([]);
+                    setIsMentionOpen(false);
+                }
+            }
+        };
+        fetchProfiles();
+    }, [mentionQuery, group]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const pos = e.target.selectionStart || 0;
+        setNewMessage(value);
+        setCursorPosition(pos);
+        handleTyping();
+
+        // Detect @ match
+        const textBeforeCursor = value.slice(0, pos);
+        const lastAt = textBeforeCursor.lastIndexOf('@');
+
+        if (lastAt !== -1) {
+            const query = textBeforeCursor.slice(lastAt + 1);
+            if (!query.includes(' ')) {
+                setMentionQuery(query);
+            } else {
+                setMentionQuery("");
+                setIsMentionOpen(false);
+            }
+        } else {
+            setMentionQuery("");
+            setIsMentionOpen(false);
+        }
+    };
+
+    const insertMention = (username: string) => {
+        if (!cursorPosition) return; // Should track this better if possible or assume end if null
+        // If cursorPosition is null, we can't safely insert.
+        // But inputRef.current.selectionStart should give it if we needed.
+        // Let's use the state.
+
+        const textBeforeCursor = newMessage.slice(0, cursorPosition);
+        const lastAt = textBeforeCursor.lastIndexOf('@');
+        const textAfterCursor = newMessage.slice(cursorPosition);
+
+        const newText = newMessage.slice(0, lastAt) + `@${username} ` + textAfterCursor;
+        setNewMessage(newText);
+        setMentionQuery("");
+        setIsMentionOpen(false);
+        // Refocus handled by react usually, but let's encourage it
+        inputRef.current?.focus();
+    }
 
     // 1. Fetch Current User
     useEffect(() => {
@@ -236,17 +325,31 @@ export default function GroupChatPage() {
             alert("Failed to send");
         } else if (data) {
             setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...m, id: data.id } : m));
+
+            // Notify Mentioned Users
+            const mentions = content.match(/@(\w+)/g);
+            if (mentions) {
+                const uniqueMentions = [...new Set(mentions)];
+                for (const mention of uniqueMentions) {
+                    const username = mention.substring(1);
+                    await supabase.rpc('notify_mention', {
+                        target_username: username,
+                        resource_id: groupId,
+                        resource_type: 'group_chat'
+                    });
+                }
+            }
         }
     };
 
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
         return parts.map((part, index) => {
-            const match = part.match(/\[sticker:(.+)\]/);
-            if (match) {
-                const stickerName = match[1];
+            const stickerMatch = part.match(/\[sticker:(.+)\]/);
+            if (stickerMatch) {
+                const stickerName = stickerMatch[1];
                 let Icon = Star;
                 let color = "text-yellow-400";
 
@@ -266,6 +369,21 @@ export default function GroupChatPage() {
                 }
                 return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
             }
+
+            const mentionMatch = part.match(/^@(\w+)$/);
+            if (mentionMatch) {
+                const username = mentionMatch[1];
+                return (
+                    <a
+                        key={index}
+                        href={`/profile/${username}`}
+                        className="text-muted-rose hover:underline font-medium"
+                    >
+                        {part}
+                    </a>
+                );
+            }
+
             return part;
         });
     };
@@ -420,6 +538,32 @@ export default function GroupChatPage() {
                     </div>
                 )}
 
+                {/* Mention Autocomplete */}
+                {isMentionOpen && mentionResults.length > 0 && (
+                    <div className="absolute bottom-20 left-4 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-20 animate-fade-in-up">
+                        {mentionResults.map((profile) => (
+                            <button
+                                key={profile.id}
+                                className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
+                                onClick={() => insertMention(profile.username)}
+                            >
+                                <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
+                                    {profile.avatar_url ? (
+                                        <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
+                                            {profile.first_name?.[0]}
+                                        </span>
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 <form
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
@@ -427,12 +571,10 @@ export default function GroupChatPage() {
                     <StickerPicker onSelect={(badge) => setNewMessage(prev => `${prev} [sticker:${badge.name}]`)} />
 
                     <input
+                        ref={inputRef}
                         type="text"
                         value={newMessage}
-                        onChange={(e) => {
-                            setNewMessage(e.target.value);
-                            handleTyping();
-                        }}
+                        onChange={handleInputChange}
                         placeholder={`Message ${group?.name}...`}
                         className="flex-1 bg-transparent px-4 py-2 text-sm text-warm-grey placeholder:text-warm-grey/40 focus:outline-none"
                     />

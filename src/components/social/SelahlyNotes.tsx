@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, Heart, Music, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail } from "lucide-react";
+import { Plus, X, Heart, Music, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, CloudSun } from "lucide-react";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { StickerPicker } from "@/components/gamification/StickerPicker";
@@ -89,6 +89,76 @@ export function SelahlyNotes() {
         setLoading(false);
     };
 
+    // Mention State
+    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
+    const [isMentionOpen, setIsMentionOpen] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Mention Search
+    useEffect(() => {
+        if (!mentionQuery) {
+            setMentionResults([]);
+            setIsMentionOpen(false);
+            return;
+        }
+
+        const fetchProfiles = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, username, first_name, avatar_url')
+                .ilike('username', `${mentionQuery}%`)
+                .limit(5);
+
+            if (data && data.length > 0) {
+                setMentionResults(data as any);
+                setIsMentionOpen(true);
+            } else {
+                setMentionResults([]);
+                setIsMentionOpen(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchProfiles, 300);
+        return () => clearTimeout(timeoutId);
+    }, [mentionQuery]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        const pos = e.target.selectionStart || 0;
+        setNewNote(value);
+        setCursorPosition(pos);
+
+        // Detect @ match
+        const textBeforeCursor = value.slice(0, pos);
+        const lastAt = textBeforeCursor.lastIndexOf('@');
+
+        if (lastAt !== -1) {
+            const query = textBeforeCursor.slice(lastAt + 1);
+            if (!query.includes(' ')) {
+                setMentionQuery(query);
+            } else {
+                setMentionQuery("");
+                setIsMentionOpen(false);
+            }
+        } else {
+            setMentionQuery("");
+            setIsMentionOpen(false);
+        }
+    };
+
+    const insertMention = (username: string) => {
+        if (!cursorPosition) return;
+
+        const textBeforeCursor = newNote.slice(0, cursorPosition);
+        const lastAt = textBeforeCursor.lastIndexOf('@');
+        const textAfterCursor = newNote.slice(cursorPosition);
+
+        const newText = newNote.slice(0, lastAt) + `@${username} ` + textAfterCursor;
+        textareaRef.current?.focus();
+    };
+
     useEffect(() => {
         fetchNotes();
 
@@ -102,6 +172,7 @@ export function SelahlyNotes() {
             .subscribe();
 
         return () => { supabase.removeChannel(channel); }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleCreateNote = async () => {
@@ -147,21 +218,59 @@ export function SelahlyNotes() {
                 await supabase.from('notes').delete().in('id', idsToDelete);
             }
 
-            const { error: updateError } = await supabase
+            const { data: updatedData, error: updateError } = await supabase
                 .from('notes')
                 .update({
                     ...noteData,
                     created_at: new Date().toISOString()
                 })
-                .eq('id', noteToUpdate.id);
+                .eq('id', noteToUpdate.id)
+                .select()
+                .single();
             error = updateError;
+
+            // Notify mentioned users (Update case)
+            if (updatedData) {
+                const mentions = newNote.match(/@(\w+)/g);
+                if (mentions) {
+                    const uniqueMentions = Array.from(new Set(mentions));
+                    for (const mention of uniqueMentions) {
+                        if (typeof mention === 'string') {
+                            const username = mention.substring(1);
+                            await supabase.rpc('notify_mention', {
+                                target_username: username,
+                                resource_id: updatedData.id,
+                                resource_type: 'note'
+                            });
+                        }
+                    }
+                }
+            }
         } else {
             // Create new
-            const { error: insertError } = await supabase.from('notes').insert({
+            const { data: insertedData, error: insertError } = await supabase.from('notes').insert({
                 user_id: userId,
                 ...noteData
-            });
+            }).select().single();
             error = insertError;
+
+            // Notify mentioned users (Insert case)
+            if (insertedData) {
+                const mentions = newNote.match(/@(\w+)/g);
+                if (mentions) {
+                    const uniqueMentions = Array.from(new Set(mentions));
+                    for (const mention of uniqueMentions) {
+                        if (typeof mention === 'string') {
+                            const username = mention.substring(1);
+                            await supabase.rpc('notify_mention', {
+                                target_username: username,
+                                resource_id: insertedData.id,
+                                resource_type: 'note'
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         if (error) {
@@ -264,11 +373,16 @@ export function SelahlyNotes() {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        // Split by stickers and mentions
+        // Regex to match stickers OR mentions
+        // Sticker: \[sticker:[^\]]+\]
+        // Mention: @\w+
+        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
+
         return parts.map((part, index) => {
-            const match = part.match(/\[sticker:(.+)\]/);
-            if (match) {
-                const stickerName = match[1];
+            const stickerMatch = part.match(/\[sticker:(.+)\]/);
+            if (stickerMatch) {
+                const stickerName = stickerMatch[1];
                 let Icon = Star;
                 let color = "text-yellow-400";
 
@@ -281,12 +395,29 @@ export function SelahlyNotes() {
                     case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
                     case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
                     case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
-                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
+                    case 'Peace': Icon = CloudSun; color = "text-sky-400"; break;
                     case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
                     case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                    case 'Selah Circle': Icon = Users; color = "text-sage-green"; break;
                 }
-                return <span key={index} className="inline-block mx-0.5 align-middle"><Icon className={`w-3 h-3 ${color} fill-current`} /></span>;
+                return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-3 h-3 ${color} fill-current`} /></span>;
             }
+
+            const mentionMatch = part.match(/^@(\w+)$/);
+            if (mentionMatch) {
+                const username = mentionMatch[1];
+                return (
+                    <a
+                        key={index}
+                        href={`/profile/${username}`}
+                        className="text-muted-rose hover:underline font-medium"
+                        onClick={(e) => e.stopPropagation()} // Prevent note click
+                    >
+                        {part}
+                    </a>
+                );
+            }
+
             return part;
         });
     };
@@ -418,7 +549,8 @@ export function SelahlyNotes() {
                             </h3>
                             <textarea
                                 value={newNote}
-                                onChange={e => setNewNote(e.target.value)}
+                                onChange={handleInputChange}
+                                ref={textareaRef}
                                 placeholder="Share a quick thought... (24h)"
                                 className="w-full bg-gray-50 border-none rounded-xl p-4 text-sm focus:ring-1 focus:ring-warm-cocoa/20 mb-4 h-32 resize-none"
                                 maxLength={60} // Instagram notes are short
@@ -428,6 +560,32 @@ export function SelahlyNotes() {
                                 <div className="mb-4 text-sm text-warm-grey/80 bg-stone-50 p-2 rounded-lg border border-warm-grey/5">
                                     <span className="text-[10px] text-warm-grey/40 uppercase tracking-widest font-bold block mb-1">Preview</span>
                                     {renderContentWithStickers(newNote)}
+                                </div>
+                            )}
+
+                            {/* Mention Autocomplete */}
+                            {isMentionOpen && mentionResults.length > 0 && (
+                                <div className="absolute top-48 left-6 w-64 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
+                                    {mentionResults.map((profile) => (
+                                        <button
+                                            key={profile.id}
+                                            className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
+                                            onClick={() => insertMention(profile.username)}
+                                        >
+                                            <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
+                                                {profile.avatar_url ? (
+                                                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
+                                                        {profile.first_name?.[0]}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
+                                            </div>
+                                        </button>
+                                    ))}
                                 </div>
                             )}
 
@@ -609,6 +767,6 @@ export function SelahlyNotes() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

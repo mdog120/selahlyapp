@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useSearchParams } from "next/navigation";
-import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Trash2, Pencil, X, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, Heart, CloudSun } from "lucide-react";
+import { Send, Phone, Video, Info, Smile, Image as ImageIcon, Mic, X, MoreVertical, Flame, Feather, Users, Heart, Mail, Sun, Flower2, CloudSun, TreeDeciduous, Star, ArrowLeft, Check, CheckCheck, Trash2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 import { StickerPicker } from "@/components/gamification/StickerPicker";
@@ -80,11 +80,11 @@ export default function ChatPage() {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
         return parts.map((part, index) => {
-            const match = part.match(/\[sticker:(.+)\]/);
-            if (match) {
-                const stickerName = match[1];
+            const stickerMatch = part.match(/\[sticker:(.+)\]/);
+            if (stickerMatch) {
+                const stickerName = stickerMatch[1];
                 let Icon = Star;
                 let color = "text-yellow-400";
 
@@ -97,13 +97,28 @@ export default function ChatPage() {
                     case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
                     case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
                     case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
-                    case 'Peace': Icon = CloudSun; color = "text-sky-400"; break;
+                    case 'Peace': Icon = CloudSun; color = "text-sky-400"; break; // Updated for Direct Messages
                     case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
                     case 'Star': Icon = Star; color = "text-yellow-400"; break;
-                    case 'Selah Circle': Icon = Users; color = "text-sage-green"; break;
+                    case 'Selah Circle': Icon = Users; color = "text-sage-green"; break; // Added for Selah Circle
                 }
                 return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
             }
+
+            const mentionMatch = part.match(/^@(\w+)$/);
+            if (mentionMatch) {
+                const username = mentionMatch[1];
+                return (
+                    <a
+                        key={index}
+                        href={`/profile/${username}`}
+                        className="text-muted-rose hover:underline font-medium"
+                    >
+                        {part}
+                    </a>
+                );
+            }
+
             return part;
         });
     };
