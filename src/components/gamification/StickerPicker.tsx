@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Smile, Flame, Feather, Users, Heart, Sparkles, MessageCircle, HandHeart } from "lucide-react";
+import { Loader2, Smile, Flame, Feather, Users, Heart, Sparkles, MessageCircle, HandHeart, Sun, Flower2, TreeDeciduous, Star, CloudSun } from "lucide-react";
 
 type Badge = {
     id: string;
@@ -58,6 +58,11 @@ export function StickerPicker({ onSelect }: { onSelect: (badge: Badge) => void }
             case 'Heart': return <Heart {...props} className="w-8 h-8 text-muted-rose fill-muted-rose/20" />;
             case 'Prayer Warrior': return <HandHeart {...props} className="w-8 h-8 text-blue-400 fill-blue-400/20" />;
             case 'Encourager': return <MessageCircle {...props} className="w-8 h-8 text-purple-400 fill-purple-400/20" />;
+            case 'Sunshine': return <Sun {...props} className="w-8 h-8 text-yellow-500 fill-yellow-500/20" />;
+            case 'Bloom': return <Flower2 {...props} className="w-8 h-8 text-pink-400 fill-pink-400/20" />;
+            case 'Peace': return <CloudSun {...props} className="w-8 h-8 text-sky-400 fill-sky-400/20" />;
+            case 'Rooted': return <TreeDeciduous {...props} className="w-8 h-8 text-green-600 fill-green-600/20" />;
+            case 'Star': return <Star {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
             default: return <Sparkles {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
         }
     };

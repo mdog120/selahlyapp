@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X, Search, Send, Check } from "lucide-react";
+import { StickerPicker } from "@/components/gamification/StickerPicker";
 
 type Friend = {
     id: string;
@@ -109,6 +110,21 @@ export function ShareModal({ isOpen, onClose, content }: ShareModalProps) {
         );
     };
 
+    const handleStickerSelect = (badge: any) => {
+        const icon = badge.icon_name === 'Candle' ? '🕯️' :
+            badge.icon_name === 'Feather' ? '🪶' :
+                badge.icon_name === 'Users' ? '👯‍♀️' :
+                    badge.icon_name === 'Heart' ? '💖' :
+                        badge.icon_name === 'Prayer Warrior' ? '🙏' :
+                            badge.icon_name === 'Encourager' ? '💌' :
+                                badge.icon_name === 'Sunshine' ? '☀️' :
+                                    badge.icon_name === 'Bloom' ? '🌸' :
+                                        badge.icon_name === 'Peace' ? '🕊️' :
+                                            badge.icon_name === 'Rooted' ? '🌳' :
+                                                badge.icon_name === 'Star' ? '⭐' : '✨';
+        setMessageText(prev => prev + " " + icon);
+    };
+
     const filteredFriends = friends.filter(f => {
         const query = searchQuery.toLowerCase();
         return (
@@ -197,6 +213,11 @@ export function ShareModal({ isOpen, onClose, content }: ShareModalProps) {
                         placeholder="Write a message (optional)..."
                         className="w-full p-3 bg-stone-50 rounded-xl border border-transparent focus:bg-white focus:border-muted-rose/20 focus:ring-2 focus:ring-muted-rose/10 transition-all text-sm outline-none resize-none h-20"
                     />
+
+                    <div className="flex justify-between items-center mb-2">
+                        <StickerPicker onSelect={handleStickerSelect} />
+                        <span className="text-xs text-warm-grey/40">{messageText.length}/500</span>
+                    </div>
 
                     <button
                         onClick={handleSend}

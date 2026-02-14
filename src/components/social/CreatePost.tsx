@@ -21,6 +21,31 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [location, setLocation] = useState("");
+    const [isLocationOpen, setIsLocationOpen] = useState(false);
+    const [suggestedLocations, setSuggestedLocations] = useState<string[]>([]);
+
+    // Simulated Location Database
+    const COMMON_LOCATIONS = [
+        "My Local Church",
+        "Coffee Shop",
+        "Bible Study Group",
+        "Home Sweet Home",
+        "Nature Walk",
+        "Prayer Closet",
+        "The Beach",
+        "Downtown",
+        "City Park",
+        "Retreat Center"
+    ];
+
+    useEffect(() => {
+        if (location && isLocationOpen) {
+            const filtered = COMMON_LOCATIONS.filter(l => l.toLowerCase().includes(location.toLowerCase()));
+            setSuggestedLocations(filtered);
+        } else {
+            setSuggestedLocations([]);
+        }
+    }, [location, isLocationOpen]);
 
     // Song State
     const [songTitle, setSongTitle] = useState("");
@@ -201,6 +226,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             setLocation("");
             if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
+            setIsLocationOpen(false);
             if (onPostCreated) onPostCreated();
 
             // 3. Award "Voice of Grace" Badge (First Post)
@@ -228,7 +254,12 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                 badge.icon_name === 'Users' ? '👯‍♀️' :
                     badge.icon_name === 'Heart' ? '💖' :
                         badge.icon_name === 'Prayer Warrior' ? '🙏' :
-                            badge.icon_name === 'Encourager' ? '💌' : '✨';
+                            badge.icon_name === 'Encourager' ? '💌' :
+                                badge.icon_name === 'Sunshine' ? '☀️' :
+                                    badge.icon_name === 'Bloom' ? '🌸' :
+                                        badge.icon_name === 'Peace' ? '🕊️' :
+                                            badge.icon_name === 'Rooted' ? '🌳' :
+                                                badge.icon_name === 'Star' ? '⭐' : '✨';
 
         setCaption(prev => prev + " " + icon);
     };
@@ -354,13 +385,46 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
 
                                     <div className="h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
 
-                                    <input
-                                        type="text"
-                                        value={location}
-                                        onChange={(e) => setLocation(e.target.value)}
-                                        placeholder="Add Location"
-                                        className="bg-transparent text-xs text-warm-grey placeholder:text-warm-grey/40 outline-none w-24 focus:w-40 transition-all border-b border-transparent focus:border-sage-green/50 pb-0.5"
-                                    />
+                                    <div className="h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
+
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={location}
+                                            onChange={(e) => {
+                                                setLocation(e.target.value);
+                                                setIsLocationOpen(true);
+                                            }}
+                                            onFocus={() => setIsLocationOpen(true)}
+                                            onBlur={() => setTimeout(() => setIsLocationOpen(false), 200)} // Delay to allow click
+                                            placeholder="Add Location"
+                                            className="bg-transparent text-xs text-warm-grey placeholder:text-warm-grey/40 outline-none w-24 focus:w-40 transition-all border-b border-transparent focus:border-sage-green/50 pb-0.5"
+                                        />
+                                        {isLocationOpen && (suggestedLocations.length > 0 || location.length > 0) && (
+                                            <div className="absolute bottom-full mb-2 left-0 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
+                                                {suggestedLocations.map((loc) => (
+                                                    <button
+                                                        key={loc}
+                                                        className="w-full text-left px-4 py-2 text-xs text-warm-grey hover:bg-stone-50 transition-colors truncate"
+                                                        onClick={() => {
+                                                            setLocation(loc);
+                                                            setIsLocationOpen(false);
+                                                        }}
+                                                    >
+                                                        📍 {loc}
+                                                    </button>
+                                                ))}
+                                                {location.length > 0 && !suggestedLocations.includes(location) && (
+                                                    <button
+                                                        className="w-full text-left px-4 py-2 text-xs text-warm-grey/60 hover:bg-stone-50 transition-colors italic border-t border-warm-grey/5"
+                                                        onClick={() => setIsLocationOpen(false)}
+                                                    >
+                                                        Use "{location}"
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>

@@ -268,7 +268,12 @@ export function SelahlyNotes() {
                 badge.icon_name === 'Users' ? '👯‍♀️' :
                     badge.icon_name === 'Heart' ? '💖' :
                         badge.icon_name === 'Prayer Warrior' ? '🙏' :
-                            badge.icon_name === 'Encourager' ? '💌' : '✨';
+                            badge.icon_name === 'Encourager' ? '💌' :
+                                badge.icon_name === 'Sunshine' ? '☀️' :
+                                    badge.icon_name === 'Bloom' ? '🌸' :
+                                        badge.icon_name === 'Peace' ? '🕊️' :
+                                            badge.icon_name === 'Rooted' ? '🌳' :
+                                                badge.icon_name === 'Star' ? '⭐' : '✨';
 
         // Use Lucide icon mapping if we want to store "code" instead of emoji
         // But for text storage, emoji is safest for now unless we change data model. 
