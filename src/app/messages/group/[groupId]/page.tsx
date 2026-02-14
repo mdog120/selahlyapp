@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
-import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Settings, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, Heart } from "lucide-react";
+import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Settings, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, Heart, CloudSun, X } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { GroupSettingsModal } from "@/components/messaging/GroupSettingsModal";
+import { StickerPicker } from "@/components/gamification/StickerPicker";
 
 type Message = {
     id: string;
@@ -258,9 +259,10 @@ export default function GroupChatPage() {
                     case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
                     case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
                     case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
-                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
+                    case 'Peace': Icon = CloudSun; color = "text-sky-400"; break;
                     case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
                     case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                    case 'Selah Circle': Icon = Users; color = "text-sage-green"; break;
                 }
                 return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
             }
@@ -398,10 +400,32 @@ export default function GroupChatPage() {
 
             {/* Input Area */}
             <div className="p-4 bg-white border-t border-warm-grey/5">
+                {/* Live Sticker Preview */}
+                {newMessage.includes('[sticker:') && (
+                    <div className="flex gap-2 mb-2 px-2 overflow-x-auto pb-2">
+                        {newMessage.match(/\[sticker:([^\]]+)\]/g)?.map((match, i) => {
+                            const name = match.replace('[sticker:', '').replace(']', '');
+                            return (
+                                <div key={i} className="bg-stone-50 border border-warm-grey/10 rounded-full px-3 py-1 flex items-center gap-2 text-xs text-warm-grey animate-pop-in">
+                                    <span className="font-medium">{name}</span>
+                                    <button
+                                        onClick={() => setNewMessage(prev => prev.replace(match, ''))}
+                                        className="hover:text-red-400"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+
                 <form
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
                 >
+                    <StickerPicker onSelect={(badge) => setNewMessage(prev => `${prev} [sticker:${badge.name}]`)} />
+
                     <input
                         type="text"
                         value={newMessage}

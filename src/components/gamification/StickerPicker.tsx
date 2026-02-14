@@ -63,6 +63,7 @@ export function StickerPicker({ onSelect }: { onSelect: (badge: Badge) => void }
             case 'Peace': return <CloudSun {...props} className="w-8 h-8 text-sky-400 fill-sky-400/20" />;
             case 'Rooted': return <TreeDeciduous {...props} className="w-8 h-8 text-green-600 fill-green-600/20" />;
             case 'Star': return <Star {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
+            case 'Selah Circle': return <Users {...props} className="w-8 h-8 text-sage-green fill-sage-green/20" />;
             default: return <Sparkles {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
         }
     };
