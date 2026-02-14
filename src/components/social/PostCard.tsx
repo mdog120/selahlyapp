@@ -258,6 +258,9 @@ export function PostCard({ post }: { post: Post }) {
         setNewComment("");
         setCommentsCount(c => c + 1);
 
+        setNewComment("");
+        setCommentsCount(c => c + 1);
+
         await supabase.from("post_comments").insert({
             post_id: post.id,
             user_id: user.id,
@@ -265,6 +268,19 @@ export function PostCard({ post }: { post: Post }) {
         });
 
         await supabase.rpc("increment_post_comments", { post_uuid: post.id });
+
+        // Check for "Encourager" Badge (5 Comments)
+        const { count: commentCount } = await supabase
+            .from('post_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+        if (commentCount && commentCount >= 5) {
+            await supabase.rpc("award_badge", {
+                p_user_id: user.id,
+                p_badge_name: 'Encourager'
+            });
+        }
     };
 
     const handleDelete = async () => {

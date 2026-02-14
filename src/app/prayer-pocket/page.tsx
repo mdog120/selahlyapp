@@ -96,6 +96,14 @@ export default function PrayerPocket() {
 
         if (!error) {
             await supabase.rpc("increment_prayer_count", { row_id: prayerId });
+
+            // Award "Peace" Badge (Reply to a prayer request)
+            // Description says "Reply to a prayer request" (singular). 
+            // So we award it on the first one. RPC handles idempotency (only awards once).
+            await supabase.rpc("award_badge", {
+                p_user_id: user.id,
+                p_badge_name: 'Peace'
+            });
         }
     };
 

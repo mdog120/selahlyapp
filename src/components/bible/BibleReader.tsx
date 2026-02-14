@@ -58,6 +58,12 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
                 if (!res.ok) throw new Error("Could not find chapter");
                 const json = await res.json();
                 setData(json);
+
+                // Record Bible Read for "Rooted" Badge
+                // Only record if successful load
+                if (userId) {
+                    await supabase.rpc('record_bible_read');
+                }
             } catch (err) {
                 setError("Could not load chapter. Please check the reference.");
             } finally {
