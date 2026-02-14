@@ -226,7 +226,9 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         const icon = badge.icon_name === 'Candle' ? '🕯️' :
             badge.icon_name === 'Feather' ? '🪶' :
                 badge.icon_name === 'Users' ? '👯‍♀️' :
-                    badge.icon_name === 'Heart' ? '💖' : '✨';
+                    badge.icon_name === 'Heart' ? '💖' :
+                        badge.icon_name === 'Prayer Warrior' ? '🙏' :
+                            badge.icon_name === 'Encourager' ? '💌' : '✨';
 
         setCaption(prev => prev + " " + icon);
     };

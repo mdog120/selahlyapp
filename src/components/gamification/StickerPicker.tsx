@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Smile } from "lucide-react";
+import { Loader2, Smile, Flame, Feather, Users, Heart, Sparkles, MessageCircle, HandHeart } from "lucide-react";
 
 type Badge = {
     id: string;
@@ -50,14 +50,15 @@ export function StickerPicker({ onSelect }: { onSelect: (badge: Badge) => void }
 
     // Helper to render icon based on name (same as BadgeGrid logic, ideally shared)
     const getIcon = (name: string) => {
-        // Simple mapping for now, assuming emoji or lucide names
-        // Ideally we use actual image assets for "stickers"
+        const props = { className: "w-8 h-8 drop-shadow-sm filter" };
         switch (name) {
-            case 'Candle': return '🕯️';
-            case 'Feather': return '🪶';
-            case 'Users': return '👯‍♀️';
-            case 'Heart': return '💖';
-            default: return '✨';
+            case 'Candle': return <Flame {...props} className="w-8 h-8 text-orange-400 fill-orange-400/20" />;
+            case 'Feather': return <Feather {...props} className="w-8 h-8 text-blue-400 fill-blue-400/20" />;
+            case 'Users': return <Users {...props} className="w-8 h-8 text-sage-green fill-sage-green/20" />;
+            case 'Heart': return <Heart {...props} className="w-8 h-8 text-muted-rose fill-muted-rose/20" />;
+            case 'Prayer Warrior': return <HandHeart {...props} className="w-8 h-8 text-blue-400 fill-blue-400/20" />;
+            case 'Encourager': return <MessageCircle {...props} className="w-8 h-8 text-purple-400 fill-purple-400/20" />;
+            default: return <Sparkles {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
         }
     };
 

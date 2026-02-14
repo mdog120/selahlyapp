@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Heart, Music } from "lucide-react";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { SongPlayer } from "@/components/ui/SongPlayer";
+import { StickerPicker } from "@/components/gamification/StickerPicker";
 // MVP wrapping manual implementation below
 import { Button } from "@/components/ui/Button";
 
@@ -260,6 +261,22 @@ export function SelahlyNotes() {
         setIsOpen(true);
     };
 
+    const handleStickerSelect = (badge: any) => {
+        // Appending icon to note
+        const icon = badge.icon_name === 'Candle' ? '🕯️' :
+            badge.icon_name === 'Feather' ? '🪶' :
+                badge.icon_name === 'Users' ? '👯‍♀️' :
+                    badge.icon_name === 'Heart' ? '💖' :
+                        badge.icon_name === 'Prayer Warrior' ? '🙏' :
+                            badge.icon_name === 'Encourager' ? '💌' : '✨';
+
+        // Use Lucide icon mapping if we want to store "code" instead of emoji
+        // But for text storage, emoji is safest for now unless we change data model. 
+        // User asked to "use them". 
+        // Let's allow users to append the emoji representation of the sticker.
+        setNewNote(prev => prev + " " + icon);
+    };
+
     if (loading) return <div className="h-24 bg-gray-50/50 rounded-xl animate-pulse" />;
 
     const myNote = notes.find(n => n.user_id === userId);
@@ -472,9 +489,12 @@ export function SelahlyNotes() {
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>Cancel</Button>
-                                <Button size="sm" onClick={handleCreateNote} disabled={!newNote.trim() && !songTitle && !songLink}>{myNote ? "Update" : "Share"}</Button>
+                            <div className="flex justify-between items-center mt-4">
+                                <StickerPicker onSelect={handleStickerSelect} />
+                                <div className="flex gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>Cancel</Button>
+                                    <Button size="sm" onClick={handleCreateNote} disabled={!newNote.trim() && !songTitle && !songLink}>{myNote ? "Update" : "Share"}</Button>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Flame, Feather, Users, Heart, Sparkles } from "lucide-react";
+import { Flame, Feather, Users, Heart, Sparkles, HandHeart, MessageCircle } from "lucide-react";
 
 type Badge = {
     id: string;
@@ -55,6 +55,8 @@ export function BadgeGrid({ userId }: { userId: string }) {
             case 'Feather': return <Feather {...props} className="w-8 h-8 text-blue-400 fill-blue-400/20" />;
             case 'Users': return <Users {...props} className="w-8 h-8 text-sage-green fill-sage-green/20" />;
             case 'Heart': return <Heart {...props} className="w-8 h-8 text-muted-rose fill-muted-rose/20" />;
+            case 'Prayer Warrior': return <HandHeart {...props} className="w-8 h-8 text-blue-400 fill-blue-400/20" />;
+            case 'Encourager': return <MessageCircle {...props} className="w-8 h-8 text-purple-400 fill-purple-400/20" />;
             default: return <Sparkles {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
         }
     };
