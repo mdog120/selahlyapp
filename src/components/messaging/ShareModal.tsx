@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X, Search, Send, Check } from "lucide-react";
 import { StickerPicker } from "@/components/gamification/StickerPicker";
+import { Smile, Sun, Flower2, Heart as HeartIcon, Star, TreeDeciduous, Users, Feather, Flame, Mail } from "lucide-react";
 
 type Friend = {
     id: string;
@@ -111,18 +112,9 @@ export function ShareModal({ isOpen, onClose, content }: ShareModalProps) {
     };
 
     const handleStickerSelect = (badge: any) => {
-        const icon = badge.icon_name === 'Candle' ? '🕯️' :
-            badge.icon_name === 'Feather' ? '🪶' :
-                badge.icon_name === 'Users' ? '👯‍♀️' :
-                    badge.icon_name === 'Heart' ? '💖' :
-                        badge.icon_name === 'Prayer Warrior' ? '🙏' :
-                            badge.icon_name === 'Encourager' ? '💌' :
-                                badge.icon_name === 'Sunshine' ? '☀️' :
-                                    badge.icon_name === 'Bloom' ? '🌸' :
-                                        badge.icon_name === 'Peace' ? '🕊️' :
-                                            badge.icon_name === 'Rooted' ? '🌳' :
-                                                badge.icon_name === 'Star' ? '⭐' : '✨';
-        setMessageText(prev => prev + " " + icon);
+        // Appending icon shortcode to content
+        const shortcode = `[sticker:${badge.icon_name}]`;
+        setMessageText(prev => prev + " " + shortcode);
     };
 
     const filteredFriends = friends.filter(f => {

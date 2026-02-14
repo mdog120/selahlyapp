@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
-import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Settings } from "lucide-react";
+import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Settings, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, Heart } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { GroupSettingsModal } from "@/components/messaging/GroupSettingsModal";
@@ -238,6 +238,36 @@ export default function GroupChatPage() {
         }
     };
 
+    // Helper to render stickers
+    const renderContentWithStickers = (text: string) => {
+        if (!text) return null;
+        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        return parts.map((part, index) => {
+            const match = part.match(/\[sticker:(.+)\]/);
+            if (match) {
+                const stickerName = match[1];
+                let Icon = Star;
+                let color = "text-yellow-400";
+
+                switch (stickerName) {
+                    case 'Candle': Icon = Flame; color = "text-orange-300"; break;
+                    case 'Feather': Icon = Feather; color = "text-stone-400"; break;
+                    case 'Users': Icon = Users; color = "text-rose-400"; break;
+                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
+                    case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
+                    case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
+                    case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
+                    case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
+                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
+                    case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
+                    case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                }
+                return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
+            }
+            return part;
+        });
+    };
+
     if (loading) return <div className="h-full flex items-center justify-center text-warm-grey/40">Loading group...</div>;
 
     const isAdmin = group?.admin_id === currentUser?.id;
@@ -312,7 +342,7 @@ export default function GroupChatPage() {
                                             : 'bg-white text-warm-grey rounded-tl-sm border border-warm-grey/5'
                                             }`}
                                     >
-                                        {msg.content}
+                                        {renderContentWithStickers(msg.content)}
                                         <div className={`flex items-center gap-1 mt-1 text-[9px] ${isMe ? 'text-white/70 justify-end' : 'text-warm-grey/40 justify-start'}`}>
                                             {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                                         </div>

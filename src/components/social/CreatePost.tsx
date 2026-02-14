@@ -25,26 +25,31 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [suggestedLocations, setSuggestedLocations] = useState<string[]>([]);
 
     // Simulated Location Database
-    const COMMON_LOCATIONS = [
-        "My Local Church",
-        "Coffee Shop",
-        "Bible Study Group",
-        "Home Sweet Home",
-        "Nature Walk",
-        "Prayer Closet",
-        "The Beach",
-        "Downtown",
-        "City Park",
-        "Retreat Center"
-    ];
 
+
+    // Location Search (Nominatim)
     useEffect(() => {
-        if (location && isLocationOpen) {
-            const filtered = COMMON_LOCATIONS.filter(l => l.toLowerCase().includes(location.toLowerCase()));
-            setSuggestedLocations(filtered);
-        } else {
-            setSuggestedLocations([]);
-        }
+        const fetchLocations = async () => {
+            if (!location || !isLocationOpen) {
+                setSuggestedLocations([]);
+                return;
+            }
+
+            if (location.length < 3) return;
+
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=5`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setSuggestedLocations(data.map((place: any) => place.display_name));
+                }
+            } catch (error) {
+                console.error("Location search failed:", error);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchLocations, 500); // Debounce 500ms
+        return () => clearTimeout(timeoutId);
     }, [location, isLocationOpen]);
 
     // Song State
@@ -248,20 +253,9 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     };
 
     const handleStickerSelect = (badge: any) => {
-        // Appending icon to caption
-        const icon = badge.icon_name === 'Candle' ? '🕯️' :
-            badge.icon_name === 'Feather' ? '🪶' :
-                badge.icon_name === 'Users' ? '👯‍♀️' :
-                    badge.icon_name === 'Heart' ? '💖' :
-                        badge.icon_name === 'Prayer Warrior' ? '🙏' :
-                            badge.icon_name === 'Encourager' ? '💌' :
-                                badge.icon_name === 'Sunshine' ? '☀️' :
-                                    badge.icon_name === 'Bloom' ? '🌸' :
-                                        badge.icon_name === 'Peace' ? '🕊️' :
-                                            badge.icon_name === 'Rooted' ? '🌳' :
-                                                badge.icon_name === 'Star' ? '⭐' : '✨';
-
-        setCaption(prev => prev + " " + icon);
+        // Appending icon shortcode to caption
+        const shortcode = `[sticker:${badge.icon_name}]`;
+        setCaption(prev => prev + " " + shortcode);
     };
 
     return (

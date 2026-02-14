@@ -5,11 +5,11 @@ INSERT INTO badges (name, description, icon_name, category)
 VALUES
   ('Prayer Warrior', 'Shared a prayer request with the community.', 'Prayer Warrior', 'community'),
   ('Encourager', 'Left a comment or replied to a sister.', 'Encourager', 'community'),
-  ('Sunshine', 'Shared a moment of light and positivity.', 'Sunshine', 'community'),
-  ('Bloom', 'Growing in grace and faith.', 'Bloom', 'spiritual'),
-  ('Peace', 'Peacemaker in the community.', 'Peace', 'community'),
-  ('Rooted', 'Deeply rooted in the Word.', 'Rooted', 'spiritual'),
-  ('Star', 'Shining bright for all to see.', 'Star', 'community')
+  ('Sunshine', 'Post 3 times', 'Sunshine', 'community'),
+  ('Bloom', 'Journal 3 days in a row', 'Bloom', 'spiritual'),
+  ('Peace', 'Reply to a prayer request', 'Peace', 'community'),
+  ('Rooted', 'Read Bible 5 days', 'Rooted', 'spiritual'),
+  ('Star', 'Get 10 likes on a post', 'Star', 'community')
 ON CONFLICT (name) DO NOTHING;
 
 -- 2. Backfill Logic (Using PL/pgSQL block for complex logic)

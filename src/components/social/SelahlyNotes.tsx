@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, Heart, Music } from "lucide-react";
+import { Plus, X, Heart, Music, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail } from "lucide-react";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { StickerPicker } from "@/components/gamification/StickerPicker";
@@ -261,25 +261,40 @@ export function SelahlyNotes() {
         setIsOpen(true);
     };
 
-    const handleStickerSelect = (badge: any) => {
-        // Appending icon to note
-        const icon = badge.icon_name === 'Candle' ? '🕯️' :
-            badge.icon_name === 'Feather' ? '🪶' :
-                badge.icon_name === 'Users' ? '👯‍♀️' :
-                    badge.icon_name === 'Heart' ? '💖' :
-                        badge.icon_name === 'Prayer Warrior' ? '🙏' :
-                            badge.icon_name === 'Encourager' ? '💌' :
-                                badge.icon_name === 'Sunshine' ? '☀️' :
-                                    badge.icon_name === 'Bloom' ? '🌸' :
-                                        badge.icon_name === 'Peace' ? '🕊️' :
-                                            badge.icon_name === 'Rooted' ? '🌳' :
-                                                badge.icon_name === 'Star' ? '⭐' : '✨';
+    // Helper to render stickers
+    const renderContentWithStickers = (text: string) => {
+        if (!text) return null;
+        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        return parts.map((part, index) => {
+            const match = part.match(/\[sticker:(.+)\]/);
+            if (match) {
+                const stickerName = match[1];
+                let Icon = Star;
+                let color = "text-yellow-400";
 
-        // Use Lucide icon mapping if we want to store "code" instead of emoji
-        // But for text storage, emoji is safest for now unless we change data model. 
-        // User asked to "use them". 
-        // Let's allow users to append the emoji representation of the sticker.
-        setNewNote(prev => prev + " " + icon);
+                switch (stickerName) {
+                    case 'Candle': Icon = Flame; color = "text-orange-300"; break;
+                    case 'Feather': Icon = Feather; color = "text-stone-400"; break;
+                    case 'Users': Icon = Users; color = "text-rose-400"; break;
+                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
+                    case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
+                    case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
+                    case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
+                    case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
+                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
+                    case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
+                    case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                }
+                return <span key={index} className="inline-block mx-0.5 align-middle"><Icon className={`w-3 h-3 ${color} fill-current`} /></span>;
+            }
+            return part;
+        });
+    };
+
+    const handleStickerSelect = (badge: any) => {
+        // Appending icon shortcode to note
+        const shortcode = `[sticker:${badge.icon_name}]`;
+        setNewNote(prev => prev + " " + shortcode);
     };
 
     if (loading) return <div className="h-24 bg-gray-50/50 rounded-xl animate-pulse" />;
@@ -299,9 +314,9 @@ export function SelahlyNotes() {
                             onClick={openEditModal}
                             className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1 group/mynote"
                         >
-                            <span className="line-clamp-3 text-warm-grey/90">
+                            <span className="line-clamp-3 text-warm-grey/90 text-center">
                                 {myNote.song_title && <span className="block text-[8px] text-warm-cocoa mb-0.5 font-medium truncate max-w-full">🎵 {myNote.song_title} - {myNote.song_artist}</span>}
-                                {myNote.content}
+                                {renderContentWithStickers(myNote.content)}
                             </span>
                             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-soft-blush/20 rotate-45"></div>
 
@@ -355,9 +370,9 @@ export function SelahlyNotes() {
                                     }}
                                     className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
                                 >
-                                    <span className="line-clamp-3 text-warm-grey/90">
+                                    <span className="line-clamp-3 text-warm-grey/90 text-center">
                                         {note.song_title && <span className="block text-[8px] text-warm-cocoa mb-0.5 font-medium truncate max-w-full">🎵 {note.song_title} - {note.song_artist}</span>}
-                                        {note.content || <span className="italic text-warm-grey/40">Listening to music...</span>}
+                                        {renderContentWithStickers(note.content) || <span className="italic text-warm-grey/40">Listening to music...</span>}
                                     </span>
                                     {/* Little triangle for speech bubble */}
                                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
@@ -532,7 +547,7 @@ export function SelahlyNotes() {
                             {/* The Note */}
                             <div className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-4 text-center mb-6 relative">
                                 {viewingNote.content && (
-                                    <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{viewingNote.content}"</p>
+                                    <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{renderContentWithStickers(viewingNote.content)}"</p>
                                 )}
 
 

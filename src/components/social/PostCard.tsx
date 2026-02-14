@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle, Music, Volume2, VolumeX, MapPin } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle, Music, Volume2, VolumeX, MapPin, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail } from "lucide-react";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -371,6 +371,36 @@ export function PostCard({ post }: { post: Post }) {
         ? displayInfos[headerIndex % displayInfos.length]
         : displayInfos[0];
 
+    // Helper to render stickers
+    const renderContentWithStickers = (text: string) => {
+        if (!text) return null;
+        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        return parts.map((part, index) => {
+            const match = part.match(/\[sticker:(.+)\]/);
+            if (match) {
+                const stickerName = match[1];
+                let Icon = Star; // Default
+                let color = "text-yellow-400";
+
+                switch (stickerName) {
+                    case 'Candle': Icon = Flame; color = "text-orange-300"; break;
+                    case 'Feather': Icon = Feather; color = "text-stone-400"; break;
+                    case 'Users': Icon = Users; color = "text-rose-400"; break;
+                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
+                    case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
+                    case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
+                    case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
+                    case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
+                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
+                    case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
+                    case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                }
+                return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-5 h-5 ${color} fill-current`} /></span>;
+            }
+            return part;
+        });
+    };
+
     return (
         <div className="glass-card p-6 rounded-3xl animate-fade-in-up mb-6 relative" ref={cardRef}>
             {/* Hidden Audio Element */}
@@ -440,9 +470,9 @@ export function PostCard({ post }: { post: Post }) {
 
             {/* Removed separate Song Badge as it's now in header/auto-playing */}
 
-            <p className="font-serif text-lg text-warm-grey mb-4 leading-relaxed">
-                {post.caption}
-            </p>
+            <div className="font-serif text-lg text-warm-grey mb-4 leading-relaxed whitespace-pre-wrap">
+                {renderContentWithStickers(post.caption)}
+            </div>
 
             <div className="flex gap-6 border-t border-white/50 pt-4 mb-2">
                 <button

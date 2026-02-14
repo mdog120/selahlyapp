@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useSearchParams } from "next/navigation";
-import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Trash2, Pencil, X } from "lucide-react";
+import { Send, ArrowLeft, MoreVertical, Check, CheckCheck, Trash2, Pencil, X, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, Heart } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 
@@ -74,6 +74,36 @@ export default function ChatPage() {
         } else {
             return format(date, "MMM d, h:mm a");
         }
+    };
+
+    // Helper to render stickers
+    const renderContentWithStickers = (text: string) => {
+        if (!text) return null;
+        const parts = text.split(/(\[sticker:[^\]]+\])/g);
+        return parts.map((part, index) => {
+            const match = part.match(/\[sticker:(.+)\]/);
+            if (match) {
+                const stickerName = match[1];
+                let Icon = Star;
+                let color = "text-yellow-400";
+
+                switch (stickerName) {
+                    case 'Candle': Icon = Flame; color = "text-orange-300"; break;
+                    case 'Feather': Icon = Feather; color = "text-stone-400"; break;
+                    case 'Users': Icon = Users; color = "text-rose-400"; break;
+                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
+                    case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
+                    case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
+                    case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
+                    case 'Bloom': Icon = Flower2; color = "text-pink-300"; break;
+                    case 'Peace': Icon = Feather; color = "text-blue-300"; break;
+                    case 'Rooted': Icon = TreeDeciduous; color = "text-green-600"; break;
+                    case 'Star': Icon = Star; color = "text-yellow-400"; break;
+                }
+                return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
+            }
+            return part;
+        });
     };
 
     // 1. Fetch Current User (Once)
@@ -473,7 +503,7 @@ export default function ChatPage() {
                                                     </Link>
                                                 )}
 
-                                                {msg.content}
+                                                {renderContentWithStickers(msg.content)}
                                                 {msg.is_edited && <span className="text-[9px] opacity-60 ml-1 italic">(edited)</span>}
                                             </>
                                         )}
