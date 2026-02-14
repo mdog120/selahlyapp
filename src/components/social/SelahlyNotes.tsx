@@ -256,10 +256,10 @@ export function SelahlyNotes() {
                             className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1 group/mynote"
                         >
                             <span className="line-clamp-3 text-warm-grey/90">
-                                {myNote.song_title && <span className="block text-[8px] text-warm-cocoa mb-0.5">🎵 {myNote.song_title}</span>}
+                                {myNote.song_title && <span className="block text-[8px] text-warm-cocoa mb-0.5 font-medium truncate max-w-full">🎵 {myNote.song_title} - {myNote.song_artist}</span>}
                                 {myNote.content}
                             </span>
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-rose-50 border-b border-r border-soft-blush/20 rotate-45"></div>
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-soft-blush/20 rotate-45"></div>
 
                             {/* Likers Count - Only visible to me */}
                             {myNote.note_likes?.length > 0 && (
@@ -312,7 +312,7 @@ export function SelahlyNotes() {
                                     className="bg-white border border-warm-grey/10 rounded-2xl p-2 shadow-sm min-h-[40px] flex items-center justify-center text-[10px] leading-tight text-center relative max-w-[80px] cursor-pointer hover:scale-105 transition-transform mb-1"
                                 >
                                     <span className="line-clamp-3 text-warm-grey/90">
-                                        {note.song_title && <span className="block text-[8px] text-purple-400 mb-0.5">🎵</span>}
+                                        {note.song_title && <span className="block text-[8px] text-warm-cocoa mb-0.5 font-medium truncate max-w-full">🎵 {note.song_title} - {note.song_artist}</span>}
                                         {note.content || <span className="italic text-warm-grey/40">Listening to music...</span>}
                                     </span>
                                     {/* Little triangle for speech bubble */}
