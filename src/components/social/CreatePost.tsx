@@ -66,8 +66,8 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
 
         // Detect @ match
         const textBeforeCursor = value.slice(0, pos);
-        // Match @ at start or preceded by space, followed by optional word chars
-        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+        // Match @ at start or preceded by space, followed by optional word chars (including . and -)
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
         if (match) {
             setMentionQuery(match[1]); // capture group 1 is the username part
@@ -81,7 +81,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         if (!cursorPosition) return;
         const textBeforeCursor = caption.slice(0, cursorPosition);
         // Find the triggering @
-        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
         if (match) {
             const matchIndex = match.index! + match[0].indexOf('@'); // index of @

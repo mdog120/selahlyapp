@@ -113,7 +113,7 @@ export default function GroupChatPage() {
 
         // Detect @ match
         const textBeforeCursor = value.slice(0, pos);
-        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
         if (match) {
             setMentionQuery(match[1]);
@@ -126,7 +126,7 @@ export default function GroupChatPage() {
     const insertMention = (username: string) => {
         if (!cursorPosition) return;
         const textBeforeCursor = newMessage.slice(0, cursorPosition);
-        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
         if (match) {
             const matchIndex = match.index! + match[0].indexOf('@');
@@ -322,7 +322,7 @@ export default function GroupChatPage() {
             setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...m, id: data.id } : m));
 
             // Notify Mentioned Users
-            const mentions = content.match(/@(\w+)/g);
+            const mentions = content.match(/@([\w.-]+)/g);
             if (mentions) {
                 const uniqueMentions = [...new Set(mentions)];
                 for (const mention of uniqueMentions) {
@@ -340,13 +340,18 @@ export default function GroupChatPage() {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
+        const parts = text.split(/(\[sticker:[^\]]+\]|@[\w.-]+)/g);
         return parts.map((part, index) => {
             const stickerMatch = part.match(/\[sticker:(.+)\]/);
             if (stickerMatch) {
+                // ... sticker logic ...
                 const stickerName = stickerMatch[1];
                 let Icon = Star;
                 let color = "text-yellow-400";
+
+                // Reusing the map from above is hard without copy-paste or refactoring. 
+                // I will just copy-paste the switch/map logic or assume it is kept if I don't replace it.
+                // Wait, use replace_file_content with context.
 
                 switch (stickerName) {
                     case 'Candle': Icon = Flame; color = "text-orange-300"; break;
@@ -365,7 +370,7 @@ export default function GroupChatPage() {
                 return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
             }
 
-            const mentionMatch = part.match(/^@(\w+)$/);
+            const mentionMatch = part.match(/^@([\w.-]+)$/);
             if (mentionMatch) {
                 const username = mentionMatch[1];
                 return (

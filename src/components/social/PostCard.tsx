@@ -66,6 +66,10 @@ export function PostCard({ post }: { post: Post }) {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
+    // Edit State
+    const [isEditing, setIsEditing] = useState(false);
+    const [editCaption, setEditCaption] = useState(post.caption);
+
     // Audio State
     const [isMuted, setIsMuted] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -76,6 +80,10 @@ export function PostCard({ post }: { post: Post }) {
     const [headerIndex, setHeaderIndex] = useState(0);
 
     const supabase = createClient();
+
+    useEffect(() => {
+        setEditCaption(post.caption);
+    }, [post.caption]);
 
     useEffect(() => {
         checkOwnership();
@@ -259,6 +267,22 @@ export function PostCard({ post }: { post: Post }) {
         }
     };
 
+    const handleUpdatePost = async () => {
+        const { error } = await supabase
+            .from("posts")
+            .update({ caption: editCaption })
+            .eq("id", post.id);
+
+        if (!error) {
+            setIsEditing(false);
+            // In a real app we'd update parent state or context, here we rely on prop update or reload
+            // But since props won't update without parent refresh, we might need a local refresh
+            window.location.reload();
+        } else {
+            alert("Failed to update post.");
+        }
+    };
+
     const handleReport = async () => {
         if (!reportReason) return;
         const { data: { user } } = await supabase.auth.getUser();
@@ -392,7 +416,7 @@ export function PostCard({ post }: { post: Post }) {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
+        const parts = text.split(/(\[sticker:[^\]]+\]|@[\w.-]+)/g);
         return parts.map((part, index) => {
             const stickerMatch = part.match(/\[sticker:(.+)\]/);
             if (stickerMatch) {
@@ -424,7 +448,7 @@ export function PostCard({ post }: { post: Post }) {
                 return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
             }
 
-            const mentionMatch = part.match(/^@(\w+)$/);
+            const mentionMatch = part.match(/^@([\w.-]+)$/);
             if (mentionMatch) {
                 const username = mentionMatch[1];
                 return (
@@ -488,12 +512,20 @@ export function PostCard({ post }: { post: Post }) {
                     {showMenu && (
                         <div className="absolute right-0 top-8 bg-white/90 backdrop-blur-md border border-white/60 shadow-lg rounded-xl overflow-hidden min-w-[150px] z-50 animate-fade-in">
                             {isOwner ? (
-                                <button
-                                    onClick={handleDelete}
-                                    className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-stone-50 flex items-center gap-2"
-                                >
-                                    <Trash2 className="w-4 h-4" /> Delete Post
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => { setShowMenu(false); setIsEditing(true); }}
+                                        className="w-full text-left px-4 py-3 text-sm text-warm-grey hover:bg-stone-50 flex items-center gap-2"
+                                    >
+                                        <Smile className="w-4 h-4" /> Edit Post
+                                    </button>
+                                    <button
+                                        onClick={handleDelete}
+                                        className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-stone-50 flex items-center gap-2"
+                                    >
+                                        <Trash2 className="w-4 h-4" /> Delete Post
+                                    </button>
+                                </>
                             ) : (
                                 <button
                                     onClick={() => { setShowMenu(false); setShowReportModal(true); }}
@@ -512,7 +544,22 @@ export function PostCard({ post }: { post: Post }) {
             {/* Removed separate Song Badge as it's now in header/auto-playing */}
 
             <div className="font-serif text-lg text-warm-grey mb-4 leading-relaxed whitespace-pre-wrap">
-                {renderContentWithStickers(post.caption)}
+                {isEditing ? (
+                    <div className="flex flex-col gap-2">
+                        <textarea
+                            value={editCaption}
+                            onChange={(e) => setEditCaption(e.target.value)}
+                            className="w-full p-2 rounded-xl bg-white/50 border border-warm-grey/20 focus:ring-1 focus:ring-sage-green resize-none outline-none font-sans text-sm"
+                            rows={3}
+                        />
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="secondary" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+                            <Button size="sm" onClick={handleUpdatePost}>Save</Button>
+                        </div>
+                    </div>
+                ) : (
+                    renderContentWithStickers(post.caption)
+                )}
             </div>
 
             <div className="flex gap-6 border-t border-white/50 pt-4 mb-2">

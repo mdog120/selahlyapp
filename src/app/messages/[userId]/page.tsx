@@ -92,7 +92,7 @@ export default function ChatPage() {
 
         // Detect @ match
         const textBeforeCursor = value.slice(0, pos);
-        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
         if (match) {
             setMentionQuery(match[1]);
@@ -105,7 +105,7 @@ export default function ChatPage() {
     const insertMention = (username: string) => {
         if (!cursorPosition) return;
         const textBeforeCursor = newMessage.slice(0, cursorPosition);
-        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
         if (match) {
             const matchIndex = match.index! + match[0].indexOf('@');
@@ -151,7 +151,7 @@ export default function ChatPage() {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
+        const parts = text.split(/(\[sticker:[^\]]+\]|@[\w.-]+)/g);
         return parts.map((part, index) => {
             const stickerMatch = part.match(/\[sticker:(.+)\]/);
             if (stickerMatch) {
@@ -176,7 +176,7 @@ export default function ChatPage() {
                 return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-4 h-4 ${color} fill-current`} /></span>;
             }
 
-            const mentionMatch = part.match(/^@(\w+)$/);
+            const mentionMatch = part.match(/^@([\w.-]+)$/);
             if (mentionMatch) {
                 const username = mentionMatch[1];
                 return (

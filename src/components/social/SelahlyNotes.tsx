@@ -132,8 +132,8 @@ export function SelahlyNotes() {
 
         // Detect @ match
         const textBeforeCursor = value.slice(0, pos);
-        // Match @ at start or preceded by space, followed by optional word chars
-        const match = textBeforeCursor.match(/(?:\s|^)@(\w*)$/);
+        // Match @ at start or preceded by space, followed by optional word chars (including . and -)
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
         if (match) {
             setMentionQuery(match[1]); // capture group 1 is the username part
@@ -145,13 +145,29 @@ export function SelahlyNotes() {
 
     const insertMention = (username: string) => {
         if (!cursorPosition) return;
-
         const textBeforeCursor = newNote.slice(0, cursorPosition);
-        const lastAt = textBeforeCursor.lastIndexOf('@');
-        const textAfterCursor = newNote.slice(cursorPosition);
+        // Find the triggering @
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
 
-        const newText = newNote.slice(0, lastAt) + `@${username} ` + textAfterCursor;
-        textareaRef.current?.focus();
+        if (match) {
+            const matchIndex = match.index! + match[0].indexOf('@');
+            const textAfterCursor = newNote.slice(cursorPosition);
+
+            const newText = newNote.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
+
+            setNewNote(newText);
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+
+            // Reset focus
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.focus();
+                    const newPos = matchIndex + username.length + 2;
+                    textareaRef.current.setSelectionRange(newPos, newPos);
+                }
+            }, 0);
+        }
     };
 
     useEffect(() => {
@@ -226,7 +242,7 @@ export function SelahlyNotes() {
 
             // Notify mentioned users (Update case)
             if (updatedData) {
-                const mentions = newNote.match(/@(\w+)/g);
+                const mentions = newNote.match(/@([\w.-]+)/g);
                 if (mentions) {
                     const uniqueMentions = Array.from(new Set(mentions));
                     for (const mention of uniqueMentions) {
@@ -251,7 +267,7 @@ export function SelahlyNotes() {
 
             // Notify mentioned users (Insert case)
             if (insertedData) {
-                const mentions = newNote.match(/@(\w+)/g);
+                const mentions = newNote.match(/@([\w.-]+)/g);
                 if (mentions) {
                     const uniqueMentions = Array.from(new Set(mentions));
                     for (const mention of uniqueMentions) {
@@ -371,8 +387,8 @@ export function SelahlyNotes() {
         // Split by stickers and mentions
         // Regex to match stickers OR mentions
         // Sticker: \[sticker:[^\]]+\]
-        // Mention: @\w+
-        const parts = text.split(/(\[sticker:[^\]]+\]|@\w+)/g);
+        // Mention: @[\w.-]+
+        const parts = text.split(/(\[sticker:[^\]]+\]|@[\w.-]+)/g);
 
         return parts.map((part, index) => {
             const stickerMatch = part.match(/\[sticker:(.+)\]/);
@@ -398,7 +414,7 @@ export function SelahlyNotes() {
                 return <span key={index} className="inline-block mx-1 align-middle"><Icon className={`w-3 h-3 ${color} fill-current`} /></span>;
             }
 
-            const mentionMatch = part.match(/^@(\w+)$/);
+            const mentionMatch = part.match(/^@([\w.-]+)$/);
             if (mentionMatch) {
                 const username = mentionMatch[1];
                 return (
