@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { Image, Send, X, Video, Layers, Music } from "lucide-react";
 import * as tus from 'tus-js-client';
+import { SongSearchModal } from "@/components/ui/SongSearchModal";
 
 export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [caption, setCaption] = useState("");
@@ -17,7 +18,10 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [songTitle, setSongTitle] = useState("");
     const [songArtist, setSongArtist] = useState("");
     const [songLink, setSongLink] = useState("");
+    const [songPreview, setSongPreview] = useState("");
+    const [songArtwork, setSongArtwork] = useState("");
     const [showSongInput, setShowSongInput] = useState(false);
+    const [isSongModalOpen, setIsSongModalOpen] = useState(false);
 
     // User Identity State
     const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -160,7 +164,9 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                 image_url: mediaUrls.length > 0 ? mediaUrls[0] : null,
                 song_title: songTitle.trim() || null,
                 song_artist: songArtist.trim() || null,
-                song_link: songLink.trim() || null
+                song_link: songLink.trim() || null,
+                song_preview_url: songPreview?.trim() || null,
+                song_album_art: songArtwork?.trim() || null,
             });
 
             if (insertError) {
@@ -175,6 +181,8 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             setSongTitle("");
             setSongArtist("");
             setSongLink("");
+            setSongPreview("");
+            setSongArtwork("");
             setShowSongInput(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
             setExpanded(false);
@@ -234,45 +242,47 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
 
                             {/* Song Inputs */}
                             {showSongInput ? (
-                                <div className="bg-white/40 p-3 rounded-xl border border-warm-grey/10 mb-4 animate-fade-in">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <label className="text-xs font-medium text-warm-grey flex items-center gap-1">
-                                            <Music className="w-3 h-3" /> Add Song
-                                        </label>
+                                <div className="bg-white/40 p-3 rounded-xl border border-warm-grey/10 mb-4 animate-fade-in relative group">
+                                    <div className="flex items-center gap-3">
+                                        {songArtwork ? (
+                                            <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                                <img src={songArtwork} alt="Cover" className="w-full h-full object-cover" />
+                                            </div>
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
+                                                <Music className="w-5 h-5 text-warm-grey/40" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0 text-left">
+                                            <div className="font-bold text-warm-cocoa truncate text-xs">{songTitle}</div>
+                                            <div className="text-[10px] text-warm-grey/60 truncate">{songArtist}</div>
+                                        </div>
                                         <button onClick={() => {
                                             setShowSongInput(false);
                                             setSongTitle("");
                                             setSongArtist("");
                                             setSongLink("");
-                                        }} className="text-warm-grey/40 hover:text-red-400">
-                                            <X className="w-3 h-3" />
+                                            setSongPreview("");
+                                            setSongArtwork("");
+                                        }} className="p-1 text-warm-grey/40 hover:text-red-400">
+                                            <X className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            value={songTitle}
-                                            onChange={e => setSongTitle(e.target.value)}
-                                            placeholder="Song Title"
-                                            className="bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-sage-green/30"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={songArtist}
-                                            onChange={e => setSongArtist(e.target.value)}
-                                            placeholder="Artist"
-                                            className="bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-sage-green/30"
-                                        />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={songLink}
-                                        onChange={e => setSongLink(e.target.value)}
-                                        placeholder="Link (Spotify/YouTube...)"
-                                        className="w-full bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-sage-green/30"
-                                    />
                                 </div>
                             ) : null}
+
+                            <SongSearchModal
+                                isOpen={isSongModalOpen}
+                                onClose={() => setIsSongModalOpen(false)}
+                                onSelect={(song) => {
+                                    setSongTitle(song.title);
+                                    setSongArtist(song.artist);
+                                    setSongLink(song.link);
+                                    setSongPreview(song.previewUrl);
+                                    setSongArtwork(song.artwork);
+                                    setShowSongInput(true);
+                                }}
+                            />
 
                             {/* Hidden File Input */}
                             <input
@@ -295,7 +305,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                     </button>
                                     {!showSongInput && (
                                         <button
-                                            onClick={() => setShowSongInput(true)}
+                                            onClick={() => setIsSongModalOpen(true)}
                                             className="text-warm-grey/40 hover:text-sage-green transition-colors flex items-center gap-2 text-xs"
                                         >
                                             <Music className="w-5 h-5" />

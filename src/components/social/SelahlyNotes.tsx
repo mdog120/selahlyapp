@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Heart, Music } from "lucide-react";
+import { SongSearchModal } from "@/components/ui/SongSearchModal";
+import { SongPlayer } from "@/components/ui/SongPlayer";
 // MVP wrapping manual implementation below
 import { Button } from "@/components/ui/Button";
 
@@ -15,6 +17,8 @@ type Note = {
     song_title?: string;
     song_artist?: string;
     song_link?: string;
+    song_preview_url?: string;
+    song_album_art?: string;
     profiles: {
         first_name: string;
         avatar_url: string;
@@ -37,7 +41,10 @@ export function SelahlyNotes() {
     const [songTitle, setSongTitle] = useState("");
     const [songArtist, setSongArtist] = useState("");
     const [songLink, setSongLink] = useState("");
+    const [songPreview, setSongPreview] = useState("");
+    const [songArtwork, setSongArtwork] = useState("");
     const [showSongInput, setShowSongInput] = useState(false);
+    const [isSongModalOpen, setIsSongModalOpen] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState<{ first_name: string; avatar_url: string; username?: string } | null>(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -59,7 +66,7 @@ export function SelahlyNotes() {
         const { data, error } = await supabase
             .from('notes')
             .select(`
-                id, content, style, created_at, user_id, expires_at, song_title, song_artist, song_link,
+                id, content, style, created_at, user_id, expires_at, song_title, song_artist, song_link, song_preview_url, song_album_art,
                 profiles!notes_user_id_fkey_profiles (first_name, avatar_url, username),
                 note_likes (
                     user_id,
@@ -113,12 +120,16 @@ export function SelahlyNotes() {
         const finalSongTitle = songTitle.trim() || null;
         const finalSongArtist = songArtist.trim() || null;
         const finalSongLink = songLink.trim() || null;
+        const finalSongPreview = songPreview?.trim() || null;
+        const finalSongArtwork = songArtwork?.trim() || null;
 
         const noteData = {
             content: newNote,
             song_title: finalSongTitle,
             song_artist: finalSongArtist,
             song_link: finalSongLink,
+            song_preview_url: finalSongPreview,
+            song_album_art: finalSongArtwork,
             expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         };
 
@@ -161,6 +172,8 @@ export function SelahlyNotes() {
         setSongTitle("");
         setSongArtist("");
         setSongLink("");
+        setSongPreview("");
+        setSongArtwork("");
         setShowSongInput(false);
         setIsOpen(false);
         // Manually fetch immediately to ensure UI update
@@ -353,50 +366,54 @@ export function SelahlyNotes() {
                             <div className="mb-4">
                                 {!showSongInput && !myNote?.song_title ? (
                                     <button
-                                        onClick={() => setShowSongInput(true)}
+                                        onClick={() => setIsSongModalOpen(true)}
                                         className="text-xs text-warm-grey/60 flex items-center gap-2 hover:text-warm-cocoa transition-colors"
                                     >
                                         <Music className="w-3 h-3" /> Add Song
                                     </button>
                                 ) : (
-                                    <div className="bg-stone-50 p-3 rounded-xl border border-warm-grey/5 animate-fade-in">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="text-xs font-medium text-warm-grey flex items-center gap-1">
-                                                <Music className="w-3 h-3" /> Song
-                                            </label>
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-warm-grey/5 animate-fade-in relative group">
+                                        <div className="flex items-center gap-3">
+                                            {songArtwork ? (
+                                                <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                                    <img src={songArtwork} alt="Cover" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
+                                                    <Music className="w-5 h-5 text-warm-grey/40" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0 text-left">
+                                                <div className="font-bold text-warm-cocoa truncate text-xs">{songTitle}</div>
+                                                <div className="text-[10px] text-warm-grey/60 truncate">{songArtist}</div>
+                                            </div>
                                             <button onClick={() => {
                                                 setShowSongInput(false);
                                                 setSongTitle("");
                                                 setSongArtist("");
                                                 setSongLink("");
-                                            }} className="text-warm-grey/40 hover:text-red-400">
-                                                <X className="w-3 h-3" />
+                                                setSongPreview("");
+                                                setSongArtwork("");
+                                            }} className="p-1 text-warm-grey/40 hover:text-red-400">
+                                                <X className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <input
-                                            type="text"
-                                            value={songTitle}
-                                            onChange={e => setSongTitle(e.target.value)}
-                                            placeholder="Song Title"
-                                            className="w-full bg-white border-none rounded-lg p-2 text-xs mb-1 focus:ring-1 focus:ring-warm-cocoa/10"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={songArtist}
-                                            onChange={e => setSongArtist(e.target.value)}
-                                            placeholder="Artist"
-                                            className="w-full bg-white border-none rounded-lg p-2 text-xs mb-1 focus:ring-1 focus:ring-warm-cocoa/10"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={songLink}
-                                            onChange={e => setSongLink(e.target.value)}
-                                            placeholder="Link (Spotify/YouTube)"
-                                            className="w-full bg-white border-none rounded-lg p-2 text-xs focus:ring-1 focus:ring-warm-cocoa/10"
-                                        />
                                     </div>
                                 )}
                             </div>
+
+                            <SongSearchModal
+                                isOpen={isSongModalOpen}
+                                onClose={() => setIsSongModalOpen(false)}
+                                onSelect={(song) => {
+                                    setSongTitle(song.title);
+                                    setSongArtist(song.artist);
+                                    setSongLink(song.link);
+                                    setSongPreview(song.previewUrl);
+                                    setSongArtwork(song.artwork);
+                                    setShowSongInput(true);
+                                }}
+                            />
 
                             {/* Likers List (If My Note) */}
                             {myNote && myNote.note_likes?.length > 0 && (
@@ -466,22 +483,30 @@ export function SelahlyNotes() {
                             <div className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-4 text-center mb-6 relative">
                                 <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{viewingNote.content}"</p>
 
+
+
                                 {viewingNote.song_title && (
-                                    <div className="mt-4 pt-4 border-t border-soft-blush/20 flex justify-center">
-                                        <a
-                                            href={viewingNote.song_link || "#"}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-white/60 rounded-full text-xs hover:bg-white transition-colors border border-soft-blush/20"
-                                        >
-                                            <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center text-white">
-                                                <Music className="w-2.5 h-2.5" />
+                                    <div className="mt-4 pt-4 border-t border-soft-blush/20">
+                                        <div className="flex items-center gap-3 bg-white/60 p-2 rounded-xl">
+                                            {viewingNote.song_album_art ? (
+                                                <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                                    <img src={viewingNote.song_album_art} alt="Cover" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
+                                                    <Music className="w-5 h-5 text-warm-grey/40" />
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 min-w-0 text-left">
+                                                <p className="font-bold text-warm-grey text-xs truncate">{viewingNote.song_title}</p>
+                                                <p className="text-[10px] text-warm-grey/60 truncate">{viewingNote.song_artist}</p>
                                             </div>
-                                            <div className="text-left leading-tight">
-                                                <p className="font-bold text-warm-grey">{viewingNote.song_title}</p>
-                                                {viewingNote.song_artist && <p className="text-[9px] text-warm-grey/60">{viewingNote.song_artist}</p>}
-                                            </div>
-                                        </a>
+
+                                            {viewingNote.song_preview_url && (
+                                                <SongPlayer previewUrl={viewingNote.song_preview_url} />
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Trash2, Flag, X, AlertTriangle, Music } from "lucide-react";
+import { SongPlayer } from "@/components/ui/SongPlayer";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -16,6 +17,8 @@ type Post = {
     song_title?: string;
     song_artist?: string;
     song_link?: string;
+    song_preview_url?: string;
+    song_album_art?: string;
     likes_count: number;
     comments_count: number;
     created_at: string;
@@ -307,20 +310,26 @@ export function PostCard({ post }: { post: Post }) {
             {/* Song Badge */}
             {post.song_title && (
                 <div className="mb-4">
-                    <a
-                        href={post.song_link || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-stone-50 rounded-full text-xs hover:bg-stone-100 transition-colors border border-warm-grey/5 group"
-                    >
-                        <div className="w-5 h-5 bg-black/5 rounded-full flex items-center justify-center text-warm-grey group-hover:bg-warm-cocoa group-hover:text-white transition-colors">
-                            <Music className="w-2.5 h-2.5" />
+                    <div className="flex items-center gap-4 bg-stone-50 p-2 rounded-xl border border-warm-grey/5">
+                        {post.song_album_art ? (
+                            <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm">
+                                <img src={post.song_album_art} alt="Cover" className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
+                                <Music className="w-5 h-5 text-warm-grey/40" />
+                            </div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                            <p className="font-bold text-warm-cocoa text-sm truncate">{post.song_title}</p>
+                            <p className="text-xs text-warm-grey/60 truncate">{post.song_artist}</p>
                         </div>
-                        <div className="text-left leading-tight">
-                            <span className="font-bold text-warm-grey block">{post.song_title}</span>
-                            {post.song_artist && <span className="text-warm-grey/60 block text-[9px]">{post.song_artist}</span>}
-                        </div>
-                    </a>
+
+                        {post.song_preview_url && (
+                            <SongPlayer previewUrl={post.song_preview_url} />
+                        )}
+                    </div>
                 </div>
             )}
 
