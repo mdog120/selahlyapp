@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Play, Pause, Music } from "lucide-react";
 
 interface SongPlayerProps {
@@ -11,6 +11,14 @@ interface SongPlayerProps {
 export function SongPlayer({ previewUrl, color = "rose" }: SongPlayerProps) {
     const [playing, setPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+        };
+    }, []);
 
     if (!previewUrl) return null;
 
