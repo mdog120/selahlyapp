@@ -37,6 +37,7 @@ type Post = {
 type Comment = {
     id: string;
     content: string;
+    user_id: string;
     created_at: string;
     author: {
         username: string;
@@ -62,6 +63,7 @@ export function PostCard({ post }: { post: Post }) {
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportReason, setReportReason] = useState("");
     const [isOwner, setIsOwner] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Audio State
@@ -130,10 +132,13 @@ export function PostCard({ post }: { post: Post }) {
 
     const checkOwnership = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user && (user.id === post.user_id)) {
-            setIsOwner(true);
-        } else {
-            setIsOwner(false);
+        if (user) {
+            setCurrentUserId(user.id);
+            if (user.id === post.user_id) {
+                setIsOwner(true);
+            } else {
+                setIsOwner(false);
+            }
         }
     };
 
@@ -180,7 +185,7 @@ export function PostCard({ post }: { post: Post }) {
             const { data } = await supabase
                 .from("post_comments")
                 .select(`
-                    id, content, created_at,
+                    id, content, created_at, user_id,
                     author:profiles!post_comments_user_id_fkey (username, first_name, avatar_url)
                 `)
                 .eq("post_id", post.id)
@@ -203,6 +208,7 @@ export function PostCard({ post }: { post: Post }) {
         const fakeComment: Comment = {
             id: Date.now().toString(),
             content: newComment,
+            user_id: user.id,
             created_at: new Date().toISOString(),
             author: {
                 username: profile?.username || "me",
@@ -249,6 +255,26 @@ export function PostCard({ post }: { post: Post }) {
         setShowReportModal(false);
         setReportReason("");
         alert("Report submitted. Thank you for keeping our community safe. 🛡️");
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        if (!confirm("Delete this comment?")) return;
+
+        // Optimistic update
+        setComments(prev => prev.filter(c => c.id !== commentId));
+        setCommentsCount(prev => prev - 1);
+
+        const { error } = await supabase.from("post_comments").delete().eq("id", commentId);
+
+        if (error) {
+            console.error("Error deleting comment:", error);
+            // Revert if failed (optional, but good UX)
+            // For now just alerting
+            alert("Failed to delete comment");
+            toggleComments(); // Reload comments
+        } else {
+            await supabase.rpc("decrement_post_comments", { post_uuid: post.id });
+        }
     };
 
     const renderMedia = () => {
@@ -454,9 +480,23 @@ export function PostCard({ post }: { post: Post }) {
                                             <span>{comment.author?.first_name?.[0] || "?"}</span>
                                         )}
                                     </div>
-                                    <div className="bg-white/60 px-3 py-2 rounded-lg rounded-tl-none text-xs text-warm-grey flex-1">
-                                        <span className="font-bold mr-1">{comment.author?.first_name}:</span>
-                                        {comment.content}
+                                    <div className="bg-white/60 px-3 py-2 rounded-lg rounded-tl-none text-xs text-warm-grey flex-1 group/comment relative">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="font-bold mr-1">{comment.author?.first_name}:</span>
+                                                {comment.content}
+                                            </div>
+
+                                            {(currentUserId === comment.user_id || isOwner) && (
+                                                <button
+                                                    onClick={() => handleDeleteComment(comment.id)}
+                                                    className="opacity-0 group-hover/comment:opacity-100 transition-opacity p-1 hover:text-red-400 text-warm-grey/40"
+                                                    title="Delete comment"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
