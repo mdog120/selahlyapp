@@ -11,6 +11,12 @@ export function Footer() {
                 </div>
 
                 <div className="flex items-center gap-6">
+                    <Link
+                        href="/donate"
+                        className="text-warm-grey hover:text-muted-rose transition-colors text-sm font-medium"
+                    >
+                        Support Selahly
+                    </Link>
                     <a
                         href="https://instagram.com/selahlyapp"
                         target="_blank"
