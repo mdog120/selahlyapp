@@ -78,17 +78,50 @@ export default function DonatePage() {
                         </div>
                     </div>
 
+                    {/* More Information Section */}
+                    <div className="mt-16 border-t border-warm-grey/10 pt-12">
+                        <h2 className="text-3xl font-serif text-warm-cocoa mb-8 text-center">Where Your Seed Goes</h2>
+
+                        <div className="grid md:grid-cols-3 gap-8 text-center">
+                            <div className="space-y-4">
+                                <div className="w-12 h-12 mx-auto bg-sage-green/20 rounded-full flex items-center justify-center text-sage-green">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m19.07 10.93-1.41 1.41" /><path d="M22 22H2" /><path d="m8 22 4-10 4 10" /><path d="M9 18h6" /></svg>
+                                </div>
+                                <h3 className="text-xl font-serif text-warm-cocoa">Digital Sanctuary</h3>
+                                <p className="text-sm text-warm-grey/80">
+                                    Covering server costs, database maintenance, and essential API fees to keep our home running smoothly.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="w-12 h-12 mx-auto bg-soft-blush/40 rounded-full flex items-center justify-center text-muted-rose">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" /><path d="M3 16h18" /><path d="M16 16v4" /><path d="M8 16v4" /><path d="M12 8v-2" /><path d="M12 4V2" /><path d="M20 8l-2-2" /><path d="M4 8l2-2" /></svg>
+                                </div>
+                                <h3 className="text-xl font-serif text-warm-cocoa">Future Growth</h3>
+                                <p className="text-sm text-warm-grey/80">
+                                    Funding the development of new features like video devotionals, shared journals, and a mobile app.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="w-12 h-12 mx-auto bg-warm-cocoa/10 rounded-full flex items-center justify-center text-warm-cocoa">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                </div>
+                                <h3 className="text-xl font-serif text-warm-cocoa">Our Promise</h3>
+                                <p className="text-sm text-warm-grey/80">
+                                    We start committed to keeping Selahly 100% ad-free and protecting your privacy. Your data is never for sale.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <p className="italic text-sm text-center text-warm-grey/60 mt-12">
                         "Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver." <br />
                         <span className="font-bold not-italic">— 2 Corinthians 9:7</span>
                     </p>
                 </div>
 
-                <div className="mt-16 text-center">
-                    <Link href="/home" className="inline-flex items-center text-warm-cocoa hover:text-deep-velvet transition-colors border-b border-transparent hover:border-deep-velvet pb-0.5">
-                        <ArrowRight className="w-4 h-4 mr-2 rotate-180" /> Back to the Lily Pad
-                    </Link>
-                </div>
+
             </main>
         </div>
     );
