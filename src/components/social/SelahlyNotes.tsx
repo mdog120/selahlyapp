@@ -433,7 +433,7 @@ export function SelahlyNotes() {
 
                             {/* Song Input Toggle */}
                             <div className="mb-4">
-                                {!showSongInput && !myNote?.song_title ? (
+                                {!showSongInput ? (
                                     <button
                                         onClick={() => setIsSongModalOpen(true)}
                                         className="text-xs text-warm-grey/60 flex items-center gap-2 hover:text-warm-cocoa transition-colors"
