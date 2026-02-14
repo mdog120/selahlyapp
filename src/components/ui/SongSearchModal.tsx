@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Search, Music, Loader2, Play, Pause, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -26,69 +27,18 @@ export function SongSearchModal({ isOpen, onClose, onSelect }: SongSearchModalPr
     const [loading, setLoading] = useState(false);
     const [playingId, setPlayingId] = useState<number | null>(null);
     const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     if (!isOpen) return null;
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
-        setLoading(true);
-        setPlayingId(null);
-        if (audio) {
-            audio.pause();
-            setAudio(null);
-        }
-
-        try {
-            // Searching specifically in the music entity with strict Christian filtering
-            const term = `${query} Christian`;
-            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=30`);
-            const data = await res.json();
-
-            // Client-side double check to ensure genre matches
-            const filteredResults = (data.results || []).filter((song: any) => {
-                const genre = (song.primaryGenreName || "").toLowerCase();
-                return genre.includes("christian") || genre.includes("gospel") || genre.includes("worship") || genre.includes("religious");
-            });
-
-            setResults(filteredResults);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const togglePreview = (url: string, id: number) => {
-        if (playingId === id && audio) {
-            audio.pause();
-            setPlayingId(null);
-            setAudio(null);
-        } else {
-            if (audio) audio.pause();
-            const newAudio = new Audio(url);
-            newAudio.volume = 0.5;
-            newAudio.play();
-            newAudio.onended = () => setPlayingId(null);
-            setAudio(newAudio);
-            setPlayingId(id);
-        }
-    };
-
-    const handleSelect = (song: SongResult) => {
-        if (audio) audio.pause();
-        onSelect({
-            title: song.trackName,
-            artist: song.artistName,
-            link: song.collectionViewUrl, // Helper link to Apple Music
-            previewUrl: song.previewUrl,
-            artwork: song.artworkUrl100
-        });
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95">
+    const modalContent = (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="p-6 border-b border-warm-grey/10 flex justify-between items-center bg-warm-paper">
                     <div>
@@ -165,4 +115,67 @@ export function SongSearchModal({ isOpen, onClose, onSelect }: SongSearchModalPr
             </div>
         </div>
     );
+
+    if (mounted) {
+        return createPortal(modalContent, document.body);
+    }
+
+    return null;
+
+    async function handleSearch() {
+        if (!query.trim()) return;
+        setLoading(true);
+        setPlayingId(null);
+        if (audio) {
+            audio.pause();
+            setAudio(null);
+        }
+
+        try {
+            // Searching specifically in the music entity with strict Christian filtering
+            const term = `${query} Christian`;
+            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=30`);
+            const data = await res.json();
+
+            // Client-side double check to ensure genre matches
+            const filteredResults = (data.results || []).filter((song: any) => {
+                const genre = (song.primaryGenreName || "").toLowerCase();
+                return genre.includes("christian") || genre.includes("gospel") || genre.includes("worship") || genre.includes("religious");
+            });
+
+            setResults(filteredResults);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function togglePreview(url: string, id: number) {
+        if (playingId === id && audio) {
+            audio.pause();
+            setPlayingId(null);
+            setAudio(null);
+        } else {
+            if (audio) audio.pause();
+            const newAudio = new Audio(url);
+            newAudio.volume = 0.5;
+            newAudio.play();
+            newAudio.onended = () => setPlayingId(null);
+            setAudio(newAudio);
+            setPlayingId(id);
+        }
+    }
+
+    function handleSelect(song: SongResult) {
+        if (audio) audio.pause();
+        onSelect({
+            title: song.trackName,
+            artist: song.artistName,
+            link: song.collectionViewUrl, // Helper link to Apple Music
+            previewUrl: song.previewUrl,
+            artwork: song.artworkUrl100
+        });
+        onClose();
+    }
 }
