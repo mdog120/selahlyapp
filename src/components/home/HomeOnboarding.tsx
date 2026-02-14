@@ -67,34 +67,64 @@ export function HomeOnboarding() {
                         Selahly is your digital sanctuary. Here's a quick tour of your new home.
                     </p>
 
-                    <div className="space-y-4 text-left">
-                        <div className="flex items-start gap-4 p-3 rounded-xl hover:bg-stone-50 transition-colors">
-                            <div className="bg-soft-blush/20 p-2.5 rounded-lg text-muted-rose">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                            <div className="bg-soft-blush/20 p-2.5 rounded-lg text-muted-rose shrink-0">
                                 <BookOpen className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="font-serif text-warm-cocoa font-medium">Grace & Glow</h3>
-                                <p className="text-xs text-warm-grey/60">Your daily gratitude journal to track your walk with God.</p>
+                                <h3 className="font-serif text-warm-cocoa font-medium text-sm">Grace & Glow</h3>
+                                <p className="text-[10px] text-warm-grey/60">Daily gratitude journal.</p>
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-4 p-3 rounded-xl hover:bg-stone-50 transition-colors">
-                            <div className="bg-sage-green/10 p-2.5 rounded-lg text-sage-green">
+                        <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                            <div className="bg-sage-green/10 p-2.5 rounded-lg text-sage-green shrink-0">
                                 <MessageCircle className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="font-serif text-warm-cocoa font-medium">The Lily Pad</h3>
-                                <p className="text-xs text-warm-grey/60">A safe social feed to share encouragements and prayer requests.</p>
+                                <h3 className="font-serif text-warm-cocoa font-medium text-sm">The Lily Pad</h3>
+                                <p className="text-[10px] text-warm-grey/60">Community social feed.</p>
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-4 p-3 rounded-xl hover:bg-stone-50 transition-colors">
-                            <div className="bg-warm-cocoa/10 p-2.5 rounded-lg text-warm-cocoa">
+                        <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                            <div className="bg-warm-cocoa/10 p-2.5 rounded-lg text-warm-cocoa shrink-0">
                                 <Heart className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="font-serif text-warm-cocoa font-medium">Velvet Vault</h3>
-                                <p className="text-xs text-warm-grey/60">Ask anonymous questions and find honest answers from the sisterhood.</p>
+                                <h3 className="font-serif text-warm-cocoa font-medium text-sm">Velvet Vault</h3>
+                                <p className="text-[10px] text-warm-grey/60">Anonymous Q&A.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                            <div className="bg-blue-100 p-2.5 rounded-lg text-blue-500 shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" /></svg>
+                            </div>
+                            <div>
+                                <h3 className="font-serif text-warm-cocoa font-medium text-sm">Prayer Pocket</h3>
+                                <p className="text-[10px] text-warm-grey/60">Share & receive prayers.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                            <div className="bg-purple-100 p-2.5 rounded-lg text-purple-500 shrink-0">
+                                <Sparkles className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-serif text-warm-cocoa font-medium text-sm">Vibe Board</h3>
+                                <p className="text-[10px] text-warm-grey/60">Music & podcasts.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                            <div className="bg-yellow-100 p-2.5 rounded-lg text-yellow-600 shrink-0">
+                                <BookOpen className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-serif text-warm-cocoa font-medium text-sm">Bible</h3>
+                                <p className="text-[10px] text-warm-grey/60">Read & meditate.</p>
                             </div>
                         </div>
                     </div>

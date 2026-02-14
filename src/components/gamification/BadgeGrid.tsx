@@ -94,8 +94,8 @@ export function BadgeGrid({ userId }: { userId: string }) {
                             </div>
 
                             {/* Caption */}
-                            <span className={`text-[10px] text-center mt-2 font-medium leading-tight max-w-[80px] ${earned ? "text-warm-grey" : "text-warm-grey/40"}`}>
-                                {earned ? badge.description : "Locked"}
+                            <span className={`text-[10px] text-center mt-2 font-medium leading-tight max-w-[80px] ${earned ? "text-warm-grey" : "text-warm-grey/40 italic"}`}>
+                                {earned ? badge.description : `Unlock: ${badge.description}`}
                             </span>
                         </div>
                     );
