@@ -11,7 +11,6 @@ import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 import { SongPlayer } from "@/components/ui/SongPlayer";
-import { SongPlayer } from "@/components/ui/SongPlayer";
 
 const COLOR_MAP: Record<string, string> = {
     'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
@@ -39,6 +38,8 @@ type Profile = {
     song_title?: string | null;
     song_artist?: string | null;
     song_link?: string | null;
+    song_preview_url?: string | null;
+    song_album_art?: string | null;
     is_friends_public?: boolean;
     school?: string | null;
     school_color?: string | null;
@@ -375,7 +376,7 @@ export default function ProfilePage() {
                                         </div>
                                     ) : (
                                         // Only shown to owner if empty
-                                        profile.id === user?.id && (
+                                        profile.id === currentUser?.id && (
                                             <Link
                                                 href="/settings"
                                                 className="text-xs text-warm-grey/40 italic hover:text-muted-rose"
