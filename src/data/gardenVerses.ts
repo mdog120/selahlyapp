@@ -8,12 +8,12 @@ export type GardenVerse = {
     difficulty: 'easy' | 'medium' | 'hard';
 };
 
-export const FLOWERS: Record<FlowerType, { name: string, difficulty: 'easy' | 'medium' | 'hard', growthTimeMs: number, imageIndex: number }> = {
-    'daisy': { name: "Daisy", difficulty: 'easy', growthTimeMs: 1000 * 60 * 60, imageIndex: 0 }, // 1 Hour
-    'rose': { name: "Rose", difficulty: 'medium', growthTimeMs: 1000 * 60 * 60 * 4, imageIndex: 1 }, // 4 Hours
-    'lily': { name: "Lily", difficulty: 'hard', growthTimeMs: 1000 * 60 * 60 * 12, imageIndex: 2 }, // 12 Hours
-    'sunflower': { name: "Sunflower", difficulty: 'medium', growthTimeMs: 1000 * 60 * 60 * 6, imageIndex: 3 }, // 6 Hours
-    'tulip': { name: "Tulip", difficulty: 'easy', growthTimeMs: 1000 * 60 * 60 * 2, imageIndex: 4 }, // 2 Hours
+export const FLOWERS: Record<FlowerType, { name: string, difficulty: 'easy' | 'medium' | 'hard', growthTimeMs: number, imageIndex: number, cost: number }> = {
+    'daisy': { name: "Daisy", difficulty: 'easy', growthTimeMs: 1000 * 60 * 60, imageIndex: 0, cost: 10 },
+    'rose': { name: "Rose", difficulty: 'medium', growthTimeMs: 1000 * 60 * 60 * 4, imageIndex: 1, cost: 50 },
+    'lily': { name: "Lily", difficulty: 'hard', growthTimeMs: 1000 * 60 * 60 * 12, imageIndex: 2, cost: 100 },
+    'sunflower': { name: "Sunflower", difficulty: 'medium', growthTimeMs: 1000 * 60 * 60 * 6, imageIndex: 3, cost: 30 },
+    'tulip': { name: "Tulip", difficulty: 'easy', growthTimeMs: 1000 * 60 * 60 * 2, imageIndex: 4, cost: 20 },
 };
 
 export const VERSES: GardenVerse[] = [

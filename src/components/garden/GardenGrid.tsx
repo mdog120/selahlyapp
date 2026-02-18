@@ -2,68 +2,84 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { formatDistance, addMilliseconds } from "date-fns";
+import { addMilliseconds } from "date-fns";
 import { FlowerType, FLOWERS, getRandomVerse, GardenVerse } from "@/data/gardenVerses";
 import { Button } from "@/components/ui/Button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"; // Assuming we have these or will use standard HTML dialog for now if not
-import { Sprout, Check } from "lucide-react";
+import { Sprout, Check, ShoppingBag, Plus, X } from "lucide-react";
 import confetti from "canvas-confetti";
-
-// Note: Using simple divs for Dialog if shadcn/ui Dialog isn't fully set up or to avoid complex imports,
-// but checking recent files usage it seems likely we can use custom modals or standard logic.
-// I will build a custom modal inside here for simplicity and guaranteed "cute" styling.
 
 type Plant = {
     id: string;
     flower_type: FlowerType;
-    status: 'growing' | 'ready' | 'bloomed';
+    status: 'planted' | 'growing' | 'ready' | 'bloomed';
     planted_at: string;
     position_index: number;
 };
 
+type SeedsInventory = Record<FlowerType, number>;
+
 export function GardenGrid() {
     const [plants, setPlants] = useState<(Plant | null)[]>(Array(9).fill(null));
     const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-    const [isPlantingModalOpen, setIsPlantingModalOpen] = useState(false);
+    const [isShopOpen, setIsShopOpen] = useState(false);
     const [activeChallenge, setActiveChallenge] = useState<{ plant: Plant, verse: GardenVerse } | null>(null);
     const [guess, setGuess] = useState("");
     const [error, setError] = useState("");
 
+    // User Stats
+    const [points, setPoints] = useState(0);
+    const [seeds, setSeeds] = useState<SeedsInventory>({ daisy: 0, rose: 0, lily: 0, sunflower: 0, tulip: 0 });
+
     const supabase = createClient();
 
-    // Fetch Plants
-    const fetchPlants = async () => {
+    // Fetch Data
+    const fetchData = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data } = await supabase
+        // Fetch Plants
+        const { data: plantData } = await supabase
             .from('garden_plants')
             .select('*')
             .eq('user_id', user.id);
 
-        if (data) {
+        if (plantData) {
             const newPlants = Array(9).fill(null);
-            data.forEach((p: Plant) => {
+            plantData.forEach((p: Plant) => {
                 newPlants[p.position_index] = p;
             });
             setPlants(newPlants);
         }
+
+        // Fetch Profile Stats
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('points, seeds')
+            .eq('id', user.id)
+            .single();
+
+        if (profile) {
+            setPoints(profile.points || 0);
+            setSeeds(profile.seeds || { daisy: 0, rose: 0, lily: 0, sunflower: 0, tulip: 0 });
+        }
     };
 
     useEffect(() => {
-        fetchPlants();
-        const interval = setInterval(fetchPlants, 60000); // Poll every minute for status updates
+        fetchData();
+        const interval = setInterval(fetchData, 60000);
         return () => clearInterval(interval);
     }, []);
 
-    // Planting Logic
+    // Mechanics
     const handleSlotClick = (index: number) => {
         const plant = plants[index];
         if (!plant) {
             setSelectedSlot(index);
-            setIsPlantingModalOpen(true);
-        } else if (plant.status === 'ready' || (plant.status === 'growing' && checkIsReady(plant))) {
-            // Trigger Harvest
+            // Open inventory mini-menu or check if we have seeds
+            // For simplicity, reusing the "Shop/Planting" modal but separating logic
+            setIsShopOpen(true);
+        } else if (checkIsReady(plant) && plant.status !== 'bloomed') {
+            // Harvest
             const flowerInfo = FLOWERS[plant.flower_type as FlowerType];
             const verse = getRandomVerse(flowerInfo.difficulty);
             setActiveChallenge({ plant, verse });
@@ -72,27 +88,61 @@ export function GardenGrid() {
         }
     };
 
-    const plantSeed = async (type: FlowerType) => {
-        if (selectedSlot === null) return;
+    const buySeed = async (type: FlowerType) => {
+        const cost = FLOWERS[type].cost;
+        if (points < cost) {
+            alert("Not enough points!");
+            return;
+        }
+
+        const newPoints = points - cost;
+        const newSeeds = { ...seeds, [type]: (seeds[type] || 0) + 1 };
+
+        // Optimistic UI
+        setPoints(newPoints);
+        setSeeds(newSeeds);
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        await supabase.from('profiles').update({
+            points: newPoints,
+            seeds: newSeeds
+        }).eq('id', user.id);
+    };
+
+    const plantSeed = async (type: FlowerType) => {
+        if (selectedSlot === null) return;
+        if ((seeds[type] || 0) <= 0) {
+            alert("You need to buy this seed first!");
+            return;
+        }
+
+        const newSeeds = { ...seeds, [type]: seeds[type] - 1 };
+        setSeeds(newSeeds); // Optimistic
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // 1. Update Seeds
+        await supabase.from('profiles').update({ seeds: newSeeds }).eq('id', user.id);
+
+        // 2. Plant
         const { error } = await supabase.from('garden_plants').insert({
             user_id: user.id,
             flower_type: type,
-            status: 'growing',
+            status: 'planted', // Starts as seed
             position_index: selectedSlot
         });
 
         if (!error) {
-            setIsPlantingModalOpen(false);
-            fetchPlants();
+            setIsShopOpen(false);
+            fetchData();
         }
     };
 
-    // Challenge Logic
     const checkIsReady = (plant: Plant) => {
+        if (plant.status === 'bloomed') return false;
         const flowerInfo = FLOWERS[plant.flower_type as FlowerType];
         const plantedDate = new Date(plant.planted_at);
         const readyDate = addMilliseconds(plantedDate, flowerInfo.growthTimeMs);
@@ -103,41 +153,38 @@ export function GardenGrid() {
         if (!activeChallenge) return;
 
         if (guess.trim().toLowerCase() === activeChallenge.verse.missingWord.toLowerCase()) {
-            // Success!
             confetti({
-                particleCount: 100,
-                spread: 70,
+                particleCount: 150,
+                spread: 100,
                 origin: { y: 0.6 },
-                colors: ['#FFE4E1', '#E6E6FA', '#F0FFF0'] // Pastel confetti
+                colors: ['#FFE4E1', '#98FB98', '#E6E6FA']
             });
 
+            // Update Plant status
             await supabase
                 .from('garden_plants')
                 .update({ status: 'bloomed' })
                 .eq('id', activeChallenge.plant.id);
 
+            // Refund points? Or maybe give XP? 
+            // Only blooms stay.
+
             setActiveChallenge(null);
-            fetchPlants();
+            fetchData();
         } else {
             setError("Not quite! Try again.");
         }
     };
 
-    // Rendering Helpers
+    // Render Helpers
     const getRenderedPlant = (plant: Plant) => {
         const isReady = checkIsReady(plant);
         const flowerInfo = FLOWERS[plant.flower_type];
 
         if (plant.status === 'bloomed') {
-            // Calculate sprite position
-            const spriteX = flowerInfo.imageIndex * 128; // Assuming 128px wide sprites? Actually I'll use CSS background position or object-fit
-            // Since we generated a sheet, it's safer to rely on "img src" if we split them, 
-            // OR use object-fit/position. 
-            // Validating generated image: "bloomed_flowers.png" likely has them in a row. 
-            // Let's assume equal width.
             return (
                 <div className="w-full h-full flex items-center justify-center animate-bounce-slow">
-                    <div className="w-20 h-20 overflow-hidden relative">
+                    <div className="w-24 h-24 overflow-hidden relative">
                         <img
                             src="/images/garden/flowers.png"
                             className="absolute max-w-none h-full object-cover"
@@ -148,138 +195,207 @@ export function GardenGrid() {
             );
         }
 
-        // Growing Stages
-        // Seed (0-33%), Sprout (33-66%), Bud (66-100% / Ready)
-        // For simplicity: 
-        // Ready -> Bud (Stage 3)
-        // Growing -> Stage 1 or 2 based on time? Let's just do Stage 2 for growing, Stage 3 for Ready.
-        let stageIndex = 1; // Sprout
-        if (isReady) stageIndex = 2; // Bud
+        // Stages: 
+        // 1. Packet/Seed (Planted)
+        // 2. Sprout (Growing)
+        // 3. Bud (Ready) -- Actually let's map:
+        // status='planted' -> Seed (Stage 1 or 2 in sprite sheet)
+        // time > 50% -> Sprout (Stage 3)
+        // ready -> Bud (Stage 4)
+
+        // Sprite Sheet v2: 
+        // 1. Packet (we use in UI)
+        // 2. Seed on dirt
+        // 3. Sprout
+        // 4. Bud
+
+        let stageOffset = 1; // Seed on dirt
+        const plantedDate = new Date(plant.planted_at);
+        const now = new Date();
+        const elapsed = now.getTime() - plantedDate.getTime();
+        const progress = Math.min(1, elapsed / flowerInfo.growthTimeMs);
+
+        if (isReady) {
+            stageOffset = 3; // Bud
+        } else if (progress > 0.5) {
+            stageOffset = 2; // Sprout
+        }
 
         return (
             <div className={`w-full h-full flex items-center justify-center ${isReady ? "animate-pulse cursor-pointer" : ""}`}>
-                <div className="w-16 h-16 overflow-hidden relative">
+                <div className="w-20 h-20 overflow-hidden relative">
                     <img
                         src="/images/garden/stages.png"
                         className="absolute max-w-none h-full object-cover"
-                        style={{ left: `-${stageIndex * 100}%`, width: '300%' }} // 3 stages
+                        style={{ left: `-${stageOffset * 100}%`, width: '400%' }} // 4 stages
                     />
                 </div>
-                {isReady && <div className="absolute -top-2 bg-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow text-sage-green">Ready!</div>}
+                {isReady && <div className="absolute -top-4 bg-white px-3 py-1 rounded-full text-[10px] font-bold shadow-sm border border-stone-100 text-sage-green z-10">Ready!</div>}
             </div>
         );
     };
 
     return (
-        <div className="relative w-full aspect-square max-w-md mx-auto">
-            {/* Background */}
-            <div
-                className="absolute inset-0 bg-cover bg-center rounded-3xl shadow-inner border-4 border-white/50"
-                style={{ backgroundImage: 'url(/images/garden/background.png)' }}
-            />
-
-            {/* Grid */}
-            <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 p-8 gap-4">
-                {plants.map((plant, i) => (
-                    <div
-                        key={i}
-                        className="relative flex items-center justify-center rounded-full hover:bg-white/10 transition-colors cursor-pointer"
-                        onClick={() => handleSlotClick(i)}
-                    >
-                        {plant ? getRenderedPlant(plant) : (
-                            <div className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-all opacity-0 hover:opacity-100">
-                                <span className="text-white font-bold text-xs">+</span>
-                            </div>
-                        )}
-                    </div>
-                ))}
+        <div className="w-full max-w-lg mx-auto">
+            {/* Header Stats */}
+            <div className="flex justify-between items-center mb-6 px-4">
+                <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-white/40">
+                    <span className="text-xl">✨</span>
+                    <span className="font-serif font-bold text-warm-cocoa">{points} pts</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { setSelectedSlot(null); setIsShopOpen(true); }} className="gap-2 rounded-full border-warm-grey/20">
+                    <ShoppingBag className="w-4 h-4" /> Seed Shop
+                </Button>
             </div>
 
-            {/* Planting Modal */}
-            {isPlantingModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
-                        <h3 className="font-serif text-2xl text-warm-cocoa text-center">Plant a Seed</h3>
-                        <div className="grid grid-cols-1 gap-2">
-                            {Object.entries(FLOWERS).map(([key, info]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => plantSeed(key as FlowerType)}
-                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 border border-transparent hover:border-warm-grey/10 transition-all text-left"
-                                >
-                                    <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center shrink-0">
-                                        {/* Use bloomed sprite as preview icon */}
-                                        <div className="w-8 h-8 overflow-hidden relative">
-                                            <img
-                                                src="/images/garden/flowers.png"
-                                                className="absolute max-w-none h-full object-cover"
-                                                style={{ left: `-${info.imageIndex * 100}%`, width: '500%' }}
-                                            />
+            <div className="relative w-full aspect-square">
+                {/* Background */}
+                <div
+                    className="absolute inset-0 bg-contain bg-center bg-no-repeat rounded-3xl"
+                    style={{ backgroundImage: 'url(/images/garden/background.png)' }}
+                />
+
+                {/* Plants Grid */}
+                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 p-[10%] gap-[2%]">
+                    {plants.map((plant, i) => (
+                        <div
+                            key={i}
+                            className="relative flex items-center justify-center rounded-full hover:bg-white/5 transition-all cursor-pointer group"
+                            onClick={() => handleSlotClick(i)}
+                        >
+                            {plant ? getRenderedPlant(plant) : (
+                                <div className="w-12 h-12 rounded-full border-2 border-dashed border-warm-grey/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 backdrop-blur-sm">
+                                    <Plus className="w-6 h-6 text-white" />
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Shop & Inventory Modal */}
+            {isShopOpen && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm sm:p-4 animate-in fade-in">
+                    <div className="bg-white hover:bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-md shadow-2xl h-[80vh] sm:h-auto flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 className="font-serif text-2xl text-warm-cocoa">Garden Shed</h3>
+                                <p className="text-xs text-warm-grey">Buy seeds and plant them.</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setIsShopOpen(false)}><X className="w-5 h-5" /></Button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-2">
+                            {Object.entries(FLOWERS).map(([key, info]) => {
+                                const count = seeds[key as FlowerType] || 0;
+                                return (
+                                    <div key={key} className="flex items-center justify-between p-3 rounded-2xl bg-stone-50 border border-stone-100">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative border border-warm-grey/5">
+                                                {/* Packet Icon */}
+                                                <img
+                                                    src="/images/garden/stages.png"
+                                                    className="absolute max-w-none h-full object-cover"
+                                                    style={{ left: '0%', width: '400%' }} // Packet is index 0
+                                                />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-warm-grey flex items-center gap-2">
+                                                    {info.name}
+                                                    {count > 0 && <span className="bg-sage-green text-white text-[10px] px-1.5 py-0.5 rounded-full">x{count} owned</span>}
+                                                </p>
+                                                <div className="flex items-center gap-2 text-xs text-warm-grey/60">
+                                                    <span className="uppercase tracking-wider">{info.difficulty}</span>
+                                                    <span>•</span>
+                                                    <span>{info.cost} pts</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {/* Plant Button (if slot selected and has seeds) */}
+                                            {selectedSlot !== null && count > 0 && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => plantSeed(key as FlowerType)}
+                                                    className="rounded-xl bg-sage-green hover:bg-sage-green/90 text-white"
+                                                >
+                                                    Plant
+                                                </Button>
+                                            )}
+
+                                            {/* Buy Button */}
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => buySeed(key as FlowerType)}
+                                                disabled={points < info.cost}
+                                                className={`rounded-xl border-warm-grey/20 ${points < info.cost ? "opacity-50" : ""}`}
+                                            >
+                                                Buy
+                                            </Button>
                                         </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="font-bold text-warm-grey">{info.name}</p>
-                                        <p className="text-xs text-warm-grey/60 uppercase tracking-wider">{info.difficulty}</p>
-                                    </div>
-                                    <span className="text-xs font-mono text-warm-grey/40">
-                                        {info.growthTimeMs / (1000 * 60 * 60)}h
-                                    </span>
-                                </button>
-                            ))}
+                                );
+                            })}
                         </div>
-                        <Button variant="outline" className="w-full rounded-xl" onClick={() => setIsPlantingModalOpen(false)}>Cancel</Button>
                     </div>
                 </div>
             )}
 
-            {/* Verification Modal */}
+            {/* Verse Challenge Modal */}
             {activeChallenge && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-6 text-center">
-                        <div className="w-20 h-20 mx-auto animate-bounce-slow">
-                            {/* Bud Sprite */}
-                            <div className="w-20 h-20 overflow-hidden relative mx-auto">
-                                <img src="/images/garden/stages.png" className="absolute max-w-none h-full object-cover" style={{ left: '-200%', width: '300%' }} />
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in">
+                    <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center relative overflow-hidden">
+                        {/* Decorative Background Elements */}
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-sage-green to-muted-rose" />
+
+                        <div className="w-24 h-24 mx-auto mb-6 animate-bounce-slow drop-shadow-lg">
+                            <div className="w-24 h-24 overflow-hidden relative mx-auto rounded-full bg-stone-50 border-4 border-white">
+                                <img src="/images/garden/stages.png" className="absolute max-w-none h-full object-cover" style={{ left: '-300%', width: '400%' }} />
                             </div>
                         </div>
 
-                        <div>
-                            <h3 className="font-serif text-xl text-warm-cocoa mb-2">It's Ready to Bloom!</h3>
-                            <p className="text-sm text-warm-grey">Complete the verse to harvest.</p>
-                        </div>
+                        <h3 className="font-serif text-2xl text-warm-cocoa mb-1">Harvest Time!</h3>
+                        <p className="text-sm text-warm-grey mb-6">Complete the scripture to collect your flower.</p>
 
-                        <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
-                            <p className="font-serif text-lg text-warm-grey leading-relaxed">
+                        <div className="bg-soft-paper/50 p-6 rounded-2xl border border-warm-grey/10 mb-6 relative">
+                            <span className="absolute top-4 left-4 text-4xl text-warm-grey/5 font-serif">"</span>
+                            <p className="font-serif text-lg text-warm-cocoa leading-relaxed relative z-10">
                                 {activeChallenge.verse.text.split("______").map((part, i, arr) => (
                                     <span key={i}>
                                         {part}
                                         {i < arr.length - 1 && (
-                                            <span className="inline-block border-b-2 border-dashed border-sage-green w-20 mx-1 text-transparent">word</span>
+                                            <span className="inline-block border-b-2 border-dashed border-sage-green min-w-[3rem] mx-1 font-sans font-bold text-sage-green">{guess || "?"}</span>
                                         )}
                                     </span>
                                 ))}
                             </p>
-                            <p className="text-xs text-warm-grey/40 mt-2 text-right">— {activeChallenge.verse.reference}</p>
+                            <p className="text-xs text-warm-grey/60 mt-4 text-right font-medium">— {activeChallenge.verse.reference}</p>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             <input
                                 type="text"
                                 placeholder="Type the missing word..."
-                                className="w-full p-3 rounded-xl border border-warm-grey/20 text-center font-medium focus:outline-none focus:ring-2 focus:ring-sage-green/50"
+                                className="w-full p-4 rounded-xl border border-warm-grey/20 text-center font-medium focus:outline-none focus:ring-2 focus:ring-sage-green/50 bg-stone-50 transition-all"
                                 value={guess}
                                 onChange={(e) => setGuess(e.target.value)}
+                                autoFocus
                             />
-                            {error && <p className="text-xs text-red-400 font-medium animate-shake">{error}</p>}
+                            {error && <p className="text-sm text-red-400 font-medium animate-shake flex items-center justify-center gap-1"><X className="w-4 h-4" /> {error}</p>}
+
+                            <Button
+                                className="w-full rounded-xl h-12 text-lg font-bold bg-sage-green hover:bg-sage-green/90 text-white shadow-lg shadow-sage-green/20 transition-transform active:scale-95"
+                                onClick={handleGuess}
+                            >
+                                Bloom Forever 🌸
+                            </Button>
                         </div>
 
-                        <Button
-                            className="w-full rounded-xl h-12 text-lg bg-sage-green hover:bg-sage-green/90 text-white shadow-lg shadow-sage-green/20"
-                            onClick={handleGuess}
-                        >
-                            Bloom! 🌸
-                        </Button>
-                        <button onClick={() => setActiveChallenge(null)} className="text-xs text-warm-grey/40 hover:text-warm-grey underline">Wait, not yet</button>
+                        <button onClick={() => setActiveChallenge(null)} className="absolute top-4 right-4 text-warm-grey/40 hover:text-warm-grey transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
             )}
