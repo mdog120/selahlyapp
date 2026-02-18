@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { useBadge } from "@/context/BadgeContext";
 
 type Post = {
     id: string;
@@ -89,6 +90,7 @@ export function PostCard({ post }: { post: Post }) {
     const [headerIndex, setHeaderIndex] = useState(0);
 
     const supabase = createClient();
+    const { triggerBadge } = useBadge();
 
     useEffect(() => {
         setEditCaption(post.caption);
@@ -222,6 +224,11 @@ export function PostCard({ post }: { post: Post }) {
                         p_user_id: post.user_id,
                         p_badge_name: 'Star'
                     });
+
+                    // If the current user is the author, trigger the animation
+                    if (currentUserId === post.user_id) {
+                        triggerBadge('Star', 'You got 10 likes on your post!', <Star className="w-12 h-12 text-yellow-400" />);
+                    }
                 }
             }
         } else {
@@ -295,6 +302,7 @@ export function PostCard({ post }: { post: Post }) {
                 p_user_id: user.id,
                 p_badge_name: 'Encourager'
             });
+            triggerBadge('Encourager', 'You commented 5 times!', <Mail className="w-12 h-12 text-purple-400" />);
         }
     };
 
@@ -466,7 +474,8 @@ export function PostCard({ post }: { post: Post }) {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
-        const parts = text.split(/(\[sticker:[^\]]+\]|@[\w.-]+)/g);
+        // Split by sticker, mention, or hashtag
+        const parts = text.split(/(\[sticker:[^\]]+\]|@[\w.-]+|#[\w]+)/g);
         return parts.map((part, index) => {
             const stickerMatch = part.match(/\[sticker:(.+)\]/);
             if (stickerMatch) {
@@ -509,6 +518,16 @@ export function PostCard({ post }: { post: Post }) {
                     >
                         {part}
                     </a>
+                );
+            }
+
+            // Hashtags
+            const hashtagMatch = part.match(/^#([\w]+)$/);
+            if (hashtagMatch) {
+                return (
+                    <span key={index} className="text-sage-green font-medium">
+                        {part}
+                    </span>
                 );
             }
 

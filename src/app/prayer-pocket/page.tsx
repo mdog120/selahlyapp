@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ShareModal } from "@/components/messaging/ShareModal";
 import { PrayerPartnerWidget } from "@/components/prayer-pocket/PrayerPartnerWidget";
+import { useBadge } from "@/context/BadgeContext";
+import { HandHeart } from "lucide-react";
 
 type Prayer = {
     id: string;
@@ -32,6 +34,7 @@ export default function PrayerPocket() {
     const [submitting, setSubmitting] = useState(false);
 
     const supabase = createClient();
+    const { triggerBadge } = useBadge();
 
     useEffect(() => {
         fetchPrayers();
@@ -133,6 +136,13 @@ export default function PrayerPocket() {
             setNewPrayer("");
             setIsComposeOpen(false);
             fetchPrayers(); // Refresh
+
+            // Award "Prayer Warrior" Badge (Sharing a prayer request)
+            await supabase.rpc("award_badge", {
+                p_user_id: user.id,
+                p_badge_name: 'Prayer Warrior'
+            });
+            triggerBadge('Prayer Warrior', 'You shared a prayer request. You are so brave! 🤍', <HandHeart className="w-12 h-12 text-blue-400" />);
         } else {
             console.error("Error submitting prayer:", JSON.stringify(error, null, 2));
         }

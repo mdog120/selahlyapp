@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Playfair_Display, Outfit } from "next/font/google"; // Elegant serif + clean sans
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import Link from "next/link";
+import { BadgeProvider } from "@/context/BadgeContext";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -32,13 +34,15 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${outfit.variable} antialiased bg-warm-paper text-warm-grey`}
       >
-        <div className="flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-1 pt-16">
-            {children}
-          </main>
-          <Footer />
-        </div>
+        <BadgeProvider>
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            <main className="flex-1 pt-16">
+              {children}
+            </main>
+            <Footer />
+          </div>
+        </BadgeProvider>
       </body>
     </html>
   );
