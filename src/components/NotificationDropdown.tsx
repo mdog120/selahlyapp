@@ -30,6 +30,12 @@ export function NotificationDropdown() {
     const router = useRouter();
 
     useEffect(() => {
+        if (isOpen && unreadCount > 0) {
+            markAllAsRead();
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
         fetchNotifications();
 
         // Real-time subscription
@@ -71,14 +77,30 @@ export function NotificationDropdown() {
     };
 
     const handleRead = async (notificationId: string) => {
+        // Individual read is less important if we bulk read on open, 
+        // but still good for specific interactions if needed.
         await supabase
             .from("notifications")
             .update({ read: true })
             .eq("id", notificationId);
 
-        // Optimistic update
         setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
+    };
+
+    const markAllAsRead = async () => {
+        const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+        if (unreadIds.length === 0) return;
+
+        // Optimistic update
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+
+        // Update DB
+        await supabase
+            .from("notifications")
+            .update({ read: true })
+            .in("id", unreadIds);
     };
 
     const getIcon = (type: string) => {
