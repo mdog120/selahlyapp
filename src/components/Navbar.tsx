@@ -139,6 +139,14 @@ export function Navbar() {
                                     <Settings className="w-4 h-4" /> Settings
                                 </Link>
 
+                                <Link
+                                    href="/garden"
+                                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-green-50 text-warm-grey/80 hover:text-green-700 transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">🌿</span> Selah Garden
+                                </Link>
+
 
 
                                 <div className="h-px bg-warm-grey/5 my-1" />
