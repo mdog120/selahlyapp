@@ -81,6 +81,7 @@ export function PostCard({ post }: { post: Post }) {
     const [isSongModalOpen, setIsSongModalOpen] = useState(false);
 
     // Audio State
+    const hasVisualMedia = post.type !== 'text' && (!!post.image_url || (post.media_urls && post.media_urls.length > 0));
     const [isMuted, setIsMuted] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -607,6 +608,16 @@ export function PostCard({ post }: { post: Post }) {
                     )}
                 </div>
             </div>
+
+            {/* Volume Control for Text-Only Posts */}
+            {!hasVisualMedia && post.song_preview_url && (
+                <button
+                    onClick={toggleMute}
+                    className="absolute top-6 right-12 text-warm-grey/40 hover:text-warm-grey p-1 transition-colors"
+                >
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+            )}
 
             {renderMedia()}
 
