@@ -139,6 +139,14 @@ export function Navbar() {
                                     <Settings className="w-4 h-4" /> Settings
                                 </Link>
 
+                                <Link
+                                    href="/cafe"
+                                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-orange-50 text-warm-grey/80 hover:text-orange-600 transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">☕</span> Selah Cafe
+                                </Link>
+
                                 <div className="h-px bg-warm-grey/5 my-1" />
 
                                 {/* Mobile Search */}
