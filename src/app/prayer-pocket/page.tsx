@@ -135,14 +135,17 @@ export default function PrayerPocket() {
         if (!error) {
             setNewPrayer("");
             setIsComposeOpen(false);
-            fetchPrayers(); // Refresh
 
-            // Award "Prayer Warrior" Badge (Sharing a prayer request)
+            // Pop the badge immediately for instant feedback!
+            triggerBadge('Prayer Warrior', 'You shared a prayer request. You are so brave! 🤍', <HandHeart className="w-12 h-12 text-blue-400" />);
+
+            fetchPrayers(); // Refresh in background
+
+            // Award "Prayer Warrior" Badge in DB
             await supabase.rpc("award_badge", {
                 p_user_id: user.id,
                 p_badge_name: 'Prayer Warrior'
             });
-            triggerBadge('Prayer Warrior', 'You shared a prayer request. You are so brave! 🤍', <HandHeart className="w-12 h-12 text-blue-400" />);
         } else {
             console.error("Error submitting prayer:", JSON.stringify(error, null, 2));
         }
