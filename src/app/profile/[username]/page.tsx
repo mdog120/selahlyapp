@@ -12,6 +12,8 @@ import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { BadgeGrid } from "@/components/gamification/BadgeGrid";
+import { useBadge } from "@/context/BadgeContext";
+import { HeartHandshake } from "lucide-react";
 
 const COLOR_MAP: Record<string, string> = {
     'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
@@ -67,8 +69,7 @@ export default function ProfilePage() {
     const [friends, setFriends] = useState<any[]>([]);
     const [recentPosts, setRecentPosts] = useState<any[]>([]);
 
-
-
+    const { triggerBadge } = useBadge();
     const supabase = createClient();
 
     // 1. Fetch Profile & User
@@ -199,7 +200,21 @@ export default function ProfilePage() {
 
             // Add to friends list immediately
             if (req && req.requester) {
-                setFriends(prev => [...prev, req.requester]);
+                setFriends(prev => {
+                    const newFriends = [...prev, req.requester];
+
+                    // Award Social Butterfly badge instantly if they reach 5 friends!
+                    if (newFriends.length === 5) {
+                        supabase.rpc("award_badge", {
+                            p_user_id: currentUser.id,
+                            p_badge_name: 'Social Butterfly'
+                        }).then(() => {
+                            triggerBadge('Social Butterfly', 'You made 5 friends! You are a social butterfly! 🦋', <HeartHandshake className="w-12 h-12 text-blue-400" />);
+                        });
+                    }
+
+                    return newFriends;
+                });
             } else {
                 // Fallback reload if data complex
                 window.location.reload();

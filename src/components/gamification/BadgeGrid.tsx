@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Flame, Feather, Users, Heart, Sparkles, HandHeart, MessageCircle, Sun, Flower2, TreeDeciduous, Star, CloudSun } from "lucide-react";
+import { Flame, Feather, Users, Heart, Sparkles, HandHeart, MessageCircle, Sun, Flower2, TreeDeciduous, Star, CloudSun, HeartHandshake } from "lucide-react";
 
 type Badge = {
     id: string;
@@ -63,6 +63,7 @@ export function BadgeGrid({ userId }: { userId: string }) {
             case 'Rooted': return <TreeDeciduous {...props} className="w-8 h-8 text-green-600 fill-green-600/20" />;
             case 'Star': return <Star {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
             case 'Selah Circle': return <Users {...props} className="w-8 h-8 text-sage-green fill-sage-green/20" />;
+            case 'Social Butterfly': return <HeartHandshake {...props} className="w-8 h-8 text-blue-400 fill-blue-400/20" />;
             default: return <Sparkles {...props} className="w-8 h-8 text-yellow-400 fill-yellow-400/20" />;
         }
     };
