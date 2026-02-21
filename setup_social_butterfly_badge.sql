@@ -1,7 +1,7 @@
 -- Add Social Butterfly Badge
 INSERT INTO badges (name, description, icon_name, category)
-VALUES ('Social Butterfly', 'Make 5 friends in the community.', 'Users', 'community')
-ON CONFLICT (name) DO NOTHING;
+VALUES ('Social Butterfly', 'Make 5 friends in the community.', 'Social Butterfly', 'community')
+ON CONFLICT (name) DO UPDATE SET icon_name = 'Social Butterfly';
 
 -- RPC to check and award the badge
 CREATE OR REPLACE FUNCTION check_and_award_friends_badge(p_user_id uuid)
