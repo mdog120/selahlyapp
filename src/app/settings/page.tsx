@@ -212,6 +212,13 @@ export default function SettingsPage() {
             console.error("Profile update error:", error);
             alert(`Error updating profile: ${error.message}`);
         } else {
+            // Check for Selah Sister badge
+            if (bio && avatarUrl) {
+                await supabase.rpc('award_badge', {
+                    p_user_id: user.id,
+                    p_badge_name: 'Selah Sister'
+                });
+            }
             alert("Profile updated successfully!");
         }
         setSaving(false);
