@@ -265,10 +265,10 @@ export default function ProfilePage() {
 
                 {/* Profile Card */}
                 <div className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-8 shadow-sm animate-fade-in-up mb-8">
-                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                    <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
                         <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-stone-100 border-4 border-white shadow-lg overflow-hidden flex-shrink-0 mx-auto md:mx-0">
                             {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover object-center" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif">
                                     {(profile.first_name?.[0] || "")}
