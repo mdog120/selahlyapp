@@ -136,7 +136,13 @@ export function GardenGrid() {
 
         if (data) {
             const friendList = data.map((f: any) => {
-                return f.user_id_1 === userId ? f.user2 : f.user1;
+                const friendRecord = f.user_id_1 === userId ? f.user2 : f.user1;
+                return {
+                    id: friendRecord.id,
+                    username: friendRecord.username,
+                    full_name: friendRecord.full_name,
+                    avatar_url: friendRecord.avatar_url
+                };
             });
             setFriends(friendList);
         }
