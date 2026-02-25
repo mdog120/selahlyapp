@@ -122,15 +122,24 @@ export function GardenGrid() {
 
     const fetchFriends = async () => {
         if (!userId) return;
-        // In a real app we fetch from a followers/friends join table
-        // For now, grabbing some users to test with
-        const { data } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .neq('id', userId)
-            .limit(10);
 
-        if (data) setFriends(data);
+        const { data } = await supabase
+            .from("friendships")
+            .select(`
+                user_id_1,
+                user_id_2,
+                user1:profiles!friendships_user_id_1_fkey(id, username, full_name, avatar_url),
+                user2:profiles!friendships_user_id_2_fkey(id, username, full_name, avatar_url)
+            `)
+            .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`)
+            .eq("status", "accepted");
+
+        if (data) {
+            const friendList = data.map((f: any) => {
+                return f.user_id_1 === userId ? f.user2 : f.user1;
+            });
+            setFriends(friendList);
+        }
     };
 
     useEffect(() => {
