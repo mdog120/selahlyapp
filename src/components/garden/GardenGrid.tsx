@@ -128,8 +128,8 @@ export function GardenGrid() {
             .select(`
                 user_id_1,
                 user_id_2,
-                user1:profiles!friendships_user_id_1_fkey(id, username, full_name, avatar_url),
-                user2:profiles!friendships_user_id_2_fkey(id, username, full_name, avatar_url)
+                user1:profiles!friendships_user_id_1_fkey(id, username, first_name, last_name, avatar_url),
+                user2:profiles!friendships_user_id_2_fkey(id, username, first_name, last_name, avatar_url)
             `)
             .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`)
             .eq("status", "accepted");
@@ -140,7 +140,7 @@ export function GardenGrid() {
                 return {
                     id: friendRecord.id,
                     username: friendRecord.username,
-                    full_name: friendRecord.full_name,
+                    full_name: `${friendRecord.first_name || ''} ${friendRecord.last_name || ''}`.trim() || friendRecord.username,
                     avatar_url: friendRecord.avatar_url
                 };
             });
