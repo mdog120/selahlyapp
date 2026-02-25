@@ -112,7 +112,7 @@ export function GardenGrid() {
         // Fetch pending gifts
         const { data: giftData } = await supabase
             .from('flower_gifts')
-            .select('id, flower_type, status, created_at, sender:profiles!flower_gifts_sender_id_fkey(username, full_name, avatar_url)')
+            .select('id, flower_type, status, created_at, sender:profiles!flower_gifts_sender_id_fkey(username, first_name, last_name, avatar_url)')
             .eq('receiver_id', user.id)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
