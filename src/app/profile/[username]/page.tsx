@@ -38,6 +38,7 @@ type Profile = {
     biography: string;
     created_at: string;
     streak_count: number;
+    points?: number;
     song_title?: string | null;
     song_artist?: string | null;
     song_link?: string | null;
@@ -407,6 +408,9 @@ export default function ProfilePage() {
                             <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                                 <div className="px-4 py-2 rounded-2xl bg-stone-50 border border-warm-grey/5 flex items-center gap-2 text-xs font-medium text-warm-grey">
                                     <span className="text-orange-400">🔥</span> {profile.streak_count || 0} Day Streak
+                                </div>
+                                <div className="px-4 py-2 rounded-2xl bg-stone-50 border border-warm-grey/5 flex items-center gap-2 text-xs font-medium text-warm-grey">
+                                    <span className="text-amber-500">✨</span> {profile.points || 0} pts
                                 </div>
                                 <div className="px-4 py-2 rounded-2xl bg-stone-50 border border-warm-grey/5 flex items-center gap-2 text-xs font-medium text-warm-grey">
                                     <Clock className="w-3 h-3 text-warm-grey/40" /> Joined {formatDistanceToNow(new Date(profile.created_at || new Date()), { addSuffix: true })}
