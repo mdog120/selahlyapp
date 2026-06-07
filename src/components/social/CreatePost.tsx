@@ -191,7 +191,12 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     };
 
     const handlePost = async () => {
-        if (!caption.trim() && uploadedFiles.length === 0) return;
+        const hasCaption = !!caption.trim();
+        const hasFiles = uploadedFiles.length > 0;
+        const hasSong = showSongInput && !!songTitle;
+        const hasPoll = showPollCreator && !!pollQuestion.trim() && pollOptions.filter(opt => opt.trim() !== "").length >= 2;
+
+        if (!hasCaption && !hasFiles && !hasSong && !hasPoll) return;
         setLoading(true);
 
         try {
@@ -447,6 +452,11 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             return part;
         });
     };
+
+    const canPost = !!caption.trim() || 
+                    uploadedFiles.length > 0 || 
+                    (showSongInput && !!songTitle) || 
+                    (showPollCreator && !!pollQuestion.trim() && pollOptions.filter(opt => opt.trim() !== "").length >= 2);
 
     return (
         <div className={`glass-card p-4 rounded-3xl transition-all duration-300 ${expanded ? "ring-2 ring-sage-green/20" : ""}`}>
@@ -719,7 +729,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                 </div>
                                 <div className="flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>
-                                    <Button size="sm" onClick={handlePost} disabled={loading || (!caption.trim() && uploadedFiles.length === 0)}>
+                                    <Button size="sm" onClick={handlePost} disabled={loading || !canPost}>
                                         {loading ? "Posting..." : "Post"}
                                     </Button>
                                 </div>
