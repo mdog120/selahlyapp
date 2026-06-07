@@ -40,6 +40,13 @@
 
   --animate-blob: blob 7s infinite;
   --animate-fade-in-up: fadeInUp 0.5s ease-out forwards;
+  --animate-spin-slow: spin 12s linear infinite;
+  --animate-bounce-slow: bounceSlow 4s ease-in-out infinite;
+
+  @keyframes bounceSlow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
 
   @keyframes blob {
     0% {

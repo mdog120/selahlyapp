@@ -154,6 +154,14 @@ export function Navbar() {
                                     <span className="text-lg">🌿</span> Selah Garden
                                 </Link>
 
+                                <Link
+                                    href="/grace-inhale"
+                                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-rose-50 text-warm-grey/80 hover:text-muted-rose transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">🌸</span> Grace Inhale
+                                </Link>
+
                                 <div className="h-px bg-warm-grey/5 my-1" />
 
                                 <div className="px-1 py-1">
