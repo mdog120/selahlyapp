@@ -43,7 +43,10 @@ function SearchPageContent() {
 
     const handleSearch = async (overrideQuery?: string) => {
         const q = overrideQuery !== undefined ? overrideQuery : query;
-        if (!q.trim()) return;
+        if (!q.trim()) {
+            setResults([]);
+            return;
+        }
 
         setSearching(true);
 
@@ -59,6 +62,14 @@ function SearchPageContent() {
         }
         setSearching(false);
     };
+
+    // Live search debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            handleSearch(query);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [query]);
 
     // Auto search on load if param exists
     useEffect(() => {

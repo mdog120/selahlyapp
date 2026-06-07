@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { Menu, Heart, Bell, X, Search, User, Settings, LogOut, MessageCircle, BookOpen } from "lucide-react";
+import { Menu, Heart, Bell, X, Search, User, Settings, LogOut, MessageCircle, BookOpen, Home, Lock, Music, Book } from "lucide-react";
 import { NotificationDropdown } from "./NotificationDropdown";
 
 export function Navbar() {
@@ -37,6 +37,13 @@ export function Navbar() {
         setIsMenuOpen(false);
     }, [pathname]);
 
+    const handleSignOut = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsMenuOpen(false);
+        await supabase.auth.signOut();
+        window.location.href = "/";
+    };
+
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -54,7 +61,7 @@ export function Navbar() {
     if (isPublicPage) return null;
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top,0px)]">
             <div className="absolute inset-0 bg-warm-paper/90 backdrop-blur-md border-b border-warm-grey/5" />
             <div className="container relative mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
                 {/* Logo */}
@@ -147,7 +154,61 @@ export function Navbar() {
                                     <span className="text-lg">🌿</span> Selah Garden
                                 </Link>
 
+                                <div className="h-px bg-warm-grey/5 my-1" />
 
+                                <div className="px-1 py-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-warm-grey/40 mb-2">Quick Navigation</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Link
+                                            href="/home"
+                                            className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-sage-green/10 hover:bg-sage-green/20 text-warm-grey border border-sage-green/5 transition-all text-center gap-1 group"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Home className="w-4 h-4 text-warm-grey/60 group-hover:scale-105 transition-transform" />
+                                            <span className="text-[10px] font-medium">Lily Pad</span>
+                                        </Link>
+                                        <Link
+                                            href="/diaries"
+                                            className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-soft-blush/20 hover:bg-soft-blush/30 text-warm-grey border border-soft-blush/5 transition-all text-center gap-1 group"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <BookOpen className="w-4 h-4 text-warm-grey/60 group-hover:scale-105 transition-transform" />
+                                            <span className="text-[10px] font-medium">Diaries</span>
+                                        </Link>
+                                        <Link
+                                            href="/prayer-pocket"
+                                            className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-muted-rose/10 hover:bg-muted-rose/20 text-warm-grey border border-muted-rose/5 transition-all text-center gap-1 group"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Heart className="w-4 h-4 text-warm-grey/60 group-hover:scale-105 transition-transform" />
+                                            <span className="text-[10px] font-medium">Prayers</span>
+                                        </Link>
+                                        <Link
+                                            href="/velvet-vault"
+                                            className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-100/10 transition-all text-center gap-1 group"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Lock className="w-4 h-4 text-purple-400 group-hover:scale-105 transition-transform" />
+                                            <span className="text-[10px] font-medium">The Vault</span>
+                                        </Link>
+                                        <Link
+                                            href="/vibe-board"
+                                            className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-100/10 transition-all text-center gap-1 group"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Music className="w-4 h-4 text-teal-400 group-hover:scale-105 transition-transform" />
+                                            <span className="text-[10px] font-medium">Vibes</span>
+                                        </Link>
+                                        <Link
+                                            href="/bible"
+                                            className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-warm-cocoa border border-warm-grey/5 transition-all text-center gap-1 group"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Book className="w-4 h-4 text-warm-cocoa/60 group-hover:scale-105 transition-transform" />
+                                            <span className="text-[10px] font-medium">Bible</span>
+                                        </Link>
+                                    </div>
+                                </div>
 
                                 <div className="h-px bg-warm-grey/5 my-1" />
 
@@ -162,7 +223,7 @@ export function Navbar() {
                                 <Link
                                     href="/"
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-red-50 text-red-400 hover:text-red-500 transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
+                                    onClick={handleSignOut}
                                 >
                                     <LogOut className="w-4 h-4" /> Sign Out
                                 </Link>

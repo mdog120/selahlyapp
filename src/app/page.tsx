@@ -3,6 +3,9 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Marquee } from "@/components/ui/Marquee";
 import { Sparkles, Heart } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { SessionRedirect } from "@/components/ui/SessionRedirect";
 
 
 
@@ -44,9 +47,17 @@ const COMMUNITY_POSTS = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    redirect("/home");
+  }
+
   return (
     <div className="flex flex-col min-h-screen overflow-hidden">
+      <SessionRedirect />
 
       {/* Hero Section */}
       <section className="relative flex-1 flex flex-col items-center justify-center px-4 pt-20 pb-12 text-center">

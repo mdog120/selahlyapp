@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Outfit } from "next/font/google"; // Elegant serif + clean sans
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -24,6 +24,14 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,7 +45,7 @@ export default function RootLayout({
         <BadgeProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-1 pt-16">
+            <main className="flex-1 pt-[calc(4rem+env(safe-area-inset-top,0px))]">
               {children}
             </main>
             <Footer />

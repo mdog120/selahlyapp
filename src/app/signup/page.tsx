@@ -2,13 +2,25 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Signup() {
     const router = useRouter();
+
+    useEffect(() => {
+        const checkSession = async () => {
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                router.push("/home");
+            }
+        };
+        checkSession();
+    }, [router]);
+
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
