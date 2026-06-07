@@ -30,6 +30,14 @@ export function NotificationDropdown() {
     const router = useRouter();
 
     useEffect(() => {
+        if (typeof window !== "undefined" && "Notification" in window) {
+            if (Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+    }, []);
+
+    useEffect(() => {
         if (isOpen && unreadCount > 0) {
             markAllAsRead();
         }
@@ -48,6 +56,12 @@ export function NotificationDropdown() {
             }, (payload) => {
                 console.log('New notification!', payload);
                 fetchNotifications(); // Refresh list on new item
+
+                // Trigger local system notification
+                const newNotif = payload.new as any;
+                if (newNotif && newNotif.actor_id) {
+                    fetchActorAndNotify(newNotif.actor_id, newNotif.type);
+                }
             })
             .subscribe();
 
@@ -56,7 +70,7 @@ export function NotificationDropdown() {
         };
     }, []);
 
-    const fetchNotifications = async () => {
+    async function fetchNotifications() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -74,9 +88,36 @@ export function NotificationDropdown() {
             setNotifications(data as any);
             setUnreadCount(data.filter((n: any) => !n.read).length);
         }
-    };
+    }
 
-    const handleRead = async (notificationId: string) => {
+    async function fetchActorAndNotify(actorId: string, type: string) {
+        if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
+            return;
+        }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name')
+            .eq('id', actorId)
+            .single();
+
+        const name = profile?.first_name || "Someone";
+        let action = "sent you a notification.";
+        if (type === 'like') action = "liked your post.";
+        else if (type === 'comment') action = "commented on your post.";
+        else if (type === 'reply') action = "replied to your question.";
+        else if (type === 'pray') action = "prayed for you.";
+        else if (type === 'friend_request') action = "sent you a friend request.";
+        else if (type === 'message') action = "sent you a message.";
+        else if (type === 'post') action = "shared a new post.";
+
+        new window.Notification("Selahly ౨ৎ", {
+            body: `${name} ${action}`,
+            icon: "/logo-v2.png"
+        });
+    }
+
+    async function handleRead(notificationId: string) {
         // Individual read is less important if we bulk read on open, 
         // but still good for specific interactions if needed.
         await supabase
@@ -86,9 +127,9 @@ export function NotificationDropdown() {
 
         setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
-    };
+    }
 
-    const markAllAsRead = async () => {
+    async function markAllAsRead() {
         const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
         if (unreadIds.length === 0) return;
 
@@ -101,7 +142,7 @@ export function NotificationDropdown() {
             .from("notifications")
             .update({ read: true })
             .in("id", unreadIds);
-    };
+    }
 
     const getIcon = (type: string) => {
         switch (type) {
