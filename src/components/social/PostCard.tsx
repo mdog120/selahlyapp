@@ -15,7 +15,7 @@ type Post = {
     id: string;
     image_url: string | null;
     media_urls: string[] | null;
-    type: 'image' | 'video' | 'carousel' | 'text';
+    type: 'image' | 'video' | 'carousel' | 'text' | 'song' | 'poll';
     caption: string;
     song_title?: string;
     song_artist?: string;
@@ -89,6 +89,12 @@ export function PostCard({ post }: { post: Post }) {
 
     // Header Cycling State
     const [headerIndex, setHeaderIndex] = useState(0);
+ 
+    // Poll States
+    const [poll, setPoll] = useState<{ question: string } | null>(null);
+    const [pollOptions, setPollOptions] = useState<{ id: string, option_text: string, votes_count: number }[]>([]);
+    const [userVotedOptionId, setUserVotedOptionId] = useState<string | null>(null);
+    const [totalVotes, setTotalVotes] = useState(0);
 
     const supabase = createClient();
     const { triggerBadge } = useBadge();
@@ -105,7 +111,10 @@ export function PostCard({ post }: { post: Post }) {
 
     useEffect(() => {
         checkOwnership();
-
+        if (post.type === 'poll') {
+            fetchPollData();
+        }
+ 
         // Audio & Intersection Observer
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -176,6 +185,72 @@ export function PostCard({ post }: { post: Post }) {
             } else {
                 setIsOwner(false);
             }
+        }
+    };
+ 
+    const fetchPollData = async () => {
+        if (post.type !== 'poll') return;
+        
+        try {
+            const { data: pollData } = await supabase
+                .from("polls")
+                .select("question")
+                .eq("post_id", post.id)
+                .maybeSingle();
+                
+            const { data: optionsData } = await supabase
+                .from("poll_options")
+                .select("id, option_text, votes_count")
+                .eq("post_id", post.id);
+ 
+            const { data: { user } } = await supabase.auth.getUser();
+            let votedId = null;
+            if (user) {
+                const { data: voteData } = await supabase
+                    .from("poll_votes")
+                    .select("option_id")
+                    .eq("post_id", post.id)
+                    .eq("user_id", user.id)
+                    .maybeSingle();
+                if (voteData) votedId = voteData.option_id;
+            }
+ 
+            if (pollData) setPoll(pollData);
+            if (optionsData) {
+                setPollOptions(optionsData);
+                setTotalVotes(optionsData.reduce((acc, curr) => acc + curr.votes_count, 0));
+            }
+            setUserVotedOptionId(votedId);
+        } catch (err) {
+            console.error("Error loading poll:", err);
+        }
+    };
+ 
+    const handleVote = async (optionId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert("Please log in to vote!");
+            return;
+        }
+        if (userVotedOptionId) return;
+ 
+        const { error } = await supabase.rpc("cast_poll_vote", {
+            p_post_id: post.id,
+            p_user_id: user.id,
+            p_option_id: optionId
+        });
+ 
+        if (error) {
+            console.error("Error voting:", error);
+            alert("Failed to cast vote: " + error.message);
+        } else {
+            setUserVotedOptionId(optionId);
+            setPollOptions(prev => prev.map(opt => 
+                opt.id === optionId 
+                    ? { ...opt, votes_count: opt.votes_count + 1 }
+                    : opt
+            ));
+            setTotalVotes(t => t + 1);
         }
     };
 
@@ -422,7 +497,7 @@ export function PostCard({ post }: { post: Post }) {
                         alt="Post content"
                         className="w-full h-full object-cover"
                     />
-
+ 
                     {/* Volume Toggle Overlay */}
                     {post.song_preview_url && (
                         <button
@@ -435,6 +510,118 @@ export function PostCard({ post }: { post: Post }) {
                 </div>
             );
         }
+ 
+        // Music Post Card (Song type or song attached without image)
+        if (post.type === 'song' || (post.song_title && !imgUrl)) {
+            return (
+                <div className="bg-gradient-to-br from-soft-blush/40 to-sage-green/20 border border-white/60 p-5 rounded-2xl mb-4 flex items-center gap-4 relative overflow-hidden group shadow-sm">
+                    {/* Album Art */}
+                    <div className="w-16 h-16 rounded-xl bg-stone-200 overflow-hidden relative shadow-md shrink-0 group-hover:scale-105 transition-transform duration-300">
+                        {post.song_album_art ? (
+                            <img src={post.song_album_art} alt="Album Art" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-muted-rose/20 text-muted-rose">
+                                <Music className="w-6 h-6" />
+                            </div>
+                        )}
+                        {post.song_preview_url && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Music className="w-5 h-5 text-white animate-pulse" />
+                            </div>
+                        )}
+                    </div>
+ 
+                    {/* Song Details */}
+                    <div className="flex-1 min-w-0 text-left">
+                        <h4 className="font-bold text-warm-cocoa truncate text-sm leading-snug">{post.song_title}</h4>
+                        <p className="text-xs text-warm-grey/60 truncate mb-2">{post.song_artist || "Unknown Artist"}</p>
+                        
+                        {post.song_preview_url && (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (audioRef.current) {
+                                            if (isPlaying) {
+                                                audioRef.current.pause();
+                                                setIsPlaying(false);
+                                            } else {
+                                                audioRef.current.play().catch(err => console.error("Play blocked", err));
+                                                setIsPlaying(true);
+                                            }
+                                        }
+                                    }}
+                                    className="px-3 py-1 rounded-full bg-white hover:bg-stone-50 border border-warm-grey/5 text-[10px] font-bold text-warm-cocoa transition-all shadow-sm flex items-center gap-1"
+                                >
+                                    {isPlaying ? "Pause Preview ⏸" : "Play Preview ▶"}
+                                </button>
+                                {post.song_link && (
+                                    <a
+                                        href={post.song_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] text-warm-grey/40 hover:text-warm-grey hover:underline"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        Listen
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/20 rounded-full blur-xl pointer-events-none" />
+                </div>
+            );
+        }
+ 
+        // Poll Rendering
+        if (post.type === 'poll') {
+            return (
+                <div className="bg-white/40 border border-warm-grey/5 p-5 rounded-2xl mb-4 text-left shadow-sm">
+                    <h4 className="font-serif text-base text-warm-cocoa mb-4 font-medium">📊 {poll?.question || post.caption || "Poll"}</h4>
+                    <div className="space-y-3">
+                        {pollOptions.map((opt) => {
+                            const percent = totalVotes > 0 ? Math.round((opt.votes_count / totalVotes) * 100) : 0;
+                            const isSelected = userVotedOptionId === opt.id;
+                            const hasVoted = userVotedOptionId !== null;
+                            
+                            return (
+                                <button
+                                    key={opt.id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleVote(opt.id);
+                                    }}
+                                    disabled={hasVoted}
+                                    className={`w-full relative overflow-hidden rounded-xl py-3 px-4 border transition-all text-left flex justify-between items-center text-xs ${
+                                        isSelected 
+                                            ? "border-sage-green bg-sage-green/10 font-bold" 
+                                            : hasVoted 
+                                                ? "border-warm-grey/10 bg-stone-50/20" 
+                                                : "border-warm-grey/10 hover:border-sage-green/40 bg-white/40 hover:bg-white/60"
+                                    }`}
+                                >
+                                    {hasVoted && (
+                                        <div 
+                                            className="absolute left-0 top-0 bottom-0 bg-sage-green/10 transition-all duration-500" 
+                                            style={{ width: `${percent}%` }}
+                                        />
+                                    )}
+                                    <span className="relative z-10 text-warm-grey font-medium">{opt.option_text}</span>
+                                    {hasVoted && (
+                                        <span className="relative z-10 font-bold text-warm-cocoa">{percent}% ({opt.votes_count})</span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {totalVotes > 0 && (
+                        <p className="text-[10px] text-warm-grey/40 mt-3 text-right font-medium">{totalVotes} total votes</p>
+                    )}
+                </div>
+            );
+        }
+ 
         return null;
     };
 

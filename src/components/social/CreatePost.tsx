@@ -131,6 +131,11 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [songArtwork, setSongArtwork] = useState("");
     const [showSongInput, setShowSongInput] = useState(false);
     const [isSongModalOpen, setIsSongModalOpen] = useState(false);
+ 
+    // Poll State
+    const [showPollCreator, setShowPollCreator] = useState(false);
+    const [pollQuestion, setPollQuestion] = useState("");
+    const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
 
     // User Identity State
     const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -255,7 +260,11 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
 
             // Determine Post Type
             let postType = 'text';
-            if (mediaUrls.length === 1) {
+            if (showPollCreator) {
+                postType = 'poll';
+            } else if (showSongInput) {
+                postType = 'song';
+            } else if (mediaUrls.length === 1) {
                 const file = uploadedFiles[0];
                 const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|webm|quicktime)$/i);
                 postType = isVideo ? 'video' : 'image';
@@ -287,6 +296,30 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                 throw new Error(`Failed to save post: ${insertError.message}`);
             }
 
+            // Insert Poll Details if type is poll
+            if (postType === 'poll') {
+                if (!pollQuestion.trim()) {
+                    throw new Error("Poll question cannot be empty");
+                }
+                const validOptions = pollOptions.filter(opt => opt.trim() !== "");
+                if (validOptions.length < 2) {
+                    throw new Error("Poll must have at least 2 options");
+                }
+
+                const { error: pollErr } = await supabase.from("polls").insert({
+                    post_id: data.id,
+                    question: pollQuestion.trim()
+                });
+                if (pollErr) throw pollErr;
+
+                const optsToInsert = validOptions.map(opt => ({
+                    post_id: data.id,
+                    option_text: opt.trim()
+                }));
+                const { error: optsErr } = await supabase.from("poll_options").insert(optsToInsert);
+                if (optsErr) throw optsErr;
+            }
+
             // Success
             setCaption("");
             setUploadedFiles([]); // Assuming this maps to setMediaFiles
@@ -298,6 +331,9 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             setSongLink("");
             setSongPreview("");
             setSongArtwork("");
+            setShowPollCreator(false);
+            setPollQuestion("");
+            setPollOptions(["", ""]);
             setIsLocationOpen(false);
             // setLocationQuery(""); // Not present in original, assuming it's a new state
             // setLocationResults([]); // Not present in original, assuming it's a new state
@@ -494,6 +530,64 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                     </div>
                                 </div>
                             ) : null}
+ 
+                            {/* Poll Creator UI */}
+                            {showPollCreator && (
+                                <div className="bg-white/40 p-4 rounded-xl border border-warm-grey/10 mb-4 animate-fade-in relative text-left">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-warm-cocoa">Create a Poll</label>
+                                        <button onClick={() => {
+                                            setShowPollCreator(false);
+                                            setPollQuestion("");
+                                            setPollOptions(["", ""]);
+                                        }} className="p-1 text-warm-grey/40 hover:text-red-400">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={pollQuestion}
+                                        onChange={(e) => setPollQuestion(e.target.value)}
+                                        placeholder="Ask a question..."
+                                        className="w-full px-3 py-2 text-xs rounded-lg bg-white/50 border border-warm-grey/5 focus:outline-none mb-3 text-warm-grey placeholder:text-warm-grey/40"
+                                    />
+                                    <div className="space-y-2">
+                                        {pollOptions.map((option, idx) => (
+                                            <div key={idx} className="flex gap-2 items-center">
+                                                <input
+                                                    type="text"
+                                                    value={option}
+                                                    onChange={(e) => {
+                                                        const newOpts = [...pollOptions];
+                                                        newOpts[idx] = e.target.value;
+                                                        setPollOptions(newOpts);
+                                                    }}
+                                                    placeholder={`Option ${idx + 1}`}
+                                                    className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-white/50 border border-warm-grey/5 focus:outline-none text-warm-grey placeholder:text-warm-grey/40"
+                                                />
+                                                {pollOptions.length > 2 && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setPollOptions(prev => prev.filter((_, i) => i !== idx));
+                                                        }}
+                                                        className="text-warm-grey/40 hover:text-red-400 p-1"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {pollOptions.length < 4 && (
+                                        <button
+                                            onClick={() => setPollOptions(prev => [...prev, ""])}
+                                            className="mt-3 text-[10px] text-warm-cocoa font-bold hover:underline block"
+                                        >
+                                            + Add Option
+                                        </button>
+                                    )}
+                                </div>
+                            )}
 
                             <SongSearchModal
                                 isOpen={isSongModalOpen}
@@ -534,6 +628,21 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                         >
                                             <Music className="w-5 h-5" />
                                             <span>Add Song</span>
+                                        </button>
+                                    )}
+ 
+                                    {!showPollCreator && !showSongInput && (
+                                        <button
+                                            onClick={() => {
+                                                setShowPollCreator(true);
+                                                // Clear files/song if active
+                                                setUploadedFiles([]);
+                                                setPreviewUrls([]);
+                                            }}
+                                            className="text-warm-grey/40 hover:text-sage-green transition-colors flex items-center gap-2 text-xs"
+                                        >
+                                            <span className="text-sm">📊</span>
+                                            <span>Add Poll</span>
                                         </button>
                                     )}
 

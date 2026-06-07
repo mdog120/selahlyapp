@@ -10,6 +10,7 @@ import { SelahlyNotes } from "@/components/social/SelahlyNotes";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
 import { InstagramEmbed } from "@/components/social/InstagramEmbed";
 import { HomeOnboarding } from "@/components/home/HomeOnboarding";
+import { MomentsBar } from "@/components/social/MomentsBar";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,7 @@ export default async function UserHome(props: {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Main Feed - The Lily Pad */}
                     <div className="lg:col-span-8 flex flex-col gap-6">
+                        <MomentsBar />
                         {/* Feed Header */}
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="font-serif text-2xl text-warm-grey">The Lily Pad</h2>
