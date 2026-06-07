@@ -6,6 +6,7 @@ import { useParams, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Search, Circle, Users } from "lucide-react";
 import { CreateGroupModal } from "./CreateGroupModal";
+import { SelahlyNotes } from "../social/SelahlyNotes";
 
 type Friend = {
     id: string;
@@ -230,6 +231,8 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 space-y-4">
+                <SelahlyNotes />
+
                 {loading ? (
                     <div className="p-4 text-center text-xs text-warm-grey/40">Loading conversations...</div>
                 ) : (

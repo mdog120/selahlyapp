@@ -6,7 +6,6 @@ import { SocialFeed } from "@/components/social/SocialFeed";
 import { Greeting } from "@/components/home/Greeting";
 import { DailyVerseCard } from "@/components/home/DailyVerseCard";
 import { PrayerRequestList } from "@/components/home/PrayerRequestList";
-import { SelahlyNotes } from "@/components/social/SelahlyNotes";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
 import { InstagramEmbed } from "@/components/social/InstagramEmbed";
 import { HomeOnboarding } from "@/components/home/HomeOnboarding";
@@ -70,7 +69,6 @@ export default async function UserHome(props: {
 
             <div className="container mx-auto px-4 pt-8 pb-20 max-w-5xl">
                 {/* Welcome Section */}
-                <SelahlyNotes />
                 <header className="mb-8 text-center md:text-left animate-fade-in-up">
                     <Greeting displayName={displayName} />
                     <p className="text-warm-grey/60">"She is clothed with strength and dignity..." — Proverbs 31:25</p>
