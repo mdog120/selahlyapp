@@ -240,7 +240,9 @@ export function Navbar() {
                 </div>
             </div>
 
-            <DonateModal isOpen={isDonateModalOpen} onClose={() => setIsDonateModalOpen(false)} />
+            {isDonateModalOpen && (
+                <DonateModal isOpen={isDonateModalOpen} onClose={() => setIsDonateModalOpen(false)} />
+            )}
         </nav>
     );
 }
