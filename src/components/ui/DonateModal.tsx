@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { X, CreditCard, Heart, ShieldCheck, Loader2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Button } from "./Button";
-import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe } from "@stripe/stripe-js/pure";
 import { 
     Elements, 
     CardElement, 
@@ -13,9 +13,14 @@ import {
     PaymentRequestButtonElement 
 } from "@stripe/react-stripe-js";
 
-// Initialize Stripe Promise
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+// Lazy load Stripe to prevent server-side rendering (SSR) crashes
+let stripePromise: any = null;
+const getStripe = () => {
+    if (!stripePromise && typeof window !== "undefined" && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+        stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+    }
+    return stripePromise;
+};
 
 interface DonateModalProps {
     isOpen: boolean;
@@ -32,6 +37,9 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
 
     const presetAmounts = ["5", "10", "25", "50", "100"];
     const finalAmount = amount === "custom" ? customAmount : amount;
+
+    // Check if key is configured (client-side safe)
+    const hasStripeKey = typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
     useEffect(() => {
         if (!isOpen) {
@@ -135,7 +143,7 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
                 </div>
 
                 {/* Warning message if Stripe Publishable Key is missing */}
-                {!stripePromise && step !== "success" && (
+                {!hasStripeKey && step !== "success" && (
                     <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-xs text-red-600 leading-relaxed text-left z-10">
                         <span className="font-bold">Stripe configuration required:</span> Please add <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> and <code>STRIPE_SECRET_KEY</code> to your <code>.env.local</code> file to enable donations.
                     </div>
@@ -202,7 +210,7 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
                         <Button 
                             className="w-full mt-2 bg-gradient-to-r from-muted-rose to-rose-400 text-white rounded-2xl py-6 font-serif tracking-widest hover:scale-[1.01] transition-transform shadow-lg shadow-muted-rose/25"
                             onClick={handleNextToPayment}
-                            disabled={loadingSecret || !stripePromise}
+                            disabled={loadingSecret || !hasStripeKey}
                         >
                             {loadingSecret ? (
                                 <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-4 h-4 animate-spin" /> INITIALIZING...</span>
@@ -212,14 +220,14 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
                 )}
 
                 {/* Step 2: Stripe Payment Form */}
-                {step === "payment" && clientSecret && stripePromise && (
+                {step === "payment" && clientSecret && getStripe() && (
                     <div className="flex flex-col gap-4 z-10 animate-fade-in">
                         <div className="flex items-center justify-between pb-3 border-b border-warm-grey/5">
                             <span className="text-xs font-bold text-warm-cocoa uppercase tracking-wider">Donation Total</span>
                             <span className="font-serif text-xl font-bold text-warm-grey">${parseFloat(finalAmount).toFixed(2)}</span>
                         </div>
 
-                        <Elements stripe={stripePromise} options={{ clientSecret }}>
+                        <Elements stripe={getStripe()} options={{ clientSecret }}>
                             <StripeCheckoutForm 
                                 amount={finalAmount}
                                 clientSecret={clientSecret}

@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { Menu, Heart, Bell, X, Search, User, Settings, LogOut, MessageCircle, BookOpen, Home, Lock, Music, Book } from "lucide-react";
 import { NotificationDropdown } from "./NotificationDropdown";
-import { DonateModal } from "@/components/ui/DonateModal";
+import dynamic from "next/dynamic";
+
+const DonateModal = dynamic(() => import("@/components/ui/DonateModal").then(mod => mod.DonateModal), {
+    ssr: false,
+});
 
 export function Navbar() {
     const pathname = usePathname();
