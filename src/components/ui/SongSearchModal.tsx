@@ -87,7 +87,7 @@ export function SongSearchModal({ isOpen, onClose, onSelect }: SongSearchModalPr
                                 <img src={song.artworkUrl100} alt={song.trackName} className="w-full h-full object-cover" />
                                 <button
                                     onClick={(e) => { e.stopPropagation(); togglePreview(song.previewUrl, song.trackId); }}
-                                    className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                                 >
                                     {playingId === song.trackId ? (
                                         <Pause className="w-5 h-5 text-white fill-current" />
@@ -138,10 +138,8 @@ export function SongSearchModal({ isOpen, onClose, onSelect }: SongSearchModalPr
             const data = await res.json();
 
             // Client-side double check to ensure genre matches
-            const filteredResults = (data.results || []).filter((song: any) => {
-                const genre = (song.primaryGenreName || "").toLowerCase();
-                return genre.includes("christian") || genre.includes("gospel") || genre.includes("worship") || genre.includes("religious");
-            });
+            // Relax genre check to allow all iTunes Christian search query results (prevents missing songs categorized as Pop/Rock/Alternative)
+            const filteredResults = data.results || [];
 
             setResults(filteredResults);
         } catch (err) {

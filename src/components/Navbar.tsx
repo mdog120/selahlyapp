@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { Menu, Heart, Bell, X, Search, User, Settings, LogOut, MessageCircle, BookOpen, Home, Lock, Music, Book } from "lucide-react";
 import { NotificationDropdown } from "./NotificationDropdown";
+import { DonateModal } from "@/components/ui/DonateModal";
 
 export function Navbar() {
     const pathname = usePathname();
@@ -14,6 +15,7 @@ export function Navbar() {
 
     // State
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isDonateModalOpen, setIsDonateModalOpen] = useState(false);
     const [userProfile, setUserProfile] = useState<{ name: string, email: string } | null>(null);
     const supabase = createClient();
 
@@ -70,24 +72,7 @@ export function Navbar() {
                     Selahly
                 </Link>
 
-                {/* Center - Quick Links */}
-                <div className="hidden md:flex items-center gap-1 bg-stone-50/50 p-1 rounded-full border border-warm-grey/5">
-                    <Link href="/home" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/home' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
-                        Lily Pad
-                    </Link>
-                    <Link href="/diaries" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/diaries' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
-                        Diaries
-                    </Link>
-                    <Link href="/prayer-pocket" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/prayer-pocket' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
-                        Prayers
-                    </Link>
-                    <Link href="/velvet-vault" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/velvet-vault' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
-                        The Vault
-                    </Link>
-                    <Link href="/vibe-board" className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${pathname === '/vibe-board' ? 'bg-white shadow-sm text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey hover:bg-stone-100'}`}>
-                        Vibes
-                    </Link>
-                </div>
+                {/* Center - Quick Links removed because they duplicate the hamburger menu */}
 
                 {/* Right Actions */}
                 <div className="flex items-center gap-2 md:gap-4">
@@ -161,6 +146,16 @@ export function Navbar() {
                                 >
                                     <span className="text-lg">🌸</span> Grace Inhale
                                 </Link>
+
+                                <button
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        setIsDonateModalOpen(true);
+                                    }}
+                                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-rose-50 text-warm-grey/80 hover:text-muted-rose transition-colors text-left w-full cursor-pointer"
+                                >
+                                    <span className="text-lg">💖</span> Support Selahly
+                                </button>
 
                                 <div className="h-px bg-warm-grey/5 my-1" />
 
@@ -241,6 +236,7 @@ export function Navbar() {
                 </div>
             </div>
 
+            <DonateModal isOpen={isDonateModalOpen} onClose={() => setIsDonateModalOpen(false)} />
         </nav>
     );
 }

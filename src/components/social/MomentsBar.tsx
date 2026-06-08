@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, Upload, Loader2, Sparkles } from "lucide-react";
+import { Plus, X, Upload, Loader2, Sparkles, Music } from "lucide-react";
 import { MomentModal } from "./MomentModal";
 import { Button } from "@/components/ui/Button";
+import { SongSearchModal } from "@/components/ui/SongSearchModal";
 
 type Moment = {
     id: string;
@@ -45,6 +46,15 @@ export function MomentsBar() {
     const [filePreview, setFilePreview] = useState<string | null>(null);
     const [creating, setCreating] = useState(false);
 
+    // Song selection state
+    const [songTitle, setSongTitle] = useState("");
+    const [songArtist, setSongArtist] = useState("");
+    const [songLink, setSongLink] = useState("");
+    const [songPreview, setSongPreview] = useState("");
+    const [songArtwork, setSongArtwork] = useState("");
+    const [showSongInput, setShowSongInput] = useState(false);
+    const [isSongModalOpen, setIsSongModalOpen] = useState(false);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
@@ -73,6 +83,7 @@ export function MomentsBar() {
                 .from("moments")
                 .select(`
                     id, media_url, caption, background_color, created_at, user_id,
+                    song_title, song_artist, song_album_art, song_preview_url, song_link,
                     profiles!moments_user_id_fkey (first_name, username, avatar_url)
                 `)
                 .gt("created_at", twentyFourHoursAgo)
@@ -145,7 +156,12 @@ export function MomentsBar() {
                     user_id: currentUser.id,
                     caption: caption.trim() || null,
                     media_url: mediaUrl,
-                    background_color: selectedFile ? 'default' : bgColor
+                    background_color: selectedFile ? 'default' : bgColor,
+                    song_title: songTitle.trim() || null,
+                    song_artist: songArtist.trim() || null,
+                    song_album_art: songArtwork?.trim() || null,
+                    song_preview_url: songPreview?.trim() || null,
+                    song_link: songLink.trim() || null
                 });
 
             if (insertError) throw insertError;
@@ -155,6 +171,12 @@ export function MomentsBar() {
             setBgColor("rose");
             setSelectedFile(null);
             setFilePreview(null);
+            setSongTitle("");
+            setSongArtist("");
+            setSongLink("");
+            setSongPreview("");
+            setSongArtwork("");
+            setShowSongInput(false);
             setIsCreatorOpen(false);
 
             // Reload moments
@@ -266,6 +288,8 @@ export function MomentsBar() {
                     moments={selectedGroup.moments}
                     userName={selectedGroup.userName}
                     userAvatar={selectedGroup.userAvatar}
+                    currentUserId={currentUser?.id}
+                    onMomentDeleted={loadCurrentUserAndMoments}
                 />
             )}
 
@@ -294,7 +318,11 @@ export function MomentsBar() {
                         <div className="relative aspect-[9/16] max-h-[300px] w-full rounded-2xl border border-warm-grey/10 overflow-hidden flex items-center justify-center shadow-inner">
                             {filePreview ? (
                                 <>
-                                    <img src={filePreview} alt="Preview" className="w-full h-full object-cover" />
+                                    {selectedFile?.type.startsWith('video/') ? (
+                                        <video src={filePreview} controls muted className="w-full h-full object-cover" />
+                                    ) : (
+                                        <img src={filePreview} alt="Preview" className="w-full h-full object-cover" />
+                                    )}
                                     <button 
                                         onClick={() => {
                                             setSelectedFile(null);
@@ -357,33 +385,89 @@ export function MomentsBar() {
                             </div>
                         )}
 
-                        {/* Photo selection button */}
+                        {/* Song Inputs */}
+                        {showSongInput ? (
+                            <div className="bg-white/40 p-3 rounded-xl border border-warm-grey/10 relative group">
+                                <div className="flex items-center gap-3">
+                                    {songArtwork ? (
+                                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                            <img src={songArtwork} alt="Cover" className="w-full h-full object-cover" />
+                                        </div>
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
+                                            <Music className="w-5 h-5 text-warm-grey/40" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <div className="font-bold text-warm-cocoa truncate text-xs">{songTitle}</div>
+                                        <div className="text-[10px] text-warm-grey/60 truncate">{songArtist}</div>
+                                    </div>
+                                    <button onClick={() => {
+                                        setShowSongInput(false);
+                                        setSongTitle("");
+                                        setSongArtist("");
+                                        setSongLink("");
+                                        setSongPreview("");
+                                        setSongArtwork("");
+                                    }} className="p-1 text-warm-grey/40 hover:text-red-400">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : null}
+
+                        {/* Photo/Video selection button */}
                         <input 
                             type="file"
                             ref={fileInputRef}
                             className="hidden"
-                            accept="image/*"
+                            accept="image/*,video/*"
                             onChange={handleFileChange}
                         />
 
-                        <div className="flex gap-2 mt-2">
-                            <Button 
-                                variant="outline"
-                                size="sm"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex-1 border-warm-grey/10 text-warm-grey flex items-center justify-center gap-1"
-                            >
-                                <Upload className="w-4 h-4" /> Photo
-                            </Button>
+                        <div className="flex flex-col gap-2 mt-2">
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex-1 border-warm-grey/10 text-warm-grey flex items-center justify-center gap-1"
+                                >
+                                    <Upload className="w-4 h-4" /> Photo/Video
+                                </Button>
+                                {!showSongInput && (
+                                    <Button 
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsSongModalOpen(true)}
+                                        className="flex-1 border-warm-grey/10 text-warm-grey flex items-center justify-center gap-1"
+                                    >
+                                        <Music className="w-4 h-4" /> Add Song
+                                    </Button>
+                                )}
+                            </div>
                             <Button 
                                 size="sm"
                                 onClick={handleShareMoment}
                                 disabled={creating || (!caption.trim() && !selectedFile)}
-                                className="flex-1 bg-muted-rose hover:bg-muted-rose/90 text-white flex items-center justify-center gap-1 shadow-md shadow-muted-rose/10"
+                                className="w-full bg-muted-rose hover:bg-muted-rose/90 text-white flex items-center justify-center gap-1 shadow-md shadow-muted-rose/10 py-5 text-xs font-bold uppercase tracking-wider"
                             >
                                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Share Moment ౨ৎ"}
                             </Button>
                         </div>
+
+                        <SongSearchModal
+                            isOpen={isSongModalOpen}
+                            onClose={() => setIsSongModalOpen(false)}
+                            onSelect={(song) => {
+                                setSongTitle(song.title);
+                                setSongArtist(song.artist);
+                                setSongLink(song.link);
+                                setSongPreview(song.previewUrl);
+                                setSongArtwork(song.artwork);
+                                setShowSongInput(true);
+                            }}
+                        />
                     </div>
                 </div>
             )}

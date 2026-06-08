@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Outfit } from "next/font/google"; // Elegant serif + clean sans
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import Link from "next/link";
+import { LayoutContent } from "@/components/LayoutContent";
 import { BadgeProvider } from "@/context/BadgeContext";
 import "./globals.css";
 
@@ -22,6 +20,9 @@ export const metadata: Metadata = {
   icons: {
     icon: '/logo-v2.png',
   },
+  other: {
+    "apple-mobile-web-app-status-bar-style": "default",
+  }
 };
 
 export const viewport: Viewport = {
@@ -30,6 +31,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: "#FDFBF7",
 };
 
 export default function RootLayout({
@@ -43,13 +45,9 @@ export default function RootLayout({
         className={`${playfair.variable} ${outfit.variable} antialiased bg-warm-paper text-warm-grey`}
       >
         <BadgeProvider>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-1 pt-[calc(4rem+env(safe-area-inset-top,0px))]">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <LayoutContent>
+            {children}
+          </LayoutContent>
         </BadgeProvider>
       </body>
     </html>
