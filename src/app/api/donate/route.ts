@@ -13,9 +13,7 @@ export async function POST(request: Request) {
         }
 
         // Initialize Stripe inside the handler to prevent build-time crashes when secret key is not set
-        const stripe = new Stripe(stripeSecret, {
-            apiVersion: "2025-01-27" as any,
-        });
+        const stripe = new Stripe(stripeSecret);
 
         const body = await request.json();
         const { amount } = body;
