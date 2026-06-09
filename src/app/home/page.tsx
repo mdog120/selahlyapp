@@ -78,6 +78,10 @@ export default async function UserHome(props: {
                     {/* Main Feed - The Lily Pad */}
                     <div className="lg:col-span-8 flex flex-col gap-6">
                         <MomentsBar />
+
+                        {/* Selah Sister Feature */}
+                        <SelahSisterCard />
+
                         {/* Feed Header */}
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="font-serif text-2xl text-warm-grey">The Lily Pad</h2>
@@ -90,9 +94,6 @@ export default async function UserHome(props: {
 
                     {/* Sidebar (Mature Widgets) */}
                     <div className="lg:col-span-4 flex flex-col gap-6">
-
-                        {/* Selah Sister Feature */}
-                        <SelahSisterCard />
 
                         {/* Grace & Glow (Daily Verse) */}
                         <DailyVerseCard />
