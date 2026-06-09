@@ -1,0 +1,22 @@
+{
+  "name": "Selahly",
+  "short_name": "Selahly",
+  "description": "A peaceful digital sanctuary for faith, sisterhood, and inspiration.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#FDFBF7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/brand-icon-v2.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand-icon-v3.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

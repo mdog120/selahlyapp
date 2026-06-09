@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
 
 interface LayoutContentProps {
     children: React.ReactNode;
@@ -24,9 +25,10 @@ export function LayoutContent({ children }: LayoutContentProps) {
     return (
         <div className="flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-1 pt-[calc(4rem+env(safe-area-inset-top,0px))]">
+            <main className="flex-1 pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
                 {children}
             </main>
+            <BottomNav />
         </div>
     );
 }

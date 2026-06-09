@@ -128,6 +128,22 @@ body {
   background: var(--warm-paper);
   color: var(--warm-grey);
   font-family: var(--font-outfit);
+  -webkit-text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
+}
+
+/* Mobile-native app experience optimizations */
+button, 
+a, 
+svg, 
+select, 
+input[type="submit"], 
+input[type="button"] {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 /* Custom Utilities */

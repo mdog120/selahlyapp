@@ -81,12 +81,12 @@ export function Navbar() {
                 {/* Right Actions */}
                 <div className="flex items-center gap-2 md:gap-4">
                     {/* Bible Widget */}
-                    <Link href="/bible" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors" title="Read Bible">
-                        <BookOpen className="w-5 h-5" />
+                    <Link href="/bible" className="hidden md:flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors" title="Read Bible">
+                        <Book className="w-5 h-5" />
                     </Link>
 
                     {/* Search Link */}
-                    <Link href="/search" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors">
+                    <Link href="/search" className="hidden md:flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors">
                         <Search className="w-5 h-5" />
                     </Link>
 
@@ -151,6 +151,30 @@ export function Navbar() {
                                     <span className="text-lg">🌸</span> Grace Inhale
                                 </Link>
 
+                                <Link
+                                    href="/bible"
+                                    className="md:hidden flex items-center gap-3 p-2 rounded-xl hover:bg-stone-50 text-warm-grey/80 hover:text-warm-cocoa transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">📖</span> Read Bible
+                                </Link>
+
+                                <Link
+                                    href="/vibe-board"
+                                    className="md:hidden flex items-center gap-3 p-2 rounded-xl hover:bg-teal-50 text-warm-grey/80 hover:text-teal-700 transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">🎵</span> Vibes Board
+                                </Link>
+
+                                <Link
+                                    href="/search"
+                                    className="md:hidden flex items-center gap-3 p-2 rounded-xl hover:bg-soft-blush/20 text-warm-grey/80 hover:text-warm-grey transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <Search className="w-4 h-4" /> Search
+                                </Link>
+
                                 <button
                                     onClick={() => {
                                         setIsMenuOpen(false);
@@ -163,7 +187,7 @@ export function Navbar() {
 
                                 <div className="h-px bg-warm-grey/5 my-1" />
 
-                                <div className="px-1 py-1">
+                                <div className="hidden md:block px-1 py-1">
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-warm-grey/40 mb-2">Quick Navigation</p>
                                     <div className="grid grid-cols-2 gap-2">
                                         <Link
@@ -217,15 +241,7 @@ export function Navbar() {
                                     </div>
                                 </div>
 
-                                <div className="h-px bg-warm-grey/5 my-1" />
-
-                                {/* Mobile Search */}
-                                <div className="md:hidden pb-2">
-                                    <div className="relative px-2">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 text-warm-grey/40" />
-                                        <input type="text" placeholder="Search..." className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-warm-paper/50 border border-transparent" />
-                                    </div>
-                                </div>
+                                <div className="hidden md:block h-px bg-warm-grey/5 my-1" />
 
                                 <Link
                                     href="/"

@@ -19,10 +19,14 @@ export const metadata: Metadata = {
   description: "A peaceful digital pause for faith, sisterhood, and inspiration.",
   icons: {
     icon: '/logo-v2.png',
+    apple: '/brand-icon-v2.png',
   },
-  other: {
-    "apple-mobile-web-app-status-bar-style": "default",
-  }
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Selahly",
+  },
 };
 
 export const viewport: Viewport = {
