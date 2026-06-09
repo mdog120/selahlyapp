@@ -50,7 +50,7 @@ export function BottomNav() {
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-[env(safe-area-inset-bottom,0px)] bg-warm-paper/95 backdrop-blur-lg border-t border-warm-grey/5 transition-all duration-300">
-            <div className="flex items-center justify-around h-16 px-2">
+            <div className="flex items-center justify-around h-14 px-2">
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.path;

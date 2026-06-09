@@ -124,6 +124,10 @@
   animation-delay: 300ms;
 }
 
+html {
+  background: var(--warm-paper);
+}
+
 body {
   background: var(--warm-paper);
   color: var(--warm-grey);
