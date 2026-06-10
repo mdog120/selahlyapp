@@ -34,6 +34,7 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [loadingSecret, setLoadingSecret] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [retrievedAmount, setRetrievedAmount] = useState<number | null>(null);
 
     const presetAmounts = ["5", "10", "25", "50", "100"];
     const finalAmount = amount === "custom" ? customAmount : amount;
@@ -49,6 +50,35 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
             setClientSecret(null);
             setLoadingSecret(false);
             setErrorMsg(null);
+            setRetrievedAmount(null);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !isOpen) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const redirectStatus = params.get("redirect_status");
+        const clientSecretParam = params.get("payment_intent_client_secret");
+
+        if (redirectStatus === "succeeded" && clientSecretParam) {
+            const promise = getStripe();
+            if (promise) {
+                promise.then((stripeInstance: any) => {
+                    if (!stripeInstance) return;
+                    stripeInstance.retrievePaymentIntent(clientSecretParam).then(({ paymentIntent }: any) => {
+                        if (paymentIntent) {
+                            setRetrievedAmount(paymentIntent.amount / 100);
+                            setStep("success");
+                            triggerConfetti();
+
+                            // Clean up URL parameters so a page refresh doesn't trigger the success modal again
+                            const newUrl = window.location.pathname;
+                            window.history.replaceState({}, document.title, newUrl);
+                        }
+                    });
+                });
+            }
         }
     }, [isOpen]);
 
@@ -256,7 +286,7 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
                         <div className="space-y-2">
                             <h2 className="font-serif text-2xl text-warm-cocoa font-medium">Thank You, Sister!</h2>
                             <p className="text-sm text-warm-grey/70 max-w-xs leading-relaxed">
-                                Your donation of <strong>${parseFloat(finalAmount).toFixed(2)}</strong> has been processed successfully. Thank you for sowing into this digital sanctuary!
+                                Your donation of <strong>${retrievedAmount !== null ? retrievedAmount.toFixed(2) : parseFloat(finalAmount).toFixed(2)}</strong> has been processed successfully. Thank you for sowing into this digital sanctuary!
                             </p>
                         </div>
                         <Button 
@@ -346,6 +376,7 @@ function StripeCheckoutForm({ amount, clientSecret, onSuccess }: StripeCheckoutF
                         name: cardName.trim(),
                     },
                 },
+                return_url: window.location.href,
             });
 
             if (error) {

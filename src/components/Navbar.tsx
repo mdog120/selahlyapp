@@ -43,6 +43,16 @@ export function Navbar() {
         setIsMenuOpen(false);
     }, [pathname]);
 
+    // Auto-open donation modal if returning from a successful Stripe redirect
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("redirect_status") === "succeeded") {
+                setIsDonateModalOpen(true);
+            }
+        }
+    }, []);
+
     const handleSignOut = async (e: React.MouseEvent) => {
         e.preventDefault();
         setIsMenuOpen(false);
