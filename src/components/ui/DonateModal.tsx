@@ -388,6 +388,8 @@ function StripeCheckoutForm({ amount, clientSecret, onSuccess }: StripeCheckoutF
                     },
                 },
                 return_url: window.location.href,
+            }, {
+                redirect: "if_required"
             });
 
             if (error) {
