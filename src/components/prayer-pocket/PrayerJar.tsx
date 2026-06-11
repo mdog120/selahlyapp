@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Heart, Sparkles, X, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 
 type Prayer = {
     id: string;
@@ -42,6 +43,7 @@ interface Particle {
     pulseDir: number;
     userPrayed: boolean;
     trail: TrailPoint[];
+    wingAngle: number;
 }
 
 interface Sparkle {
@@ -82,17 +84,17 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
         const existingParticles = particlesRef.current;
         const newParticles: Particle[] = [];
 
-        // Map prayers to particles. Keep positions if they still exist.
         prayers.forEach((prayer) => {
             const existing = existingParticles.find((p) => p.id === prayer.id);
             if (existing) {
                 existing.userPrayed = !!prayer.user_prayed;
                 newParticles.push(existing);
             } else {
-                const radius = 5 + Math.random() * 3.5;
-                const speed = 0.15 + Math.random() * 0.25;
+                // Sizing butterflies slightly larger than dots to render wing paths clearly
+                const radius = 6.5 + Math.random() * 3.5;
+                const speed = 0.12 + Math.random() * 0.22;
                 
-                const y = 90 + Math.random() * (height - 130);
+                const y = 100 + Math.random() * (height - 150);
                 const halfWidth = getJarWidthAtY(y, height, width);
                 const x = centerX + (Math.random() - 0.5) * halfWidth * 1.7;
 
@@ -100,16 +102,17 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     id: prayer.id,
                     x,
                     y,
-                    vx: (Math.random() - 0.5) * 0.3,
-                    vy: (Math.random() - 0.5) * 0.3,
+                    vx: (Math.random() - 0.5) * 0.25,
+                    vy: (Math.random() - 0.5) * 0.25,
                     radius,
                     angle: Math.random() * Math.PI * 2,
                     speed,
-                    alpha: 0.3 + Math.random() * 0.65,
-                    pulseSpeed: 0.008 + Math.random() * 0.015,
+                    alpha: 0.35 + Math.random() * 0.6,
+                    pulseSpeed: 0.007 + Math.random() * 0.012,
                     pulseDir: Math.random() > 0.5 ? 1 : -1,
                     userPrayed: !!prayer.user_prayed,
                     trail: [],
+                    wingAngle: Math.random() * Math.PI * 2,
                 });
             }
         });
@@ -119,17 +122,17 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
         // Initialize background sparkles if empty
         if (sparklesRef.current.length === 0) {
             const sparkles: Sparkle[] = [];
-            for (let i = 0; i < 22; i++) {
-                const sy = 80 + Math.random() * (height - 120);
+            for (let i = 0; i < 24; i++) {
+                const sy = 90 + Math.random() * (height - 130);
                 const shalfWidth = getJarWidthAtY(sy, height, width);
                 const sx = centerX + (Math.random() - 0.5) * shalfWidth * 1.8;
 
                 sparkles.push({
                     x: sx,
                     y: sy,
-                    size: 1 + Math.random() * 1.5,
+                    size: 1 + Math.random() * 1.8,
                     alpha: Math.random() * 0.6,
-                    fadeSpeed: 0.005 + Math.random() * 0.008,
+                    fadeSpeed: 0.004 + Math.random() * 0.007,
                     fadeDir: Math.random() > 0.5 ? 1 : -1,
                 });
             }
@@ -138,16 +141,17 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
     }, [prayers]);
 
     // Jar shape boundary helper: returns half-width of the jar at a given Y coordinate
+    // Configured for the new enlarged 380 x 480 dimensions
     const getJarWidthAtY = (y: number, height: number, width: number): number => {
-        const neckY = height * 0.22;
-        const shoulderY = height * 0.32;
-        const padding = 28;
+        const neckY = height * 0.22; // ~105px
+        const shoulderY = height * 0.32; // ~153px
+        const padding = 34; // margins to prevent clips
 
         if (y < neckY) {
-            return (width * 0.48) / 2 - padding;
+            return (width * 0.48) / 2 - padding; // ~60px limit
         } else if (y < shoulderY) {
             const t = (y - neckY) / (shoulderY - neckY);
-            const w = width * 0.48 + t * (width * 0.36);
+            const w = width * 0.48 + t * (width * 0.36); // expands to width * 0.84
             return w / 2 - padding;
         } else {
             const bodyHeight = height - shoulderY;
@@ -157,8 +161,81 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                 const curve = Math.sqrt(Math.max(0, 1 - t * t));
                 return (width * 0.86 / 2 * curve) - padding;
             }
-            return (width * 0.86) / 2 - padding;
+            return (width * 0.86) / 2 - padding; // ~130px limit
         }
+    };
+
+    // Vector-drawn butterfly with flapping wings
+    const drawButterfly = (
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        radius: number,
+        angle: number,
+        wingAngle: number,
+        alpha: number,
+        colorHex: string,
+        userPrayed: boolean
+    ) => {
+        ctx.save();
+        ctx.translate(x, y);
+        // Rotate body to face the general drift direction
+        ctx.rotate(angle);
+
+        // Flapping wings ratio using sine wave (oscillates width between 0.15 and 1.0)
+        const flap = Math.sin(wingAngle);
+        const wingScaleX = 0.22 + 0.78 * Math.abs(flap);
+
+        const wSize = radius * 1.5;
+
+        // Double glow pass configurations
+        const glowRadius = userPrayed ? radius * 4.8 : radius * 3.2;
+
+        // Draw Left Wings
+        ctx.save();
+        ctx.beginPath();
+        // Upper-Left
+        ctx.ellipse(-wSize * 0.5 * wingScaleX, -wSize * 0.3, wSize * 0.55 * wingScaleX, wSize * 0.45, -Math.PI / 6, 0, Math.PI * 2);
+        // Lower-Left
+        ctx.ellipse(-wSize * 0.4 * wingScaleX, wSize * 0.35, wSize * 0.4 * wingScaleX, wSize * 0.35, Math.PI / 8, 0, Math.PI * 2);
+        
+        ctx.shadowBlur = glowRadius * 1.5;
+        ctx.shadowColor = `rgba(${colorHex}, ${alpha * 0.8})`;
+        ctx.fillStyle = userPrayed ? `rgba(244, 160, 160, ${alpha * 0.85})` : `rgba(252, 211, 77, ${alpha * 0.85})`;
+        ctx.fill();
+        ctx.restore();
+
+        // Draw Right Wings
+        ctx.save();
+        ctx.beginPath();
+        // Upper-Right
+        ctx.ellipse(wSize * 0.5 * wingScaleX, -wSize * 0.3, wSize * 0.55 * wingScaleX, wSize * 0.45, Math.PI / 6, 0, Math.PI * 2);
+        // Lower-Right
+        ctx.ellipse(wSize * 0.4 * wingScaleX, wSize * 0.35, wSize * 0.4 * wingScaleX, wSize * 0.35, -Math.PI / 8, 0, Math.PI * 2);
+        
+        ctx.shadowBlur = glowRadius * 1.5;
+        ctx.shadowColor = `rgba(${colorHex}, ${alpha * 0.8})`;
+        ctx.fillStyle = userPrayed ? `rgba(244, 160, 160, ${alpha * 0.85})` : `rgba(252, 211, 77, ${alpha * 0.85})`;
+        ctx.fill();
+        ctx.restore();
+
+        // White-hot Core Body (No blur to keep body sharp)
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radius * 0.16, radius * 0.82, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Delicate antennae
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(-radius * 0.22, -radius * 0.8, radius * 0.45, 0, Math.PI * 1.15, true);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(radius * 0.22, -radius * 0.8, radius * 0.45, -Math.PI * 0.15, Math.PI, true);
+        ctx.stroke();
+
+        ctx.restore();
     };
 
     // Canvas rendering & physics loop
@@ -176,67 +253,64 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
             const height = canvas.height;
             const centerX = width / 2;
 
-            // Calculate mouse velocity for active stir force
+            // Track cursor velocity
             if (mousePos && lastMousePosRef.current) {
                 const dx = mousePos.x - lastMousePosRef.current.x;
                 const dy = mousePos.y - lastMousePosRef.current.y;
-                // Soft smoothing on velocity
                 mouseVelocityRef.current = {
-                    x: mouseVelocityRef.current.x * 0.8 + dx * 0.15,
-                    y: mouseVelocityRef.current.y * 0.8 + dy * 0.15,
+                    x: mouseVelocityRef.current.x * 0.78 + dx * 0.18,
+                    y: mouseVelocityRef.current.y * 0.78 + dy * 0.18,
                 };
             } else {
                 mouseVelocityRef.current = {
-                    x: mouseVelocityRef.current.x * 0.9,
-                    y: mouseVelocityRef.current.y * 0.9,
+                    x: mouseVelocityRef.current.x * 0.85,
+                    y: mouseVelocityRef.current.y * 0.85,
                 };
             }
             lastMousePosRef.current = mousePos;
 
-            // Clear canvas completely
+            // Clear frame
             ctx.clearRect(0, 0, width, height);
 
-            // 1. Draw Pulsing Ambient Jar Background Aura
-            ambientAngleRef.current += 0.006;
-            const ambientGlow = 0.08 + Math.sin(ambientAngleRef.current) * 0.03;
+            // 1. Pulsing Ambient Glass Glow (Aesthetic gradient backing)
+            ambientAngleRef.current += 0.005;
+            const ambientGlow = 0.1 + Math.sin(ambientAngleRef.current) * 0.035;
             
             ctx.save();
             const bgGrad = ctx.createRadialGradient(
-                centerX, height * 0.6, 10,
+                centerX, height * 0.6, 15,
                 centerX, height * 0.6, width * 0.45
             );
-            // Multi-layered amber-rose light gradient
             bgGrad.addColorStop(0, `rgba(251, 191, 36, ${ambientGlow})`);
-            bgGrad.addColorStop(0.4, `rgba(212, 165, 165, ${ambientGlow * 0.8})`);
-            bgGrad.addColorStop(1, "rgba(10, 10, 10, 0)");
+            bgGrad.addColorStop(0.5, `rgba(214, 115, 115, ${ambientGlow * 0.75})`);
+            bgGrad.addColorStop(1, "rgba(20, 18, 38, 0)");
             ctx.fillStyle = bgGrad;
             ctx.beginPath();
-            ctx.rect(30, 60, width - 60, height - 90);
+            ctx.rect(30, 70, width - 60, height - 100);
             ctx.fill();
             ctx.restore();
 
-            // 2. Draw Twinkling Background Sparkles (Stardust)
+            // 2. Twinkling Background Sparkles (Stardust)
             const sparkles = sparklesRef.current;
             sparkles.forEach((s) => {
                 s.alpha += s.fadeSpeed * s.fadeDir;
-                if (s.alpha > 0.65) {
-                    s.alpha = 0.65;
+                if (s.alpha > 0.6) {
+                    s.alpha = 0.6;
                     s.fadeDir = -1;
                 } else if (s.alpha < 0.05) {
                     s.alpha = 0.05;
                     s.fadeDir = 1;
                     
-                    // Relocate sparkle randomly within jar to keep background fresh
-                    const newY = 80 + Math.random() * (height - 120);
+                    const newY = 90 + Math.random() * (height - 130);
                     const shalfWidth = getJarWidthAtY(newY, height, width);
                     s.x = centerX + (Math.random() - 0.5) * shalfWidth * 1.8;
                     s.y = newY;
-                    s.size = 1 + Math.random() * 1.8;
+                    s.size = 1 + Math.random() * 1.6;
                 }
 
                 ctx.save();
                 ctx.shadowBlur = s.size * 2.5;
-                ctx.shadowColor = "rgba(254, 243, 199, 0.8)"; // soft golden twinkle
+                ctx.shadowColor = "rgba(253, 230, 138, 0.75)";
                 ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
                 ctx.beginPath();
                 ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
@@ -244,7 +318,7 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                 ctx.restore();
             });
 
-            // 3. Draw & Animate Firefly Particles
+            // 3. Update & Render Butterflies
             const particles = particlesRef.current;
 
             particles.forEach((p) => {
@@ -254,36 +328,39 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     p.trail.shift();
                 }
 
-                // Gentle sine-wave floating drift
-                p.angle += p.pulseSpeed;
-                p.vx += Math.sin(p.angle) * 0.008;
-                p.vy += Math.cos(p.angle) * 0.008;
+                // Flapping wing speed linked to drift velocity (flaps faster when stirred!)
+                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                p.wingAngle += 0.12 + speed * 0.45;
 
-                // Mouse Repulsion & Stir Force
+                // Drift physics
+                p.angle += p.pulseSpeed;
+                p.vx += Math.sin(p.angle) * 0.007;
+                p.vy += Math.cos(p.angle) * 0.007;
+
+                // Mouse force repulsion & stir
                 if (mousePos) {
                     const dx = p.x - mousePos.x;
                     const dy = p.y - mousePos.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    const forceRadius = 70;
+                    const forceRadius = 75;
 
                     if (dist < forceRadius) {
                         const force = (forceRadius - dist) / forceRadius;
-                        const angle = Math.atan2(dy, dx);
+                        const repulsionAngle = Math.atan2(dy, dx);
                         
-                        // Repel push
-                        p.vx += Math.cos(angle) * force * 0.12;
-                        p.vy += Math.sin(angle) * force * 0.12;
+                        p.vx += Math.cos(repulsionAngle) * force * 0.14;
+                        p.vy += Math.sin(repulsionAngle) * force * 0.14;
 
-                        // Stir momentum: drag particle along with mouse velocity
-                        p.vx += mouseVelocityRef.current.x * force * 0.25;
-                        p.vy += mouseVelocityRef.current.y * force * 0.25;
+                        // Stir effect
+                        p.vx += mouseVelocityRef.current.x * force * 0.22;
+                        p.vy += mouseVelocityRef.current.y * force * 0.22;
                     }
                 }
 
-                // Speed cap & drag damping
-                const speedCap = p.userPrayed ? 1.5 : 0.85;
-                p.vx *= 0.94;
-                p.vy *= 0.94;
+                // Damping drag
+                const speedCap = p.userPrayed ? 1.6 : 0.95;
+                p.vx *= 0.93;
+                p.vy *= 0.93;
 
                 const curSpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
                 if (curSpeed > speedCap) {
@@ -291,13 +368,12 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     p.vy = (p.vy / curSpeed) * speedCap;
                 }
 
-                // Update particle coordinates
                 p.x += p.vx;
                 p.y += p.vy;
 
-                // Jar Boundaries Collisions
-                const minY = 62;
-                const maxY = height - 32;
+                // Collision limits
+                const minY = 72;
+                const maxY = height - 42;
                 const halfWidth = getJarWidthAtY(p.y, height, width);
                 const minX = centerX - halfWidth;
                 const maxX = centerX + halfWidth;
@@ -318,60 +394,46 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     p.vx = -Math.abs(p.vx) * 0.7;
                 }
 
-                // Pulsate alpha
+                // Pulsate alpha glow
                 p.alpha += p.pulseSpeed * p.pulseDir;
-                if (p.alpha > 0.98) {
-                    p.alpha = 0.98;
+                if (p.alpha > 0.96) {
+                    p.alpha = 0.96;
                     p.pulseDir = -1;
-                } else if (p.alpha < 0.2) {
-                    p.alpha = 0.2;
+                } else if (p.alpha < 0.25) {
+                    p.alpha = 0.25;
                     p.pulseDir = 1;
                 }
 
-                const colorHex = p.userPrayed ? "214, 115, 115" : "251, 191, 36"; // glowing rose vs amber gold
-                const glowRadius = p.userPrayed ? p.radius * 4.2 : p.radius * 2.8;
+                const colorHex = p.userPrayed ? "214, 115, 115" : "251, 191, 36";
 
                 // A. Draw Comet Trails
                 p.trail.forEach((pt, index) => {
                     const ratio = (index + 1) / p.trail.length;
                     const trailAlpha = p.alpha * ratio * 0.22;
-                    const trailRadius = p.radius * ratio * 0.85;
+                    const trailRadius = p.radius * ratio * 0.75;
 
                     ctx.save();
                     ctx.beginPath();
                     ctx.arc(pt.x, pt.y, trailRadius, 0, Math.PI * 2);
-                    ctx.shadowBlur = glowRadius * ratio * 0.5;
+                    ctx.shadowBlur = (p.userPrayed ? p.radius * 4.2 : p.radius * 2.8) * ratio * 0.6;
                     ctx.shadowColor = `rgba(${colorHex}, ${trailAlpha})`;
-                    ctx.fillStyle = p.userPrayed ? `rgba(244, 185, 185, ${trailAlpha})` : `rgba(253, 230, 138, ${trailAlpha})`;
+                    ctx.fillStyle = p.userPrayed ? `rgba(244, 160, 160, ${trailAlpha})` : `rgba(253, 230, 138, ${trailAlpha})`;
                     ctx.fill();
                     ctx.restore();
                 });
 
-                // B. Draw Main Firefly Glow - Layer 1 (Wide Outer Glow)
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius * 1.3, 0, Math.PI * 2);
-                ctx.shadowBlur = glowRadius * 2.2;
-                ctx.shadowColor = `rgba(${colorHex}, ${p.alpha * 0.35})`;
-                ctx.fillStyle = p.userPrayed ? `rgba(214, 115, 115, ${p.alpha * 0.2})` : `rgba(251, 191, 36, ${p.alpha * 0.2})`;
-                ctx.fill();
-                ctx.restore();
-
-                // C. Draw Main Firefly Glow - Layer 2 (Intense Inner Glow)
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.shadowBlur = glowRadius * 0.9;
-                ctx.shadowColor = `rgba(${colorHex}, ${p.alpha * 0.95})`;
-
-                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
-                grad.addColorStop(0, "#ffffff"); // white hot center
-                grad.addColorStop(0.3, p.userPrayed ? "rgba(244, 160, 160, 1)" : "rgba(252, 211, 77, 1)");
-                grad.addColorStop(1, p.userPrayed ? "rgba(214, 115, 115, 0)" : "rgba(251, 191, 36, 0)");
-
-                ctx.fillStyle = grad;
-                ctx.fill();
-                ctx.restore();
+                // B. Draw Flapping Butterfly
+                drawButterfly(
+                    ctx,
+                    p.x,
+                    p.y,
+                    p.radius,
+                    Math.atan2(p.vy, p.vx) + Math.PI / 2, // Rotate butterfly to face velocity angle direction
+                    p.wingAngle,
+                    p.alpha,
+                    colorHex,
+                    p.userPrayed
+                );
             });
 
             animationFrameId = requestAnimationFrame(updateFrame);
@@ -408,7 +470,7 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
 
         const particles = particlesRef.current;
         let nearest: Particle | null = null;
-        let minDist = 25; // Click radius limit in px
+        let minDist = 30; // Click radius target threshold in px
 
         particles.forEach((p) => {
             const dx = p.x - clickX;
@@ -429,112 +491,129 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
 
     return (
         <div className="flex flex-col items-center gap-6 w-full mb-6" ref={containerRef}>
-            {/* Elegant 3D Jar Graphic Container */}
-            <div className="relative w-[320px] h-[400px] flex items-center justify-center filter drop-shadow-[0_12px_30px_rgba(141,123,104,0.22)] select-none">
-                {/* SVG Glass Bottle Overlay */}
+            {/* The Visual Jar Assembly - Enlarged to 380x480 */}
+            <div className="relative w-[380px] h-[480px] flex items-center justify-center filter drop-shadow-[0_20px_45px_rgba(24,20,44,0.4)] select-none">
+                {/* SVG Glass Bottle Overlay (Bigger with thick base & 3D reflections) */}
                 <svg
                     className="absolute inset-0 w-full h-full pointer-events-none z-10"
-                    viewBox="0 0 320 400"
+                    viewBox="0 0 380 480"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                 >
-                    {/* Cork Top */}
+                    {/* Cork Lid */}
                     <path
-                        d="M120 42 C120 38, 200 38, 200 42 L196 52 C196 54, 124 54, 124 52 Z"
-                        fill="#B2967D"
-                        stroke="#957960"
-                        strokeWidth="1.5"
-                    />
-                    {/* Golden Rim Highlight */}
-                    <rect x="114" y="52" width="92" height="6" rx="2" fill="#FBBF24" opacity="0.85" />
-                    
-                    {/* Frosted Glass Body */}
-                    <path
-                        d="M116 58 
-                           C116 70, 114 74, 114 84
-                           C114 86, 92 108, 88 128
-                           C82 150, 80 180, 80 280
-                           C80 348, 86 376, 120 376
-                           L200 376
-                           C234 376, 240 348, 240 280
-                           C240 180, 238 150, 232 128
-                           C228 108, 206 86, 206 84
-                           C206 74, 204 70, 204 58"
-                        stroke="rgba(255, 255, 255, 0.9)"
-                        strokeWidth="2.8"
-                    />
-                    
-                    {/* Glass Depth Rim */}
-                    <path
-                        d="M117 60 
-                           C117 72, 115 76, 115 86
-                           C115 88, 93 110, 89 130
-                           C83 152, 81 182, 81 280
-                           C81 346, 87 374, 120 374
-                           L200 374
-                           C233 374, 239 346, 239 280
-                           C239 182, 237 152, 231 130
-                           C227 110, 205 88, 205 86
-                           C205 76, 203 72, 203 60"
-                        stroke="rgba(255, 255, 255, 0.38)"
-                        strokeWidth="5"
-                    />
-
-                    {/* Gloss Highlights (Left Side) */}
-                    <path
-                        d="M92 144 C88 180, 88 280, 94 340"
-                        stroke="rgba(255, 255, 255, 0.45)"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                    />
-
-                    {/* Gloss Highlights (Right Side) */}
-                    <path
-                        d="M228 144 C232 180, 232 280, 226 340"
-                        stroke="rgba(255, 255, 255, 0.2)"
+                        d="M140 50 C140 45, 240 45, 240 50 L234 62 C234 65, 146 65, 146 62 Z"
+                        fill="#AC8A6D"
+                        stroke="#8E7055"
                         strokeWidth="1.8"
+                    />
+                    {/* Rose-Gold Rim Band */}
+                    <rect x="134" y="62" width="112" height="8" rx="2.5" fill="#E2A292" opacity="0.9" />
+                    
+                    {/* Thick 3D Glass Bottom Base */}
+                    <path
+                        d="M62 410 
+                           C62 435, 72 447, 110 447 
+                           L270 447 
+                           C308 447, 318 435, 318 410 
+                           C318 425, 308 443, 270 443 
+                           L110 443 
+                           C72 443, 62 425, 62 410 Z"
+                        fill="rgba(255, 255, 255, 0.14)"
+                    />
+                    <path
+                        d="M74 426 C74 442, 84 445, 120 445 L260 445 C296 445, 306 442, 306 426"
+                        stroke="rgba(255, 255, 255, 0.35)"
+                        strokeWidth="2.5"
+                    />
+
+                    {/* Glass Jar Outer Frame Outline */}
+                    <path
+                        d="M140 70 
+                           C140 85, 138 95, 138 105 
+                           C138 108, 90 135, 75 165 
+                           C62 190, 60 230, 60 360 
+                           C60 425, 68 450, 110 450 
+                           L270 450 
+                           C312 450, 320 425, 320 360 
+                           C320 230, 318 190, 305 165 
+                           C290 135, 242 108, 242 105 
+                           C242 95, 240 85, 240 70"
+                        stroke="rgba(255, 255, 255, 0.88)"
+                        strokeWidth="3.2"
+                    />
+                    
+                    {/* Glass Body Inner Rim Reflection */}
+                    <path
+                        d="M141 72 
+                           C141 87, 139 97, 139 107 
+                           C139 110, 92 137, 77 167 
+                           C64 192, 62 232, 62 360 
+                           C62 423, 70 447, 110 447 
+                           L270 447 
+                           C310 447, 318 423, 318 360 
+                           C318 232, 316 192, 303 167 
+                           C290 137, 243 110, 243 107 
+                           C243 97, 241 87, 241 72"
+                        stroke="rgba(255, 255, 255, 0.38)"
+                        strokeWidth="5.5"
+                    />
+
+                    {/* Spherical Glare Highlight (Left Curved side) */}
+                    <path
+                        d="M74 180 C68 220, 68 350, 78 415"
+                        stroke="rgba(255, 255, 255, 0.44)"
+                        strokeWidth="3.2"
                         strokeLinecap="round"
                     />
 
-                    {/* Twine Rope ribbon */}
+                    {/* Spherical Glare Highlight (Right Curved side) */}
                     <path
-                        d="M115 78 Q160 84 205 78"
-                        stroke="#957960"
+                        d="M306 180 C312 220, 312 350, 302 415"
+                        stroke="rgba(255, 255, 255, 0.16)"
+                        strokeWidth="2.0"
+                        strokeLinecap="round"
+                    />
+
+                    {/* Twine rope neck ribbon */}
+                    <path
+                        d="M138 90 Q190 96 242 90"
+                        stroke="#8E7055"
                         strokeWidth="2.2"
                     />
                     <path
-                        d="M160 81 C154 75, 146 72, 148 81 C150 90, 158 84, 160 81 Z"
-                        stroke="#957960"
+                        d="M190 92 C184 86, 176 83, 178 92 C180 101, 188 95, 190 92 Z"
+                        stroke="#8E7055"
                         strokeWidth="1.5"
-                        fill="rgba(149, 121, 96, 0.15)"
+                        fill="rgba(142, 112, 85, 0.2)"
                     />
                     <path
-                        d="M160 81 C166 75, 174 72, 172 81 C170 90, 162 84, 160 81 Z"
-                        stroke="#957960"
+                        d="M190 92 C196 86, 204 83, 202 92 C200 101, 192 95, 190 92 Z"
+                        stroke="#8E7055"
                         strokeWidth="1.5"
-                        fill="rgba(149, 121, 96, 0.15)"
+                        fill="rgba(142, 112, 85, 0.2)"
                     />
                 </svg>
 
-                {/* Canvas Render Node */}
+                {/* Canvas Render Node with Cosmic Sunset Gradient */}
                 <canvas
                     ref={canvasRef}
-                    width={320}
-                    height={400}
-                    className="absolute inset-0 bg-stone-900/10 backdrop-blur-[0.4px] rounded-[3.2rem] cursor-pointer"
+                    width={380}
+                    height={480}
+                    className="absolute inset-0 bg-gradient-to-b from-[#141226] via-[#2A1833] to-[#402534] rounded-[3.8rem] cursor-pointer border border-[#ffffff]/10"
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                     onClick={handleCanvasClick}
                 />
 
-                {/* Ambient breathing backglow */}
-                <div className="absolute inset-x-10 inset-y-14 bg-radial-gradient from-amber-500/15 via-rose-400/5 to-transparent filter blur-3xl pointer-events-none rounded-full" />
+                {/* Ambient glow backing */}
+                <div className="absolute inset-x-12 inset-y-16 bg-radial-gradient from-amber-500/12 via-rose-400/5 to-transparent filter blur-3xl pointer-events-none rounded-full" />
                 
                 {/* Floating prompt overlay */}
                 {!selectedPrayerId && (
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-[9px] text-white/95 font-bold uppercase tracking-widest flex items-center gap-1.5 pointer-events-none animate-pulse">
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/65 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-[9px] text-white/95 font-bold uppercase tracking-widest flex items-center gap-1.5 pointer-events-none animate-pulse">
                         <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
-                        Tap a glowing light to pray
+                        Tap a butterfly to pray
                     </div>
                 )}
             </div>
@@ -543,20 +622,38 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
             {selectedPrayer ? (
                 <div className="w-full max-w-md bg-white/90 backdrop-blur-lg border border-white/70 shadow-2xl rounded-[2rem] p-6 flex flex-col gap-4.5 animate-fade-in-up text-left z-20">
                     <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                            <div className={`w-9.5 h-9.5 rounded-full flex items-center justify-center text-xs font-serif ${selectedPrayer.is_anonymous ? "bg-warm-grey/10 text-warm-grey/40" : "bg-soft-blush text-warm-cocoa"}`}>
-                                {selectedPrayer.is_anonymous ? "?" : (selectedPrayer.profiles?.first_name?.[0] || "S")}
+                        {selectedPrayer.is_anonymous ? (
+                            <div className="flex items-center gap-3">
+                                <div className="w-9.5 h-9.5 rounded-full flex items-center justify-center text-xs font-serif bg-warm-grey/10 text-warm-grey/40">
+                                    ?
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-warm-grey text-sm">Anonymous Sister</h4>
+                                    <p className="text-[10px] text-warm-grey/40 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {formatDistanceToNow(new Date(selectedPrayer.created_at), { addSuffix: true })}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-warm-grey text-sm">
-                                    {selectedPrayer.is_anonymous ? "Anonymous Sister" : `${selectedPrayer.profiles?.first_name} ${selectedPrayer.profiles?.last_name?.[0] || ""}.`}
-                                </h4>
-                                <p className="text-[10px] text-warm-grey/40 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {formatDistanceToNow(new Date(selectedPrayer.created_at), { addSuffix: true })}
-                                </p>
-                            </div>
-                        </div>
+                        ) : (
+                            <Link 
+                                href={`/profile/${selectedPrayer.profiles?.username || ""}`}
+                                className="flex items-center gap-3 group/link hover:opacity-95 transition-opacity"
+                            >
+                                <div className="w-9.5 h-9.5 rounded-full flex items-center justify-center text-xs font-serif bg-soft-blush text-warm-cocoa group-hover/link:ring-2 ring-sage-green transition-all overflow-hidden">
+                                    {selectedPrayer.profiles?.first_name?.[0] || "S"}
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-warm-grey text-sm group-hover/link:text-sage-green transition-colors">
+                                        {selectedPrayer.profiles?.first_name} {selectedPrayer.profiles?.last_name?.[0] || ""}.
+                                    </h4>
+                                    <p className="text-[10px] text-warm-grey/40 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {formatDistanceToNow(new Date(selectedPrayer.created_at), { addSuffix: true })}
+                                    </p>
+                                </div>
+                            </Link>
+                        )}
                         <button
                             onClick={() => setSelectedPrayerId(null)}
                             className="p-1 rounded-full hover:bg-stone-200/50 text-warm-grey/40 hover:text-warm-grey transition-colors"
