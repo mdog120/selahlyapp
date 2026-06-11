@@ -10,6 +10,7 @@ import { ShareModal } from "@/components/messaging/ShareModal";
 import { PrayerPartnerWidget } from "@/components/prayer-pocket/PrayerPartnerWidget";
 import { useBadge } from "@/context/BadgeContext";
 import { HandHeart } from "lucide-react";
+import { PrayerJar } from "@/components/prayer-pocket/PrayerJar";
 
 type Prayer = {
     id: string;
@@ -169,6 +170,9 @@ export default function PrayerPocket() {
                         "Carry each other’s burdens, and in this way you will fulfill the law of Christ." — Galatians 6:2
                     </p>
                 </div>
+
+                {/* Glowing Prayer Jar Centerpiece */}
+                <PrayerJar prayers={prayers} onPray={handlePray} />
 
                 {/* Prayer Partner Widget */}
                 <PrayerPartnerWidget />
