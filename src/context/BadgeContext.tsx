@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { BadgeUnlockModal } from "@/components/gamification/BadgeUnlockModal";
+import { Sun, Feather, Sparkles } from "lucide-react";
 
 type BadgeContextType = {
     triggerBadge: (name: string, description: string, icon?: ReactNode) => void;
@@ -21,6 +22,31 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
         setBadgeIcon(icon);
         setIsOpen(true);
     };
+
+    useEffect(() => {
+        // Delay slightly to let page transitions settle
+        const timer = setTimeout(() => {
+            const stored = localStorage.getItem('justEarnedBadge');
+            if (stored) {
+                try {
+                    const badge = JSON.parse(stored);
+                    let icon: ReactNode | undefined;
+                    if (badge.name === 'Sunshine') {
+                        icon = <Sun className="w-12 h-12 text-yellow-500 fill-yellow-500/20" />;
+                    } else if (badge.name === 'Voice of Grace') {
+                        icon = <Feather className="w-12 h-12 text-blue-400" />;
+                    } else {
+                        icon = <Sparkles className="w-12 h-12 text-yellow-400" />;
+                    }
+                    triggerBadge(badge.name, badge.description, icon);
+                    localStorage.removeItem('justEarnedBadge');
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }, 800);
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <BadgeContext.Provider value={{ triggerBadge }}>

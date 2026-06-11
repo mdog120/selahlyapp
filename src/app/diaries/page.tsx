@@ -8,7 +8,7 @@ import { BookOpen, PenLine, Save, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getDailyVerse } from "@/lib/dailyVerse";
 import { BadgeUnlockModal } from "@/components/gamification/BadgeUnlockModal";
-import { Flame } from "lucide-react";
+import { Flame, Flower2 } from "lucide-react";
 import { GlowingCandle } from "@/components/diaries/GlowingCandle";
 
 type Verse = {
@@ -328,7 +328,7 @@ export default function Diaries() {
                 onClose={() => setShowBadgeModal(false)}
                 badgeName={justEarnedBadge?.name || ""}
                 badgeDescription={justEarnedBadge?.description || ""}
-                icon={<Flame className="w-12 h-12 text-orange-400 fill-orange-400/20" />}
+                icon={justEarnedBadge?.name === "Bloom" ? <Flower2 className="w-12 h-12 text-pink-400 fill-pink-400/20" /> : <Flame className="w-12 h-12 text-orange-400 fill-orange-400/20" />}
             />
         </div>
     );

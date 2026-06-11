@@ -400,13 +400,16 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             if (onPostCreated) onPostCreated();
 
             // 3. Award "Voice of Grace" Badge (First Post)
-            const { error: badgeError } = await supabase.rpc('award_badge', {
+            const { data: voiceAwarded, error: badgeError } = await supabase.rpc('award_badge', {
                 p_user_id: user.id,
                 p_badge_name: 'Voice of Grace'
             });
 
-            if (!badgeError) {
-                console.log("Checked for 'Voice of Grace' badge.");
+            if (voiceAwarded) {
+                localStorage.setItem('justEarnedBadge', JSON.stringify({
+                    name: 'Voice of Grace',
+                    description: 'Shared your first ever post with the community! 🪶'
+                }));
             }
 
         } catch (error: any) {

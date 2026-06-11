@@ -358,10 +358,14 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = "rgba(251, 191, 36, 0.45)";
 
-                // Key Ring/Handle
+                // Key Ring/Handle (Heart Shape)
                 ctx.beginPath();
-                ctx.arc(-22, 0, 8, 0, Math.PI * 2);
+                ctx.moveTo(-22, 6);
+                ctx.bezierCurveTo(-29, 2, -29, -6, -22, -6);
+                ctx.bezierCurveTo(-15, -6, -15, 2, -22, 6);
                 ctx.stroke();
+                ctx.fillStyle = "rgba(251, 191, 36, 0.15)";
+                ctx.fill();
                 
                 // Key Shaft
                 ctx.beginPath();
@@ -494,20 +498,20 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
     return (
         <div className="flex flex-col items-center gap-6 w-full" ref={containerRef}>
             {/* The Vault Box Panel Container */}
-            <div className="relative w-full max-w-lg h-[260px] flex items-center justify-center rounded-[2.5rem] bg-gradient-to-b from-[#1C152B] via-[#2E1B38] to-[#1C152B] border border-white/10 shadow-xl overflow-hidden group select-none">
+            <div className={`relative w-full max-w-lg flex items-center justify-center rounded-[2.5rem] bg-gradient-to-b from-[#180E21] via-[#2F153C] to-[#180E21] border border-yellow-500/25 shadow-2xl overflow-hidden group select-none transition-all duration-500 ease-in-out ${unlocked ? "min-h-[350px] md:min-h-[380px] h-auto p-4" : "h-[260px]"}`}>
                 
                 {/* Velvet Gold-embossed corners */}
-                <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-yellow-500/30 rounded-tl-lg pointer-events-none" />
-                <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-yellow-500/30 rounded-tr-lg pointer-events-none" />
-                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-yellow-500/30 rounded-bl-lg pointer-events-none" />
-                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-yellow-500/30 rounded-br-lg pointer-events-none" />
+                <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-yellow-500/40 rounded-tl-lg pointer-events-none" />
+                <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-yellow-500/40 rounded-tr-lg pointer-events-none" />
+                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-yellow-500/40 rounded-bl-lg pointer-events-none" />
+                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-yellow-500/40 rounded-br-lg pointer-events-none" />
 
                 {/* Canvas Element for key drag & unlock animations - set to z-10 underneath unlocked card z-20 */}
                 <canvas
                     ref={canvasRef}
                     width={512}
                     height={260}
-                    className={`absolute inset-0 z-10 ${unlocked ? "pointer-events-none" : "cursor-pointer"}`}
+                    className={`absolute inset-0 z-10 ${unlocked ? "pointer-events-none opacity-0" : "cursor-pointer"} transition-opacity duration-500`}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                     onClick={handleUnlock}
@@ -524,7 +528,7 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                     </div>
                 )}
 
-                {/* Unlocked State: Daily Wisdom Prompt Card (Higher z-20 on top of canvas z-10 for full button clickability) */}
+                {/* Unlocked State: Daily Wisdom Prompt Card (Higher z-20 for full button clickability) */}
                 <AnimatePresence>
                     {unlocked && (
                         <motion.div 
@@ -532,9 +536,9 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, y: -20 }}
                             transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                            className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center"
+                            className="relative z-20 flex flex-col items-center justify-center p-2 md:p-4 text-center w-full h-full"
                         >
-                            <div className="space-y-4 max-w-md w-full glass-card p-6 md:p-8 rounded-[2.5rem] border border-yellow-500/20 shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#2E1B38]/90 via-[#1C152B]/95 to-[#2E1B38]/90 backdrop-blur-md">
+                            <div className="space-y-4 max-w-md w-full glass-card p-6 md:p-8 rounded-[2.5rem] border border-yellow-500/20 shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#2F153C]/90 via-[#180E21]/95 to-[#2F153C]/90 backdrop-blur-md">
                                 
                                 {/* Inner gold glow line */}
                                 <div className="absolute top-2 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent" />

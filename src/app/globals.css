@@ -159,6 +159,10 @@ input[type="button"] {
   box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.02);
 }
 
+.drop-shadow-sticker {
+  filter: drop-shadow(2px 0 0 white) drop-shadow(-2px 0 0 white) drop-shadow(0 2px 0 white) drop-shadow(0 -2px 0 white) drop-shadow(0 4px 6px rgba(0,0,0,0.18));
+}
+
 .text-balance {
   text-wrap: balance;
 }

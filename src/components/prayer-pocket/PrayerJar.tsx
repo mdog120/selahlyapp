@@ -201,7 +201,7 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
         
         ctx.shadowBlur = glowRadius * 1.5;
         ctx.shadowColor = `rgba(${colorHex}, ${alpha * 0.8})`;
-        ctx.fillStyle = userPrayed ? `rgba(244, 160, 160, ${alpha * 0.85})` : `rgba(252, 211, 77, ${alpha * 0.85})`;
+        ctx.fillStyle = userPrayed ? `rgba(255, 174, 188, ${alpha * 0.85})` : `rgba(255, 230, 160, ${alpha * 0.85})`;
         ctx.fill();
         ctx.restore();
 
@@ -215,7 +215,7 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
         
         ctx.shadowBlur = glowRadius * 1.5;
         ctx.shadowColor = `rgba(${colorHex}, ${alpha * 0.8})`;
-        ctx.fillStyle = userPrayed ? `rgba(244, 160, 160, ${alpha * 0.85})` : `rgba(252, 211, 77, ${alpha * 0.85})`;
+        ctx.fillStyle = userPrayed ? `rgba(255, 174, 188, ${alpha * 0.85})` : `rgba(255, 230, 160, ${alpha * 0.85})`;
         ctx.fill();
         ctx.restore();
 
@@ -281,9 +281,9 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                 centerX, height * 0.6, 15,
                 centerX, height * 0.6, width * 0.45
             );
-            bgGrad.addColorStop(0, `rgba(251, 191, 36, ${ambientGlow})`);
-            bgGrad.addColorStop(0.5, `rgba(214, 115, 115, ${ambientGlow * 0.75})`);
-            bgGrad.addColorStop(1, "rgba(20, 18, 38, 0)");
+            bgGrad.addColorStop(0, `rgba(255, 182, 193, ${ambientGlow * 0.6})`);
+            bgGrad.addColorStop(0.5, `rgba(186, 225, 255, ${ambientGlow * 0.4})`);
+            bgGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
             ctx.fillStyle = bgGrad;
             ctx.beginPath();
             ctx.rect(30, 70, width - 60, height - 100);
@@ -404,7 +404,7 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     p.pulseDir = 1;
                 }
 
-                const colorHex = p.userPrayed ? "214, 115, 115" : "251, 191, 36";
+                const colorHex = p.userPrayed ? "255, 174, 188" : "255, 230, 160";
 
                 // A. Draw Comet Trails
                 p.trail.forEach((pt, index) => {
@@ -417,7 +417,7 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     ctx.arc(pt.x, pt.y, trailRadius, 0, Math.PI * 2);
                     ctx.shadowBlur = (p.userPrayed ? p.radius * 4.2 : p.radius * 2.8) * ratio * 0.6;
                     ctx.shadowColor = `rgba(${colorHex}, ${trailAlpha})`;
-                    ctx.fillStyle = p.userPrayed ? `rgba(244, 160, 160, ${trailAlpha})` : `rgba(253, 230, 138, ${trailAlpha})`;
+                    ctx.fillStyle = p.userPrayed ? `rgba(255, 174, 188, ${trailAlpha})` : `rgba(255, 230, 160, ${trailAlpha})`;
                     ctx.fill();
                     ctx.restore();
                 });
@@ -595,25 +595,25 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     />
                 </svg>
 
-                {/* Canvas Render Node with Cosmic Sunset Gradient */}
+                {/* Canvas Render Node with Dreamy Pastel Gradient */}
                 <canvas
                     ref={canvasRef}
                     width={380}
                     height={480}
-                    className="absolute inset-0 bg-gradient-to-b from-[#141226] via-[#2A1833] to-[#402534] rounded-[3.8rem] cursor-pointer border border-[#ffffff]/10"
+                    className="absolute inset-0 bg-gradient-to-b from-[#FFF2F6] via-[#F3EDFF] to-[#E3F2FD] rounded-[3.8rem] cursor-pointer border border-white/20"
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                     onClick={handleCanvasClick}
                 />
 
                 {/* Ambient glow backing */}
-                <div className="absolute inset-x-12 inset-y-16 bg-radial-gradient from-amber-500/12 via-rose-400/5 to-transparent filter blur-3xl pointer-events-none rounded-full" />
+                <div className="absolute inset-x-12 inset-y-16 bg-radial-gradient from-pink-300/15 via-purple-300/8 to-transparent filter blur-3xl pointer-events-none rounded-full" />
                 
                 {/* Floating prompt overlay */}
                 {!selectedPrayerId && (
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/65 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-[9px] text-white/95 font-bold uppercase tracking-widest flex items-center gap-1.5 pointer-events-none animate-pulse">
-                        <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
-                        Tap a butterfly to pray
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full border border-pink-200/50 text-[10px] text-pink-500 font-bold uppercase tracking-widest flex items-center gap-1.5 pointer-events-none shadow-sm animate-pulse">
+                        <Sparkles className="w-3.5 h-3.5 text-pink-400 fill-pink-300" />
+                        Tap a butterfly to pray ౨ৎ
                     </div>
                 )}
             </div>
