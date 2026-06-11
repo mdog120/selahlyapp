@@ -222,68 +222,7 @@ export default function PrayerPocket() {
                     </div>
                 )}
 
-                {/* Feed */}
-                <div className="space-y-6">
-                    {loading ? (
-                        <div className="text-center py-10 text-warm-grey/40">Gathering requests...</div>
-                    ) : prayers.map((prayer) => (
-                        <div key={prayer.id} className="glass-card p-6 rounded-3xl animate-fade-in-up">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-serif ${prayer.is_anonymous ? "bg-warm-grey/10 text-warm-grey/40" : "bg-soft-blush text-warm-cocoa"}`}>
-                                        {prayer.is_anonymous ? "?" : (prayer.profiles?.first_name?.[0] || "S")}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-warm-grey text-sm">
-                                            {prayer.is_anonymous ? "Anonymous Sister" : `${prayer.profiles?.first_name} ${prayer.profiles?.last_name?.[0] || ""}.`}
-                                        </p>
-                                        <p className="text-xs text-warm-grey/40">
-                                            {formatDistanceToNow(new Date(prayer.created_at), { addSuffix: true })}
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setShareTarget(prayer)}
-                                    className="p-2 rounded-full hover:bg-stone-100 text-warm-grey/40 hover:text-warm-grey transition-colors"
-                                >
-                                    <Share2 className="w-4 h-4" />
-                                </button>
-                            </div>
 
-                            <p className="font-serif text-lg text-warm-grey mb-6 leading-relaxed">
-                                {prayer.content}
-                            </p>
-
-                            <button
-                                onClick={() => !prayer.user_prayed && handlePray(prayer.id)}
-                                disabled={prayer.user_prayed}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${prayer.user_prayed
-                                    ? "bg-sage-green text-white cursor-default"
-                                    : "bg-sage-green/10 text-sage-green hover:bg-sage-green hover:text-white"
-                                    }`}
-                            >
-                                <Heart className={`w-4 h-4 ${prayer.user_prayed ? "fill-current" : ""}`} />
-                                <span className="text-sm font-medium">
-                                    {prayer.user_prayed ? "Prayed" : "I'm Praying"}
-                                </span>
-                            </button>
-
-                            {(prayer.pray_count > 0 || prayer.user_prayed) && (
-                                <span className="text-sm text-warm-grey/60 underline decoration-warm-grey/30">
-                                    {prayer.pray_count || (prayer.user_prayed ? 1 : 0)} Praying
-                                </span>
-                            )}
-                        </div>
-
-                    ))}
-
-                    {!loading && prayers.length === 0 && (
-                        <div className="text-center py-10">
-                            <p className="text-warm-grey/40 mb-4">No requests yet.</p>
-                            <p className="font-serif text-xl text-warm-grey">Be the first to ask for prayer. 🤍</p>
-                        </div>
-                    )}
-                </div>
             </main >
 
             {shareTarget && (
