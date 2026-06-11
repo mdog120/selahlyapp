@@ -87,8 +87,13 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
 
     const supabase = createClient();
 
-    // Get prompt of the day based on day of month
-    const promptIndex = new Date().getDate() % WISDOM_PROMPTS.length;
+    // Get prompt of the day deterministically hashed by date string (changes daily)
+    const todayStr = new Date().toDateString();
+    let dateHash = 0;
+    for (let i = 0; i < todayStr.length; i++) {
+        dateHash = todayStr.charCodeAt(i) + ((dateHash << 5) - dateHash);
+    }
+    const promptIndex = Math.abs(dateHash) % WISDOM_PROMPTS.length;
     const dailyPrompt = WISDOM_PROMPTS[promptIndex];
 
     const handleUnlock = () => {
@@ -281,8 +286,8 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                 }
             }
 
-            // 2. Draw Keyhole (only if not unlocked or during split transition)
-            if (!unlocked || lockParting < 28) {
+            // 2. Draw Keyhole (only if not unlocked)
+            if (!unlocked) {
                 // A. Draw Outer Glow Rim
                 const keyholeGlow = 8 + Math.sin(timeRef.current * 1.5) * 3;
                 ctx.save();
@@ -497,12 +502,12 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                 <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-yellow-500/30 rounded-bl-lg pointer-events-none" />
                 <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-yellow-500/30 rounded-br-lg pointer-events-none" />
 
-                {/* Canvas Element for key drag & unlock animations (stays mounted to allow stardust to drift over the card) */}
+                {/* Canvas Element for key drag & unlock animations - set to z-10 underneath unlocked card z-20 */}
                 <canvas
                     ref={canvasRef}
                     width={512}
                     height={260}
-                    className={`absolute inset-0 z-20 ${unlocked ? "pointer-events-none" : "cursor-pointer"}`}
+                    className={`absolute inset-0 z-10 ${unlocked ? "pointer-events-none" : "cursor-pointer"}`}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                     onClick={handleUnlock}
@@ -519,7 +524,7 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                     </div>
                 )}
 
-                {/* Unlocked State: Daily Wisdom Prompt Card with Spring Easing Reveal */}
+                {/* Unlocked State: Daily Wisdom Prompt Card (Higher z-20 on top of canvas z-10 for full button clickability) */}
                 <AnimatePresence>
                     {unlocked && (
                         <motion.div 
@@ -527,7 +532,7 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, y: -20 }}
                             transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                            className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center"
+                            className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center"
                         >
                             <div className="space-y-4 max-w-md w-full glass-card p-6 md:p-8 rounded-[2.5rem] border border-yellow-500/20 shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#2E1B38]/90 via-[#1C152B]/95 to-[#2E1B38]/90 backdrop-blur-md">
                                 
