@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   title: "Selahly | Digital Sanctuary",
   description: "A peaceful digital pause for faith, sisterhood, and inspiration.",
   icons: {
-    icon: '/logo-v2.png',
-    apple: '/brand-icon-v2.png',
+    icon: '/logo-v2.svg',
+    apple: '/logo-v2.svg',
   },
   manifest: "/manifest.json",
   appleWebApp: {

@@ -141,7 +141,7 @@ export function NotificationDropdown() {
 
         new window.Notification("Selahly ౨ৎ", {
             body: `${name} ${action}`,
-            icon: "/logo-v2.png"
+            icon: "/logo-v2.svg"
         });
     }
 
