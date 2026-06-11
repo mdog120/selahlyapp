@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { QuestionCard } from "./QuestionCard";
 import { AskQuestion } from "./AskQuestion";
 import { Search } from "lucide-react";
+import { VaultKeyhole } from "./VaultKeyhole";
 
 type Thread = {
     id: string;
@@ -56,6 +57,9 @@ export function VaultFeed() {
 
     return (
         <div className="flex flex-col gap-8">
+            {/* Velvet Keyhole Wisdom Centerpiece */}
+            <VaultKeyhole onThreadCreated={fetchThreads} />
+
             {/* Controls */}
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center animate-fade-in-up delay-100">
                 <div className="relative w-full md:max-w-md">

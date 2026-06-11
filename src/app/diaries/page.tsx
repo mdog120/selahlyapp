@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getDailyVerse } from "@/lib/dailyVerse";
 import { BadgeUnlockModal } from "@/components/gamification/BadgeUnlockModal";
 import { Flame } from "lucide-react";
+import { GlowingCandle } from "@/components/diaries/GlowingCandle";
 
 type Verse = {
     reference: string;
@@ -218,8 +219,9 @@ export default function Diaries() {
                                 <div className="h-4 w-1/2 bg-warm-grey/10 rounded" />
                             </div>
                         ) : (
-                            <div className="relative z-10">
-                                <span className="text-xs font-bold uppercase tracking-widest text-sage-green mb-4 block">Verse of the Day (KJV)</span>
+                            <div className="relative z-10 flex flex-col items-center">
+                                <GlowingCandle isLit={hasJournaledToday} />
+                                <span className="text-xs font-bold uppercase tracking-widest text-sage-green mb-4 block mt-4">Verse of the Day (KJV)</span>
                                 <p className="font-serif text-2xl md:text-3xl text-warm-grey leading-relaxed mb-6">
                                     "{verse?.text?.trim()}"
                                 </p>
