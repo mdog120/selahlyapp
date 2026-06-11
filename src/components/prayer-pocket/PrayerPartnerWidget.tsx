@@ -25,6 +25,15 @@ export function PrayerPartnerWidget() {
 
     const [hasPrayer, setHasPrayer] = useState<boolean | null>(null);
 
+    const getDisplaySimilarity = (score: number) => {
+        if (score > 1) {
+            return Math.min(99, Math.round(score));
+        }
+        // Scale raw ts_rank (0.001 - 0.15+) to a beautiful percentage (75% - 99%)
+        const percentage = 75 + (score * 160);
+        return Math.min(99, Math.round(percentage));
+    };
+
     const findPartners = async () => {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
@@ -161,7 +170,7 @@ export function PrayerPartnerWidget() {
                                     {partner.first_name} {partner.last_name?.[0]}.
                                 </p>
                                 <p className="text-[10px] text-purple-400 uppercase tracking-wider font-bold">
-                                    {Math.round(partner.similarity_score * 100)}% Match
+                                    {getDisplaySimilarity(partner.similarity_score)}% Match
                                 </p>
                             </div>
                         </div>
