@@ -555,6 +555,7 @@ export default function GroupChatPage() {
                                 <div key={i} className="bg-stone-50 border border-warm-grey/10 rounded-full px-3 py-1 flex items-center gap-2 text-xs text-warm-grey animate-pop-in">
                                     <span className="font-medium">{name}</span>
                                     <button
+                                        type="button"
                                         onClick={() => setNewMessage(prev => prev.replace(match, ''))}
                                         className="hover:text-red-400"
                                     >
@@ -571,6 +572,7 @@ export default function GroupChatPage() {
                     <div className="absolute bottom-20 left-4 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-20 animate-fade-in-up">
                         {mentionResults.map((profile) => (
                             <button
+                                type="button"
                                 key={profile.id}
                                 className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
                                 onClick={() => insertMention(profile.username)}

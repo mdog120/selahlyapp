@@ -741,6 +741,7 @@ export default function ChatPage() {
                                 <div key={i} className="bg-stone-50 border border-warm-grey/10 rounded-full px-3 py-1 flex items-center gap-2 text-xs text-warm-grey animate-pop-in">
                                     <span className="font-medium">{name}</span>
                                     <button
+                                        type="button"
                                         onClick={() => setNewMessage(prev => prev.replace(match, ''))}
                                         className="hover:text-red-400"
                                     >

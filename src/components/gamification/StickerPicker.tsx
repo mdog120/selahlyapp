@@ -71,6 +71,7 @@ export function StickerPicker({ onSelect }: { onSelect: (badge: Badge) => void }
     return (
         <div className="relative">
             <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className="p-2 text-warm-grey/60 hover:text-warm-cocoa transition-colors"
                 title="Add Sticker"
@@ -97,6 +98,7 @@ export function StickerPicker({ onSelect }: { onSelect: (badge: Badge) => void }
                             <div className="grid grid-cols-4 gap-2">
                                 {stickers.map((s) => (
                                     <button
+                                        type="button"
                                         key={s.badge_id}
                                         onClick={() => {
                                             onSelect(s.badge);
