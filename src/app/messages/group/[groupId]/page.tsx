@@ -367,11 +367,22 @@ export default function GroupChatPage() {
                 // I will just copy-paste the switch/map logic or assume it is kept if I don't replace it.
                 // Wait, use replace_file_content with context.
 
+                if (stickerName === 'Heart') {
+                    return (
+                        <span key={index} className="inline-block mx-1.5 align-middle select-none">
+                            <img 
+                                src="/images/heart_sticker.png" 
+                                alt="Heart Sticker" 
+                                className="w-7 h-7 object-contain drop-shadow-sticker" 
+                            />
+                        </span>
+                    );
+                }
+
                 switch (stickerName) {
                     case 'Candle': Icon = Flame; color = "text-orange-300"; break;
                     case 'Feather': Icon = Feather; color = "text-stone-400"; break;
                     case 'Users': Icon = Users; color = "text-rose-400"; break;
-                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
                     case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
                     case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
                     case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
@@ -585,7 +596,7 @@ export default function GroupChatPage() {
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
                 >
-                    <StickerPicker onSelect={(badge) => setNewMessage(prev => `${prev} [sticker:${badge.name}]`)} />
+                    <StickerPicker onSelect={(badge) => setNewMessage(prev => `${prev} [sticker:${badge.icon_name}]`)} />
 
                     <input
                         ref={inputRef}

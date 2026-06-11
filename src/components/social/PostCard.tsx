@@ -687,6 +687,18 @@ export function PostCard({ post }: { post: Post }) {
                     'Selah Circle': { icon: Users, color: "text-sage-green" },
                 };
 
+                if (stickerName === 'Heart') {
+                    return (
+                        <span key={index} className="inline-block mx-1.5 align-middle select-none">
+                            <img 
+                                src="/images/heart_sticker.png" 
+                                alt="Heart Sticker" 
+                                className="w-7 h-7 object-contain drop-shadow-sticker" 
+                            />
+                        </span>
+                    );
+                }
+
                 if (stickerMap[stickerName]) {
                     Icon = stickerMap[stickerName].icon;
                     color = stickerMap[stickerName].color;

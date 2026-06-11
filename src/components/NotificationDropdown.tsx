@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 type Notification = {
     id: string;
-    type: 'like' | 'comment' | 'reply' | 'pray' | 'friend_request' | 'message' | 'post';
+    type: 'like' | 'comment' | 'reply' | 'pray' | 'prayer' | 'friend_request' | 'message' | 'post';
     read: boolean;
     created_at: string;
     resource_id: string;
@@ -131,7 +131,7 @@ export function NotificationDropdown() {
         if (type === 'like') action = "liked your post.";
         else if (type === 'comment') action = "commented on your post.";
         else if (type === 'reply') action = "replied to your question.";
-        else if (type === 'pray') action = "prayed for you.";
+        else if (type === 'pray' || type === 'prayer') action = "prayed for you.";
         else if (type === 'friend_request') action = "sent you a friend request.";
         else if (type === 'message') action = "sent you a message.";
         else if (type === 'post') action = "shared a new post.";
@@ -181,7 +181,8 @@ export function NotificationDropdown() {
             case 'like': return <Heart className="w-3 h-3 text-white" />;
             case 'comment': return <MessageCircle className="w-3 h-3 text-white" />;
             case 'reply': return <MessageSquare className="w-3 h-3 text-white" />;
-            case 'pray': return <Heart className="w-3 h-3 text-white" />; // Prayer hands unavailable in standard set, using Heart
+            case 'pray':
+            case 'prayer': return <Heart className="w-3 h-3 text-white" />; // Prayer hands unavailable in standard set, using Heart
             case 'friend_request': return <User className="w-3 h-3 text-white" />;
             case 'message': return <MessageCircle className="w-3 h-3 text-white" />; // Use Message icon
             case 'post': return <Heart className="w-3 h-3 text-white" />; // Use generic icon for post or image
@@ -194,7 +195,8 @@ export function NotificationDropdown() {
             case 'like': return "bg-muted-rose";
             case 'comment': return "bg-blue-400";
             case 'reply': return "bg-deep-velvet";
-            case 'pray': return "bg-stone-400";
+            case 'pray':
+            case 'prayer': return "bg-stone-400";
             case 'friend_request': return "bg-emerald-400";
             case 'message': return "bg-sage-green"; // Distinct color for messages
             case 'post': return "bg-warm-cocoa";
@@ -204,7 +206,7 @@ export function NotificationDropdown() {
 
     const getLink = (n: Notification) => {
         if (n.type === 'reply') return `/velvet-vault/${n.resource_id}`;
-        if (n.type === 'pray') return `/prayer-pocket`;
+        if (n.type === 'pray' || n.type === 'prayer') return `/prayer-pocket`;
         if (n.type === 'friend_request') return `/profile/${n.actor?.username || "user"}`;
         if (n.type === 'message') return `/messages/${n.actor_id}`; // Correctly use UUID
         // For feeds, we might just go to base page if we don't have single post view yet
@@ -267,7 +269,7 @@ export function NotificationDropdown() {
                                                     {n.type === 'like' && "liked your post."}
                                                     {n.type === 'comment' && "commented on your post."}
                                                     {n.type === 'reply' && "replied to your question."}
-                                                    {n.type === 'pray' && "prayed for you."}
+                                                    {(n.type === 'pray' || n.type === 'prayer') && "prayed for you."}
                                                     {n.type === 'friend_request' && "sent you a friend request."}
                                                 </p>
                                                 <p className="text-[10px] text-warm-grey/40 mt-1">

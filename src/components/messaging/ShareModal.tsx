@@ -137,11 +137,22 @@ export function ShareModal({ isOpen, onClose, content }: ShareModalProps) {
                 let Icon = Star;
                 let color = "text-yellow-400";
 
+                if (stickerName === 'Heart') {
+                    return (
+                        <span key={index} className="inline-block mx-1.5 align-middle select-none">
+                            <img 
+                                src="/images/heart_sticker.png" 
+                                alt="Heart Sticker" 
+                                className="w-7 h-7 object-contain drop-shadow-sticker" 
+                            />
+                        </span>
+                    );
+                }
+
                 switch (stickerName) {
                     case 'Candle': Icon = Flame; color = "text-orange-300"; break;
                     case 'Feather': Icon = Feather; color = "text-stone-400"; break;
                     case 'Users': Icon = Users; color = "text-rose-400"; break;
-                    case 'Heart': Icon = Heart; color = "text-pink-400"; break;
                     case 'Prayer Warrior': Icon = Users; color = "text-blue-400"; break;
                     case 'Encourager': Icon = Mail; color = "text-purple-400"; break;
                     case 'Sunshine': Icon = Sun; color = "text-yellow-400"; break;
