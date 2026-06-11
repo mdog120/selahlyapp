@@ -26,6 +26,7 @@ export function NotificationDropdown() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [userId, setUserId] = useState<string | null>(null);
     const supabase = createClient();
     const router = useRouter();
 
@@ -41,52 +42,76 @@ export function NotificationDropdown() {
         if (isOpen && unreadCount > 0) {
             markAllAsRead();
         }
-    }, [isOpen]);
+    }, [isOpen, unreadCount]);
 
     useEffect(() => {
-        fetchNotifications();
+        let channel: any;
 
-        // Real-time subscription
-        const channel = supabase
-            .channel('notifications')
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'notifications'
-            }, (payload) => {
-                console.log('New notification!', payload);
-                fetchNotifications(); // Refresh list on new item
+        const setupSubscription = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-                // Trigger local system notification
-                const newNotif = payload.new as any;
-                if (newNotif && newNotif.actor_id) {
-                    fetchActorAndNotify(newNotif.actor_id, newNotif.type);
-                }
-            })
-            .subscribe();
+            setUserId(user.id);
+            fetchNotifications(user.id);
+
+            // Subscribe only to Postgres INSERT changes for the current user
+            channel = supabase
+                .channel(`notifications:${user.id}`)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `user_id=eq.${user.id}`
+                }, (payload) => {
+                    console.log('New notification for current user!', payload);
+                    fetchNotifications(user.id); // Refresh list on new item
+
+                    // Trigger local system notification
+                    const newNotif = payload.new as any;
+                    if (newNotif && newNotif.actor_id) {
+                        fetchActorAndNotify(newNotif.actor_id, newNotif.type);
+                    }
+                })
+                .subscribe();
+        };
+
+        setupSubscription();
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
         };
     }, []);
 
-    async function fetchNotifications() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+    async function fetchNotifications(currentUserId?: string) {
+        const uid = currentUserId || userId;
+        if (!uid) return;
 
+        // Fetch top 10 visible notifications
         const { data } = await supabase
             .from("notifications")
             .select(`
                 *,
                 actor:profiles!notifications_actor_id_fkey(username, first_name, last_name, avatar_url)
             `)
-            .eq("user_id", user.id)
+            .eq("user_id", uid)
             .order("created_at", { ascending: false })
             .limit(10);
 
         if (data) {
             setNotifications(data as any);
-            setUnreadCount(data.filter((n: any) => !n.read).length);
+        }
+
+        // Fetch exact unread count from the entire database for this user
+        const { count } = await supabase
+            .from("notifications")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", uid)
+            .eq("read", false);
+
+        if (count !== null) {
+            setUnreadCount(count);
         }
     }
 
@@ -118,8 +143,6 @@ export function NotificationDropdown() {
     }
 
     async function handleRead(notificationId: string) {
-        // Individual read is less important if we bulk read on open, 
-        // but still good for specific interactions if needed.
         await supabase
             .from("notifications")
             .update({ read: true })
@@ -130,18 +153,19 @@ export function NotificationDropdown() {
     }
 
     async function markAllAsRead() {
-        const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-        if (unreadIds.length === 0) return;
+        const uid = userId;
+        if (!uid) return;
 
         // Optimistic update
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         setUnreadCount(0);
 
-        // Update DB
+        // Update ALL unread notifications for this user in DB (resolving limit pagination leak)
         await supabase
             .from("notifications")
             .update({ read: true })
-            .in("id", unreadIds);
+            .eq("user_id", uid)
+            .eq("read", false);
     }
 
     const getIcon = (type: string) => {
