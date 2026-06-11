@@ -20,4 +20,6 @@ export type SelectedText = {
     rect: DOMRect | null;
     verseRef?: string; // e.g. "John 3:16"
     verseId?: number;
+    highlightId?: string;
 };
+

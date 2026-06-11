@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { HighlightMenu } from "@/components/bible/HighlightMenu";
 import { ShareModal } from "@/components/bible/ShareModal";
 import { Loader2 } from "lucide-react";
 import { BibleResponse, SelectedText } from "./types";
 import { createClient } from "@/lib/supabase/client";
-
-
 
 interface BibleReaderProps {
     book: string;
@@ -15,7 +13,15 @@ interface BibleReaderProps {
     onLoading: (loading: boolean) => void;
 }
 
-
+// Map database color string (IDs like 'rose' or class names like 'bg-soft-blush') to theme-compliant Tailwind background classes
+const getColorClass = (colorVal: string): string => {
+    const clean = colorVal?.toLowerCase() || '';
+    if (clean.includes('rose') || clean.includes('blush')) return 'bg-soft-blush';
+    if (clean.includes('sage') || clean.includes('green')) return 'bg-sage-green';
+    if (clean.includes('lavender') || clean.includes('purple')) return 'bg-purple-100';
+    if (clean.includes('blue') || clean.includes('sky')) return 'bg-blue-100';
+    return 'bg-yellow-200'; // Default yellow highlight
+};
 
 export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
     const [data, setData] = useState<BibleResponse | null>(null);
@@ -73,37 +79,37 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         };
 
         fetchChapter();
-    }, [book, chapter, onLoading]);
+    }, [book, chapter, onLoading, userId]);
 
     // Fetch User Highlights
-    useEffect(() => {
-        const fetchHighlights = async () => {
-            if (!userId) return;
-            const { data } = await supabase
-                .from('bible_highlights')
-                .select('*')
-                .eq('user_id', userId)
-                .eq('book', book)
-                .eq('chapter', chapter);
+    const fetchHighlights = useCallback(async () => {
+        if (!userId) return;
+        const { data } = await supabase
+            .from('bible_highlights')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('book', book)
+            .eq('chapter', chapter);
 
-            if (data) {
-                setHighlights(data.map(h => ({
-                    id: h.id,
-                    verseId: h.verse,
-                    text: h.text, // Assuming full text matches are okay for now
-                    color: h.color
-                })));
-            }
-        };
+        if (data) {
+            setHighlights(data.map(h => ({
+                id: h.id,
+                verseId: h.verse,
+                text: h.text,
+                color: getColorClass(h.color)
+            })));
+        }
+    }, [book, chapter, userId, supabase]);
+
+    useEffect(() => {
         fetchHighlights();
-    }, [book, chapter, userId]);
+    }, [fetchHighlights]);
 
     // Handle Text Selection
     useEffect(() => {
         const handleSelection = () => {
             const sel = window.getSelection();
             if (!sel || sel.isCollapsed || sel.toString().trim() === "") {
-                // Don't clear immediately if clicking menu
                 return;
             }
 
@@ -112,21 +118,38 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
             const text = sel.toString();
 
             // Find verse ID context
-            let verseId: number | undefined;
-            // Iterate up from start container to find verse wrapper
-            let node: Node | null = range.startContainer;
-            if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+            let startVerseId: number | undefined;
+            let startNode: Node | null = range.startContainer;
+            if (startNode.nodeType === Node.TEXT_NODE) startNode = startNode.parentElement;
 
-            while (node && node instanceof HTMLElement) {
-                if (node.id?.startsWith("verse-")) {
-                    verseId = parseInt(node.id.replace("verse-", ""));
+            while (startNode && startNode instanceof HTMLElement) {
+                if (startNode.id?.startsWith("verse-")) {
+                    startVerseId = parseInt(startNode.id.replace("verse-", ""));
                     break;
                 }
-                node = node.parentElement;
+                startNode = startNode.parentElement;
             }
 
+            let endVerseId: number | undefined;
+            let endNode: Node | null = range.endContainer;
+            if (endNode.nodeType === Node.TEXT_NODE) endNode = endNode.parentElement;
+
+            while (endNode && endNode instanceof HTMLElement) {
+                if (endNode.id?.startsWith("verse-")) {
+                    endVerseId = parseInt(endNode.id.replace("verse-", ""));
+                    break;
+                }
+                endNode = endNode.parentElement;
+            }
+
+            // If selection crosses multiple verses, or is not in a verse, ignore
+            if (!startVerseId || startVerseId !== endVerseId) {
+                return;
+            }
+
+            const verseId = startVerseId;
+
             // Clean up text - Remove verse numbers if accidentally selected
-            // Regex to remove leading digits & whitespace if at start
             const cleanText = text.replace(/^\d+\s*/, "").trim();
 
             if (!cleanText) return;
@@ -134,13 +157,19 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
             setSelection({
                 text: cleanText,
                 rect,
-                verseRef: `${book} ${chapter}${verseId ? `:${verseId}` : ''}`,
+                verseRef: `${book} ${chapter}:${verseId}`,
                 verseId
             });
         };
 
         const handleDocClick = (e: MouseEvent) => {
-            // Clear selection if clicking outside menu/selection
+            // Ignore clicks originating inside the highlight menu
+            const target = e.target as HTMLElement;
+            if (target.closest('[data-highlight-menu="true"]')) {
+                return;
+            }
+
+            // Clear selection if clicking outside
             const sel = window.getSelection();
             if (!sel || sel.isCollapsed) {
                 setSelection(null);
@@ -155,28 +184,101 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         };
     }, [book, chapter]);
 
-    const addHighlight = (colorId: string) => {
+    // Handle clicking a verse directly (for ease of highlighting, particularly on mobile)
+    const handleVerseClick = (e: React.MouseEvent<HTMLSpanElement>, verseId: number, verseText: string) => {
+        // If the user has active text selection, do not intercept as tap selection
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed && sel.toString().trim() !== "") {
+            return;
+        }
+
+        // If clicking the currently selected verse again, deselect it
+        if (selection && selection.verseId === verseId && !selection.highlightId) {
+            setSelection(null);
+            return;
+        }
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        
+        // Check if there is an existing highlight on this verse
+        const existingHighlight = highlights.find(h => h.verseId === verseId);
+
+        if (existingHighlight) {
+            setSelection({
+                text: existingHighlight.text,
+                rect,
+                verseRef: `${book} ${chapter}:${verseId}`,
+                verseId,
+                highlightId: existingHighlight.id
+            });
+        } else {
+            setSelection({
+                text: verseText,
+                rect,
+                verseRef: `${book} ${chapter}:${verseId}`,
+                verseId
+            });
+        }
+    };
+
+    const addHighlight = async (colorId: string) => {
         if (!selection || !selection.verseId) return;
 
         const colorMap: Record<string, string> = {
-            rose: "bg-soft-blush", // Changed from soft-rose to match globals
+            rose: "bg-soft-blush",
             sage: "bg-sage-green",
             lavender: "bg-purple-100",
             blue: "bg-blue-100",
         };
 
-        const newHighlight = {
-            verseId: selection.verseId,
-            text: selection.text,
-            color: colorMap[colorId] || "bg-yellow-200"
-        };
+        const newColorClass = colorMap[colorId] || "bg-yellow-200";
 
-        setHighlights(prev => [...prev, newHighlight]);
+        if (selection.highlightId) {
+            // Update existing highlight color (optimistic UI update)
+            setHighlights(prev => prev.map(h => 
+                h.id === selection.highlightId 
+                    ? { ...h, color: newColorClass } 
+                    : h
+            ));
 
-        // Persist to DB
-        if (userId) {
-            const saveHighlight = async () => {
+            if (userId) {
                 const { error } = await supabase
+                    .from('bible_highlights')
+                    .update({ color: colorId })
+                    .eq('id', selection.highlightId);
+                if (error) console.error("Error updating highlight color", error);
+            }
+        } else {
+            // Create a new highlight.
+            // If user highlights the whole verse, clean up any existing highlights in that verse to prevent overlaps
+            const verseRefText = data?.verses.find(v => v.verse === selection.verseId)?.text || "";
+            const isFullVerse = selection.text.trim() === verseRefText.trim();
+
+            if (isFullVerse && userId) {
+                await supabase
+                    .from('bible_highlights')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('book', book)
+                    .eq('chapter', chapter)
+                    .eq('verse', selection.verseId);
+                
+                setHighlights(prev => prev.filter(h => h.verseId !== selection.verseId));
+            }
+
+            const tempId = `temp-${Math.random()}`;
+            const newHighlight = {
+                id: tempId,
+                verseId: selection.verseId,
+                text: selection.text,
+                color: newColorClass
+            };
+
+            setHighlights(prev => [...prev, newHighlight]);
+
+            // Persist to DB
+            if (userId) {
+                const { data: savedData, error } = await supabase
                     .from('bible_highlights')
                     .insert({
                         user_id: userId,
@@ -184,11 +286,22 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
                         chapter: chapter,
                         verse: selection.verseId,
                         text: selection.text,
-                        color: colorMap[colorId] || "yellow"
-                    });
-                if (error) console.error("Error saving highlight", error);
-            };
-            saveHighlight();
+                        color: colorId
+                    })
+                    .select('id')
+                    .single();
+
+                if (error) {
+                    console.error("Error saving highlight", error);
+                    // Rollback on error
+                    setHighlights(prev => prev.filter(h => h.id !== tempId));
+                } else if (savedData) {
+                    // Update the state with the real database ID
+                    setHighlights(prev => prev.map(h => 
+                        h.id === tempId ? { ...h, id: savedData.id } : h
+                    ));
+                }
+            }
         }
 
         // Clear selection
@@ -196,14 +309,32 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         setSelection(null);
     };
 
+    const deleteHighlight = async () => {
+        if (!selection || !selection.highlightId) return;
+
+        const targetId = selection.highlightId;
+
+        // Optimistic UI update
+        setHighlights(prev => prev.filter(h => h.id !== targetId));
+        setSelection(null);
+
+        if (userId) {
+            const { error } = await supabase
+                .from('bible_highlights')
+                .delete()
+                .eq('id', targetId);
+
+            if (error) {
+                console.error("Error deleting highlight", error);
+                // Revert on error by refetching
+                fetchHighlights();
+            }
+        }
+    };
+
     const renderVerseText = (verseId: number, text: string) => {
         const verseHighlights = highlights.filter(h => h.verseId === verseId);
         if (verseHighlights.length === 0) return text;
-
-        // Simple overlay approach for MVP:
-        // Split text by highlight phrases. 
-        // Note: This is a basic implementation and won't handle overlapping highlights well.
-        // It blindly highlights the *first* occurrence of the text in the verse fragment.
 
         let parts: React.ReactNode[] = [text];
 
@@ -213,11 +344,8 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
                 if (typeof part === 'string') {
                     if (part.includes(h.text)) {
                         const split = part.split(h.text);
-                        // Join back with highlight wrapper
-                        // Limitation: split invalidates if text appears multiple times, it highlights all or complex.
-                        // We will just do the first split to be safe-ish for now.
                         const pre = split[0];
-                        const post = split.slice(1).join(h.text); // reconstruct rest
+                        const post = split.slice(1).join(h.text); // Reconstruct rest of occurrences
 
                         if (pre) newParts.push(pre);
                         newParts.push(
@@ -225,9 +353,7 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
                                 {h.text}
                             </span>
                         );
-                        if (post) newParts.push(post); // Should recurse? 
-                        // For MVP this simple split map is "Okay" but buggy for multiple same words.
-                        // A better approach is index-based but we don't have indexes from api easily without more logic.
+                        if (post) newParts.push(post);
                     } else {
                         newParts.push(part);
                     }
@@ -249,20 +375,32 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
             <h2 className="font-serif text-3xl text-warm-cocoa mb-6 text-center">{data?.reference}</h2>
 
             <div className="space-y-4 font-serif text-lg leading-loose text-warm-grey select-text">
-                {data?.verses.map((v) => (
-                    <span key={v.verse} className="relative hover:bg-warm-grey/5 transition-colors duration-300 rounded px-1 -mx-1 block md:inline" id={`verse-${v.verse}`}>
-                        <sup className="text-xs text-warm-grey/40 font-sans mr-1 select-none font-bold align-top top-2">{v.verse}</sup>
-                        <span className="selection:bg-soft-rose/30 selection:text-warm-cocoa">
-                            {renderVerseText(v.verse, v.text)}
-                        </span>{" "}
-                    </span>
-                ))}
+                {data?.verses.map((v) => {
+                    const isSelected = selection?.verseId === v.verse && !selection.highlightId;
+                    
+                    return (
+                        <span 
+                            key={v.verse} 
+                            className={`relative hover:bg-warm-grey/5 transition-colors duration-300 rounded px-1 -mx-1 block md:inline cursor-pointer ${
+                                isSelected ? 'bg-warm-cocoa/5 ring-1 ring-warm-cocoa/10 shadow-sm' : ''
+                            }`} 
+                            id={`verse-${v.verse}`}
+                            onClick={(e) => handleVerseClick(e, v.verse, v.text)}
+                        >
+                            <sup className="text-xs text-warm-grey/40 font-sans mr-1 select-none font-bold align-top top-2">{v.verse}</sup>
+                            <span className="selection:bg-soft-rose/30 selection:text-warm-cocoa">
+                                {renderVerseText(v.verse, v.text)}
+                            </span>{" "}
+                        </span>
+                    );
+                })}
             </div>
 
             {selection && selection.rect && (
                 <HighlightMenu
                     selection={selection}
                     onHighlight={addHighlight}
+                    onDelete={deleteHighlight}
                     onShare={(type) => {
                         setShareData({
                             content: selection.text,
