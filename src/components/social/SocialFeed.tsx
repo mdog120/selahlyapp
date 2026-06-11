@@ -43,17 +43,28 @@ export function SocialFeed() {
         if (error) {
             console.error("Error fetching posts:", error);
         } else if (data) {
-            // Check likes state for current user
-            const postsWithLikeState = await Promise.all(data.map(async (post) => {
-                if (!user) return post;
-                const { data: like } = await supabase
+            // Check likes state for current user efficiently in a single query (resolving N+1 query issue)
+            let likedPostIds = new Set<string>();
+            if (user && data.length > 0) {
+                const postIds = data.map(p => p.id);
+                const { data: likes, error: likesError } = await supabase
                     .from("post_likes")
-                    .select("user_id")
-                    .eq("post_id", post.id)
+                    .select("post_id")
                     .eq("user_id", user.id)
-                    .single();
-                return { ...post, user_has_liked: !!like };
+                    .in("post_id", postIds);
+
+                if (likesError) {
+                    console.error("Error fetching post likes:", likesError);
+                } else if (likes) {
+                    likedPostIds = new Set(likes.map(l => l.post_id));
+                }
+            }
+
+            const postsWithLikeState = data.map((post) => ({
+                ...post,
+                user_has_liked: user ? likedPostIds.has(post.id) : false
             }));
+
             setPosts(postsWithLikeState as Post[]);
         }
         setLoading(false);

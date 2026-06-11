@@ -73,7 +73,6 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         };
 
         fetchChapter();
-        fetchChapter();
     }, [book, chapter, onLoading]);
 
     // Fetch User Highlights
