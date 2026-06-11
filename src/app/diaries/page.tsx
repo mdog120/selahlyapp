@@ -220,7 +220,7 @@ export default function Diaries() {
                             </div>
                         ) : (
                             <div className="relative z-10 flex flex-col items-center">
-                                <GlowingCandle isLit={hasJournaledToday} />
+                                <GlowingCandle isLit={hasJournaledToday} streak={streak} />
                                 <span className="text-xs font-bold uppercase tracking-widest text-sage-green mb-4 block mt-4">Verse of the Day (KJV)</span>
                                 <p className="font-serif text-2xl md:text-3xl text-warm-grey leading-relaxed mb-6">
                                     "{verse?.text?.trim()}"
