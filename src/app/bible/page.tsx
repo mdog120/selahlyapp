@@ -20,11 +20,19 @@ import { Suspense } from "react";
 
 // ... existing constants ...
 
+const normalizeBookName = (name: string | null): string => {
+    if (!name) return "Genesis";
+    const trimmed = name.trim();
+    if (trimmed.toLowerCase() === "psalm") return "Psalms";
+    // Capitalize first letter to match BOOKS options
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};
+
 function BiblePageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const initialBook = searchParams.get("book") || "Genesis";
+    const initialBook = normalizeBookName(searchParams.get("book"));
     const initialChapter = parseInt(searchParams.get("chapter") || "1");
 
     const [book, setBook] = useState(initialBook);
@@ -35,7 +43,7 @@ function BiblePageContent() {
     useEffect(() => {
         const b = searchParams.get("book");
         const c = searchParams.get("chapter");
-        if (b) setBook(b);
+        if (b) setBook(normalizeBookName(b));
         if (c) setChapter(parseInt(c));
     }, [searchParams]);
 

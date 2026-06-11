@@ -320,6 +320,17 @@ function StripeCheckoutForm({ amount, clientSecret, onSuccess }: StripeCheckoutF
     useEffect(() => {
         if (!stripe) return;
 
+        // Skip Apple Pay check in standalone PWA mode to prevent external browser breakout redirects
+        const isStandalone = typeof window !== "undefined" && (
+            window.matchMedia('(display-mode: standalone)').matches || 
+            (window.navigator as any).standalone
+        );
+
+        if (isStandalone) {
+            console.log("Stripe Payment Request Button skipped in standalone PWA mode to prevent browser breakout.");
+            return;
+        }
+
         const pr = stripe.paymentRequest({
             country: "US",
             currency: "usd",
