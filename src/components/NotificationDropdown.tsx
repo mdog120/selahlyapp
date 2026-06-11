@@ -32,8 +32,11 @@ export function NotificationDropdown() {
 
     useEffect(() => {
         if (typeof window !== "undefined" && "Notification" in window) {
-            if (Notification.permission === "default") {
-                Notification.requestPermission();
+            const hasPrompted = localStorage.getItem("notification_prompted");
+            if (Notification.permission === "default" && !hasPrompted) {
+                Notification.requestPermission().then(() => {
+                    localStorage.setItem("notification_prompted", "true");
+                });
             }
         }
     }, []);
