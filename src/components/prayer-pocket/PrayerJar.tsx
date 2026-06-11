@@ -55,6 +55,124 @@ interface Sparkle {
     fadeDir: number;
 }
 
+const drawGardenBackdrop = (ctx: CanvasRenderingContext2D, width: number, height: number, centerX: number) => {
+    ctx.save();
+    
+    // Draw soft grass hills at the very bottom base of the jar
+    ctx.fillStyle = "rgba(188, 214, 195, 0.45)"; // Soft sage green
+    ctx.beginPath();
+    ctx.ellipse(centerX, height - 35, width * 0.35, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(163, 196, 172, 0.4)"; // Slightly darker layer
+    ctx.beginPath();
+    ctx.ellipse(centerX - 30, height - 32, width * 0.3, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Helper to draw a leaf
+    const drawLeaf = (lx: number, ly: number, angle: number, size: number) => {
+        ctx.save();
+        ctx.translate(lx, ly);
+        ctx.rotate(angle);
+        ctx.fillStyle = "rgba(163, 196, 172, 0.55)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size, size * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    };
+
+    // Helper to draw a daisy
+    const drawDaisy = (fx: number, fy: number, size: number) => {
+        ctx.save();
+        ctx.translate(fx, fy);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)"; // Petals
+        for (let i = 0; i < 6; i++) {
+            ctx.rotate(Math.PI / 3);
+            ctx.beginPath();
+            ctx.ellipse(size * 0.8, 0, size * 0.8, size * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.fillStyle = "rgba(254, 215, 170, 0.95)"; // Orange/yellow center
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    };
+
+    // Helper to draw a tulip
+    const drawTulip = (tx: number, ty: number, size: number) => {
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.fillStyle = "rgba(240, 187, 202, 0.85)"; // Lilac/Pink
+        ctx.beginPath();
+        ctx.moveTo(0, size);
+        ctx.bezierCurveTo(-size, 0, -size * 1.2, -size * 0.5, -size * 0.8, -size * 1.2);
+        ctx.bezierCurveTo(-size * 0.3, -size * 0.7, 0, -size, 0, -size * 1.2);
+        ctx.bezierCurveTo(0, -size, size * 0.3, -size * 0.7, size * 0.8, -size * 1.2);
+        ctx.bezierCurveTo(size * 1.2, -size * 0.5, size, 0, 0, size);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    };
+
+    // Helper to draw a stem
+    const drawStem = (x1: number, y1: number, x2: number, y2: number, cx: number, cy: number) => {
+        ctx.strokeStyle = "rgba(141, 178, 151, 0.65)";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo(cx, cy, x2, y2);
+        ctx.stroke();
+    };
+
+    // 1. Left Plant (Tulip)
+    drawStem(centerX - 50, height - 35, centerX - 65, height - 100, centerX - 60, height - 65);
+    drawLeaf(centerX - 58, height - 60, -Math.PI / 4, 12);
+    drawLeaf(centerX - 62, height - 80, -Math.PI / 6, 9);
+    drawTulip(centerX - 65, height - 105, 10);
+
+    // 2. Center Plant (Daisy)
+    drawStem(centerX, height - 35, centerX + 10, height - 130, centerX + 5, height - 80);
+    drawLeaf(centerX + 3, height - 65, Math.PI / 4, 14);
+    drawLeaf(centerX + 8, height - 95, -Math.PI / 5, 11);
+    drawDaisy(centerX + 10, height - 135, 8);
+
+    // 3. Right Plant (Peach Bud)
+    drawStem(centerX + 55, height - 35, centerX + 45, height - 85, centerX + 50, height - 60);
+    drawLeaf(centerX + 51, height - 55, Math.PI / 3, 10);
+    drawLeaf(centerX + 47, height - 75, Math.PI / 6, 8);
+    // Bud
+    ctx.fillStyle = "rgba(253, 186, 116, 0.9)"; // Pastel peach
+    ctx.beginPath();
+    ctx.arc(centerX + 45, height - 88, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Hanging Vines from top-left neck
+    ctx.strokeStyle = "rgba(141, 178, 151, 0.5)";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 45, 90);
+    ctx.quadraticCurveTo(centerX - 60, 120, centerX - 50, 160);
+    ctx.stroke();
+    
+    // Vine leaves
+    drawLeaf(centerX - 50, 110, Math.PI / 6, 6);
+    drawLeaf(centerX - 53, 135, -Math.PI / 4, 7);
+    drawLeaf(centerX - 50, 160, Math.PI / 3, 5);
+
+    // 5. Hanging Vines from top-right neck
+    ctx.beginPath();
+    ctx.moveTo(centerX + 45, 90);
+    ctx.quadraticCurveTo(centerX + 55, 115, centerX + 48, 140);
+    ctx.stroke();
+    
+    drawLeaf(centerX + 48, 105, -Math.PI / 6, 6);
+    drawLeaf(centerX + 52, 125, Math.PI / 5, 5);
+    drawLeaf(centerX + 48, 140, -Math.PI / 4, 5);
+
+    ctx.restore();
+};
+
 export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -289,6 +407,9 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
             ctx.rect(30, 70, width - 60, height - 100);
             ctx.fill();
             ctx.restore();
+
+            // 1.5 Draw Garden Backdrop Elements
+            drawGardenBackdrop(ctx, width, height, centerX);
 
             // 2. Twinkling Background Sparkles (Stardust)
             const sparkles = sparklesRef.current;
@@ -600,7 +721,7 @@ export function PrayerJar({ prayers, onPray }: PrayerJarProps) {
                     ref={canvasRef}
                     width={380}
                     height={480}
-                    className="absolute inset-0 bg-gradient-to-b from-[#FFF2F6] via-[#F3EDFF] to-[#E3F2FD] rounded-[3.8rem] cursor-pointer border border-white/20"
+                    className="absolute inset-0 bg-gradient-to-b from-[#E8F5E9] via-[#FFF3E0] to-[#FFF0F5] rounded-[3.8rem] cursor-pointer border border-white/20"
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                     onClick={handleCanvasClick}
