@@ -46,6 +46,7 @@ export default function GroupChatPage() {
     const [newMessage, setNewMessage] = useState("");
     const [group, setGroup] = useState<Group | null>(null);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentProfile, setCurrentProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -144,7 +145,17 @@ export default function GroupChatPage() {
     useEffect(() => {
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) setCurrentUser(user);
+            if (user) {
+                setCurrentUser(user);
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("first_name, avatar_url")
+                    .eq("id", user.id)
+                    .single();
+                if (profile) {
+                    setCurrentProfile(profile);
+                }
+            }
         };
         getUser();
     }, []);
@@ -257,7 +268,10 @@ export default function GroupChatPage() {
         await channel.send({
             type: 'broadcast',
             event: 'typing',
-            payload: { user_id: currentUser?.id, first_name: currentUser?.user_metadata?.first_name }
+            payload: { 
+                user_id: currentUser?.id, 
+                first_name: currentProfile?.first_name || currentUser?.user_metadata?.first_name || "Sister" 
+            }
         });
     };
 
@@ -302,8 +316,8 @@ export default function GroupChatPage() {
             reactions: {},
             read_by: [],
             sender: {
-                first_name: currentUser.user_metadata?.first_name || "Me",
-                avatar_url: currentUser.user_metadata?.avatar_url || ""
+                first_name: currentProfile?.first_name || currentUser.user_metadata?.first_name || "Me",
+                avatar_url: currentProfile?.avatar_url || currentUser.user_metadata?.avatar_url || ""
             }
         };
         setMessages(prev => [...prev, tempMsg]);
@@ -401,10 +415,13 @@ export default function GroupChatPage() {
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
 
-                    <div className="w-10 h-10 rounded-full bg-muted-rose/10 flex items-center justify-center text-muted-rose border border-white shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-muted-rose/10 flex items-center justify-center text-muted-rose border border-white shadow-sm overflow-hidden flex-shrink-0">
                         {/* Group Icon */}
-                        {/* Could use group image if user uploads one later, for now initials or icon */}
-                        <span className="font-bold font-serif">{group?.name[0].toUpperCase()}</span>
+                        {group?.image_url ? (
+                            <img src={group.image_url} alt={group.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="font-bold font-serif">{group?.name[0].toUpperCase()}</span>
+                        )}
                     </div>
 
                     <div>

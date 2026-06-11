@@ -8,6 +8,29 @@ import { Search, Circle, Users } from "lucide-react";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { SelahlyNotes } from "../social/SelahlyNotes";
 
+function formatMessageTime(timeStr: string | undefined): string {
+    if (!timeStr) return "";
+    const date = new Date(timeStr);
+    const now = new Date();
+    
+    // Reset times to compare calendar days
+    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const diffTime = startOfNow.getTime() - startOfDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+        return "Yesterday";
+    } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+    } else {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+}
+
 type Friend = {
     id: string;
     username: string;
@@ -268,8 +291,8 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                                                             {item.name}
                                                         </p>
                                                         {item.lastMessageTime && (
-                                                            <span className="text-[9px] text-warm-grey/40">
-                                                                {new Date(item.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            <span className="text-[9px] text-warm-grey/40 shrink-0 ml-2">
+                                                                {formatMessageTime(item.lastMessageTime)}
                                                             </span>
                                                         )}
                                                     </div>
@@ -322,7 +345,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                                                     </p>
                                                     {item.lastMessageTime && (
                                                         <span className="text-[10px] text-warm-grey/40 flex-shrink-0 ml-2">
-                                                            {new Date(item.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {formatMessageTime(item.lastMessageTime)}
                                                         </span>
                                                     )}
                                                 </div>

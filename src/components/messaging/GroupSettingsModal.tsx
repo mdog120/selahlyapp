@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { X, Search, Check, Trash2, Shield, LogOut } from "lucide-react";
+import { X, Search, Check, Trash2, Shield, LogOut, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 
@@ -38,6 +38,7 @@ export function GroupSettingsModal({
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState("");
     const [editImage, setEditImage] = useState("");
+    const [uploading, setUploading] = useState(false);
     const supabase = createClient();
     const router = useRouter();
 
@@ -56,6 +57,46 @@ export function GroupSettingsModal({
         if (data) {
             setEditName(data.name);
             setEditImage(data.image_url || "");
+        }
+    };
+
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setUploading(true);
+            if (!event.target.files || event.target.files.length === 0) {
+                throw new Error('You must select an image to upload.');
+            }
+
+            const file = event.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `group-${groupId}-${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            let bucket = 'posts';
+            let { error: uploadError } = await supabase.storage
+                .from(bucket)
+                .upload(filePath, file);
+
+            if (uploadError) {
+                console.warn("Upload to 'posts' failed, trying 'avatars'", uploadError);
+                bucket = 'avatars';
+                const { error: retryError } = await supabase.storage
+                    .from(bucket)
+                    .upload(filePath, file);
+                if (retryError) throw retryError;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from(bucket)
+                .getPublicUrl(filePath);
+
+            setEditImage(publicUrl);
+
+        } catch (error: any) {
+            alert(error.message || 'Error uploading image! Ensure storage buckets are set up.');
+            console.error(error);
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -207,29 +248,57 @@ export function GroupSettingsModal({
                                 </button>
                             </div>
 
-                            {isEditing ? (
-                                <div className="space-y-3">
+                             {isEditing ? (
+                                <div className="space-y-4">
                                     <div>
                                         <label className="block text-[10px] font-bold text-warm-grey/60 mb-1">NAME</label>
                                         <input
                                             value={editName}
                                             onChange={(e) => setEditName(e.target.value)}
-                                            className="w-full text-sm p-2 bg-stone-50 rounded-lg border border-warm-grey/10"
+                                            className="w-full text-sm p-2 bg-stone-50 rounded-lg border border-warm-grey/10 focus:outline-none focus:ring-1 focus:ring-muted-rose"
                                             placeholder="Group Name"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-warm-grey/60 mb-1">IMAGE URL</label>
-                                        <input
-                                            value={editImage}
-                                            onChange={(e) => setEditImage(e.target.value)}
-                                            className="w-full text-sm p-2 bg-stone-50 rounded-lg border border-warm-grey/10"
-                                            placeholder="https://..."
-                                        />
+                                    <div className="flex flex-col items-center gap-3 pt-2">
+                                        <label className="block text-[10px] font-bold text-warm-grey/60 self-start">GROUP PROFILE PICTURE</label>
+                                        <div className="relative group w-20 h-20 rounded-full bg-stone-50 border border-warm-grey/15 overflow-hidden flex items-center justify-center shadow-inner">
+                                            {editImage ? (
+                                                <img src={editImage} alt="Group Preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="font-serif text-2xl text-warm-cocoa/40 font-bold">
+                                                    {editName ? editName[0].toUpperCase() : "G"}
+                                                </span>
+                                            )}
+                                            {uploading && (
+                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <label className="cursor-pointer bg-muted-rose hover:bg-muted-rose/90 text-white text-xs font-semibold py-1.5 px-4 rounded-full shadow-md shadow-muted-rose/10 flex items-center gap-2 transition-all">
+                                            <Camera className="w-3.5 h-3.5" />
+                                            {uploading ? "Uploading..." : "Choose from Library"}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                disabled={uploading}
+                                                className="hidden"
+                                            />
+                                        </label>
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-sm text-warm-grey">{editName || "Loading..."}</p>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-stone-50 border border-warm-grey/10 overflow-hidden flex items-center justify-center flex-shrink-0 shadow-sm">
+                                        {editImage ? (
+                                            <img src={editImage} alt={editName} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="font-serif font-bold text-warm-cocoa">{editName?.[0]?.toUpperCase()}</span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm font-semibold text-warm-grey">{editName || "Loading..."}</p>
+                                </div>
                             )}
                         </div>
                     )}
