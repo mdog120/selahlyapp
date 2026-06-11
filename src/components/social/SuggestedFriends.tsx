@@ -12,6 +12,15 @@ type Profile = {
     first_name: string;
     last_name: string;
     avatar_url: string;
+    created_at: string;
+};
+
+const isNewUser = (createdAtStr: string) => {
+    if (!createdAtStr) return false;
+    const createdAt = new Date(createdAtStr);
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    return createdAt > oneWeekAgo;
 };
 
 type SuggestedProfile = Profile & {
@@ -196,13 +205,14 @@ export function SuggestedFriends() {
                                 <p className="font-bold text-warm-grey truncate group-hover:text-warm-cocoa transition-colors">
                                     {profile.first_name} {profile.last_name}
                                 </p>
-                                {profile.mutual_count > 0 && (
+                                {profile.mutual_count > 0 ? (
                                     <p className="text-xs text-muted-rose font-medium">
                                         {profile.mutual_count} mutual friend{profile.mutual_count !== 1 ? 's' : ''}
                                     </p>
-                                )}
-                                {profile.mutual_count === 0 && (
+                                ) : isNewUser(profile.created_at) ? (
                                     <p className="text-xs text-warm-grey/40">New to Selahly</p>
+                                ) : (
+                                    <p className="text-xs text-warm-grey/40">Selahly Sister</p>
                                 )}
                             </div>
                         </Link>
