@@ -6,6 +6,7 @@ import { Sparkles, Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SessionRedirect } from "@/components/ui/SessionRedirect";
+import { BowLogo } from "@/components/ui/BowLogo";
 
 
 
@@ -68,14 +69,8 @@ export default async function Home() {
 
         <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto">
           {/* Logo */}
-          <div className="mb-8 animate-fade-in-up">
-            <Image
-              src="/logo-v2.png"
-              alt="Selahly Lotus Logo"
-              width={120}
-              height={120}
-              className="opacity-90"
-            />
+          <div className="mb-8 animate-fade-in-up flex justify-center">
+            <BowLogo className="text-8xl text-[#D4A5A5]" />
           </div>
 
           <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl text-warm-grey mb-6 tracking-tight animate-fade-in-up animation-delay-100">

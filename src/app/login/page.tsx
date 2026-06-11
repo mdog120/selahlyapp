@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
+import { BowLogo } from "@/components/ui/BowLogo";
 
 export default function Login() {
     const router = useRouter();
@@ -75,13 +76,9 @@ export default function Login() {
                 </Link>
 
                 <div className="text-center mb-8">
-                    <Image
-                        src="/logo.png"
-                        alt="Selahly Lotus"
-                        width={60}
-                        height={60}
-                        className="mx-auto mb-4 opacity-80"
-                    />
+                    <div className="flex justify-center mb-4">
+                        <BowLogo className="text-5xl text-[#D4A5A5]" />
+                    </div>
                     <h1 className="font-serif text-3xl md:text-4xl text-warm-grey mb-2">Welcome Back</h1>
                     <p className="text-warm-grey/60">Enter your sanctuary.</p>
                 </div>

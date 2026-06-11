@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
+import { BowLogo } from "@/components/ui/BowLogo";
 
 const STATEMENT_OF_FAITH = [
     {
@@ -119,7 +120,7 @@ export default function Onboarding() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-soft-blush/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
                     <div className="text-center mb-8 relative z-10">
-                        <Image src="/logo.png" alt="Selahly" width={60} height={60} className="mx-auto mb-4" />
+                        <BowLogo className="mx-auto mb-4 text-[#D4A5A5]" size="60px" />
                         <h1 className="font-serif text-3xl text-warm-cocoa mb-2">Welcome, Sister.</h1>
                         <p className="text-warm-grey/70">We'd love to know how you found ur way here.</p>
                     </div>
@@ -185,7 +186,7 @@ export default function Onboarding() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-soft-blush/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
                 <div className="text-center mb-6 relative z-10">
-                    <Image src="/logo.png" alt="Selahly" width={60} height={60} className="mx-auto mb-4" />
+                    <BowLogo className="mx-auto mb-4 text-[#D4A5A5]" size="60px" />
                     <h1 className="font-serif text-3xl text-warm-grey mb-2">Community Covenant</h1>
                     <p className="text-warm-grey/70">Before you enter, please affirm our shared beliefs.</p>
                 </div>
