@@ -33,6 +33,7 @@ export function PrayerRequestList() {
                     created_at,
                     user:profiles!prayers_user_id_fkey (first_name, last_name)
                 `)
+                .order("pray_count", { ascending: false })
                 .order("created_at", { ascending: false })
                 .limit(2);
 
