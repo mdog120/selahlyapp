@@ -4,22 +4,51 @@ import { useEffect, useRef, useState } from "react";
 import { Sparkles, Key, Lock, ChevronRight, Check, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface VaultKeyholeProps {
     onThreadCreated: () => void;
 }
 
-interface SparkleStar {
+interface DustMote {
     x: number;
     y: number;
     vx: number;
     vy: number;
     size: number;
-    angle: number;
-    spinSpeed: number;
+    alpha: number;
+    speedMultiplier: number;
+}
+
+interface TrailSpark {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    size: number;
     alpha: number;
     fadeSpeed: number;
     color: string;
+}
+
+interface Shockwave {
+    radius: number;
+    maxRadius: number;
+    alpha: number;
+    speed: number;
+    color: string;
+}
+
+interface SpiralStar {
+    baseAngle: number;
+    radius: number;
+    rotSpeed: number;
+    expandSpeed: number;
+    size: number;
+    alpha: number;
+    fadeSpeed: number;
+    color: string;
+    angleOffset: number;
 }
 
 const WISDOM_PROMPTS = [
@@ -45,8 +74,14 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
     const [posted, setPosted] = useState(false);
     const [confirmPost, setConfirmPost] = useState(false);
 
-    const starsRef = useRef<SparkleStar[]>([]);
+    // Physics Refs
+    const dustMotesRef = useRef<DustMote[]>([]);
+    const trailSparksRef = useRef<TrailSpark[]>([]);
+    const shockwavesRef = useRef<Shockwave[]>([]);
+    const spiralStarsRef = useRef<SpiralStar[]>([]);
+    
     const timeRef = useRef<number>(0);
+    const keyTiltRef = useRef<number>(0);
     const animationProgressRef = useRef<number>(0); // 0 to 1 during key rotation/slide
     const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
@@ -120,6 +155,44 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
             ctx.fillRect(0, 0, width, height);
             ctx.restore();
 
+            // 1. Background Dust Motes Physics (Always rendering)
+            if (dustMotesRef.current.length === 0) {
+                const motes: DustMote[] = [];
+                for (let i = 0; i < 24; i++) {
+                    motes.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        vx: (Math.random() - 0.5) * 0.15,
+                        vy: (Math.random() - 0.5) * 0.15,
+                        size: 1.0 + Math.random() * 2.0,
+                        alpha: 0.1 + Math.random() * 0.4,
+                        speedMultiplier: 0.6 + Math.random() * 0.8
+                    });
+                }
+                dustMotesRef.current = motes;
+            }
+
+            ctx.save();
+            dustMotesRef.current.forEach((m) => {
+                m.x += m.vx * m.speedMultiplier;
+                m.y += m.vy * m.speedMultiplier;
+
+                if (m.x < 0) m.x = width;
+                if (m.x > width) m.x = 0;
+                if (m.y < 0) m.y = height;
+                if (m.y > height) m.y = 0;
+
+                const moteAlpha = m.alpha * (0.7 + Math.sin(timeRef.current * 0.8 + m.x) * 0.3);
+
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(251, 191, 36, ${moteAlpha * 0.45})`;
+                ctx.shadowBlur = m.size * 2;
+                ctx.shadowColor = "rgba(251, 191, 36, 0.2)";
+                ctx.fill();
+            });
+            ctx.restore();
+
             // Setup state positions
             let keyX = 60;
             let keyY = centerY + Math.sin(timeRef.current * 2) * 5; // gentle hover bob
@@ -128,111 +201,157 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
 
             // Follow mouse if not unlocking and mouse inside panel
             if (!unlocked && !isUnlocking && mousePos) {
-                // Smooth follow towards mouse position (slightly offset to left of cursor)
                 const targetX = mousePos.x - 15;
                 const targetY = mousePos.y;
                 
+                const prevX = keyX;
                 keyX += (targetX - keyX) * 0.15;
                 keyY += (targetY - keyY) * 0.15;
 
-                // If key is dragged extremely close to the keyhole center, snap & trigger unlock
+                // Tilting calculations based on horizontal velocity
+                const velocityX = keyX - prevX;
+                const targetTilt = velocityX * 0.08;
+                keyTiltRef.current += (targetTilt - keyTiltRef.current) * 0.18;
+
+                // Snap check
                 const dx = keyX - centerX;
                 const dy = keyY - centerY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 28) {
                     handleUnlock();
                 }
+            } else {
+                keyTiltRef.current *= 0.9; // decay tilt
             }
 
             // Unlocking animation sequences
             if (isUnlocking && !unlocked) {
                 const p = animationProgressRef.current;
-                animationProgressRef.current += 0.02;
+                animationProgressRef.current += 0.018; // smooth easing
 
                 if (p < 0.5) {
                     // Sequence 1: Key slides into the lock
-                    const t = p / 0.5; // 0 to 1
+                    const t = p / 0.5;
                     keyX = keyX + (centerX - keyX) * t;
                     keyY = keyY + (centerY - keyY) * t;
                 } else if (p < 0.8) {
                     // Sequence 2: Snapped, Key rotates 90 degrees
-                    const t = (p - 0.5) / 0.3; // 0 to 1
+                    const t = (p - 0.5) / 0.3;
                     keyX = centerX;
                     keyY = centerY;
                     keyRotation = t * Math.PI / 2;
                 } else if (p < 1.0) {
-                    // Sequence 3: Keyhole splits/parting, trigger stardust explosion
-                    const t = (p - 0.8) / 0.2; // 0 to 1
+                    // Sequence 3: Keyhole splits/parting, trigger shockwaves & galaxy stardust
+                    const t = (p - 0.8) / 0.2;
                     keyX = centerX;
                     keyY = centerY;
                     keyRotation = Math.PI / 2;
-                    lockParting = t * 20;
+                    lockParting = t * 28;
 
-                    // Spawn explosion particles once at start of split
-                    if (starsRef.current.length === 0) {
-                        const stars: SparkleStar[] = [];
-                        for (let i = 0; i < 55; i++) {
-                            const angle = Math.random() * Math.PI * 2;
-                            const speed = 1.5 + Math.random() * 3.5;
+                    // Trigger shockwaves & spiral galaxy stardust once at start of split
+                    if (spiralStarsRef.current.length === 0) {
+                        shockwavesRef.current = [
+                            { radius: 0, maxRadius: 180, alpha: 1, speed: 4.5, color: "251, 191, 36" }, // gold ring
+                            { radius: 0, maxRadius: 240, alpha: 1, speed: 3.5, color: "192, 132, 252" }, // purple ring
+                            { radius: 0, maxRadius: 120, alpha: 1, speed: 6.0, color: "244, 115, 115" }  // rose ring
+                        ];
+
+                        const stars: SpiralStar[] = [];
+                        for (let i = 0; i < 70; i++) {
+                            const baseAngle = Math.random() * Math.PI * 2;
+                            const rotSpeed = (0.025 + Math.random() * 0.045) * (Math.random() > 0.5 ? 1 : -1);
+                            const expandSpeed = 1.6 + Math.random() * 3.2;
                             stars.push({
-                                x: centerX,
-                                y: centerY,
-                                vx: Math.cos(angle) * speed,
-                                vy: Math.sin(angle) * speed - 0.4,
-                                size: 2 + Math.random() * 4,
-                                angle: Math.random() * Math.PI * 2,
-                                spinSpeed: (Math.random() - 0.5) * 0.15,
-                                alpha: 1,
-                                fadeSpeed: 0.015 + Math.random() * 0.02,
-                                color: Math.random() > 0.6 ? "244, 115, 115" : Math.random() > 0.3 ? "251, 191, 36" : "192, 132, 252", // rose, gold, or purple stars
+                                baseAngle,
+                                radius: 8,
+                                rotSpeed,
+                                expandSpeed,
+                                size: 2.0 + Math.random() * 3.5,
+                                alpha: 1.0,
+                                fadeSpeed: 0.006 + Math.random() * 0.01,
+                                color: Math.random() > 0.65 ? "244, 115, 115" : Math.random() > 0.3 ? "251, 191, 36" : "192, 132, 252",
+                                angleOffset: Math.random() * Math.PI * 2
                             });
                         }
-                        starsRef.current = stars;
+                        spiralStarsRef.current = stars;
                     }
                 } else {
-                    // Lock fully unlocked, settle
                     setUnlocked(true);
                     setIsUnlocking(false);
                 }
             }
 
-            // Draw Keyhole
-            ctx.save();
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = "#FBBF24"; // gold rim
-            ctx.fillStyle = "#1E152A"; // dark hollow interior
+            // 2. Draw Keyhole (only if not unlocked or during split transition)
+            if (!unlocked || lockParting < 28) {
+                // A. Draw Outer Glow Rim
+                const keyholeGlow = 8 + Math.sin(timeRef.current * 1.5) * 3;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(centerX - lockParting, centerY - 6, 15, -Math.PI / 2, Math.PI / 2, true);
+                ctx.lineTo(centerX - 8 - lockParting, centerY + 20);
+                ctx.lineTo(centerX - lockParting, centerY + 20);
+                ctx.closePath();
+                ctx.arc(centerX + lockParting, centerY - 6, 15, -Math.PI / 2, Math.PI / 2, false);
+                ctx.lineTo(centerX + 8 + lockParting, centerY + 20);
+                ctx.lineTo(centerX + lockParting, centerY + 20);
+                ctx.closePath();
+                ctx.shadowBlur = keyholeGlow;
+                ctx.shadowColor = "rgba(251, 191, 36, 0.4)";
+                ctx.strokeStyle = "rgba(251, 191, 36, 0.3)";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.restore();
 
-            // Left side keyhole outline half
-            ctx.beginPath();
-            ctx.arc(centerX - lockParting, centerY - 6, 12, -Math.PI / 2, Math.PI / 2, true);
-            ctx.lineTo(centerX - 6 - lockParting, centerY + 18);
-            ctx.lineTo(centerX - lockParting, centerY + 18);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
+                // B. Draw Main Keyhole Halves
+                ctx.save();
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = "#FBBF24"; // gold rim
+                ctx.fillStyle = "#1E152A"; // dark hollow interior
 
-            // Right side keyhole outline half
-            ctx.beginPath();
-            ctx.arc(centerX + lockParting, centerY - 6, 12, -Math.PI / 2, Math.PI / 2, false);
-            ctx.lineTo(centerX + 6 + lockParting, centerY + 18);
-            ctx.lineTo(centerX + lockParting, centerY + 18);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            ctx.restore();
+                // Left side keyhole outline half
+                ctx.beginPath();
+                ctx.arc(centerX - lockParting, centerY - 6, 12, -Math.PI / 2, Math.PI / 2, true);
+                ctx.lineTo(centerX - 6 - lockParting, centerY + 18);
+                ctx.lineTo(centerX - lockParting, centerY + 18);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
 
-            // Draw Floating / Rotating Key (Only if lock is not yet parted)
+                // Right side keyhole outline half
+                ctx.beginPath();
+                ctx.arc(centerX + lockParting, centerY - 6, 12, -Math.PI / 2, Math.PI / 2, false);
+                ctx.lineTo(centerX + 6 + lockParting, centerY + 18);
+                ctx.lineTo(centerX + lockParting, centerY + 18);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // 3. Draw Floating / Rotating Key (Only if lock is not yet parted)
             if (!unlocked && animationProgressRef.current < 0.85) {
                 ctx.save();
                 ctx.translate(keyX, keyY);
-                ctx.rotate(keyRotation);
+                
+                // Scale key down during insertion to simulate 3D depth
+                let keyScale = 1.0;
+                if (isUnlocking) {
+                    if (animationProgressRef.current < 0.5) {
+                        const t = animationProgressRef.current / 0.5;
+                        keyScale = 1.0 - t * 0.25;
+                    } else {
+                        keyScale = 0.75;
+                    }
+                }
+                ctx.scale(keyScale, keyScale);
+                ctx.rotate(keyRotation + keyTiltRef.current);
 
                 // Setup Key drawing style
                 ctx.strokeStyle = "#FBBF24"; // golden metallic
                 ctx.fillStyle = "#FBBF24";
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = "rgba(251, 191, 36, 0.4)";
+                ctx.lineWidth = 2.2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(251, 191, 36, 0.45)";
 
                 // Key Ring/Handle
                 ctx.beginPath();
@@ -251,21 +370,63 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                 ctx.restore();
             }
 
-            // Update & Draw Stardust Particles
-            const stars = starsRef.current;
-            stars.forEach((s) => {
+            // 4. Update and Draw Mouse Trail Sparks
+            const trailSparks = trailSparksRef.current;
+            trailSparks.forEach((s) => {
                 s.x += s.vx;
                 s.y += s.vy;
-                s.angle += s.spinSpeed;
                 s.alpha -= s.fadeSpeed;
 
                 if (s.alpha > 0) {
                     ctx.save();
-                    ctx.translate(s.x, s.y);
-                    ctx.rotate(s.angle);
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    ctx.shadowBlur = s.size * 3;
+                    ctx.shadowColor = `rgba(${s.color}, ${s.alpha})`;
+                    ctx.fillStyle = `rgba(${s.color}, ${s.alpha})`;
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+            trailSparksRef.current = trailSparks.filter((s) => s.alpha > 0);
+
+            // 5. Update and Draw Shockwaves
+            const shockwaves = shockwavesRef.current;
+            shockwaves.forEach((sw) => {
+                sw.radius += sw.speed;
+                sw.alpha = Math.max(0, 1 - sw.radius / sw.maxRadius);
+
+                if (sw.alpha > 0) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, sw.radius, 0, Math.PI * 2);
+                    ctx.lineWidth = 1.5 + sw.alpha * 2;
+                    ctx.strokeStyle = `rgba(${sw.color}, ${sw.alpha * 0.65})`;
+                    ctx.shadowBlur = 10 * sw.alpha;
+                    ctx.shadowColor = `rgba(${sw.color}, ${sw.alpha * 0.5})`;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            });
+            shockwavesRef.current = shockwaves.filter((sw) => sw.alpha > 0);
+
+            // 6. Update and Draw Swirling Galaxy Stardust
+            const spiralStars = spiralStarsRef.current;
+            spiralStars.forEach((s) => {
+                s.baseAngle += s.rotSpeed;
+                s.radius += s.expandSpeed;
+                s.alpha -= s.fadeSpeed;
+                s.angleOffset += 0.08;
+
+                if (s.alpha > 0) {
+                    const starX = centerX + Math.cos(s.baseAngle) * s.radius;
+                    const starY = centerY + Math.sin(s.baseAngle) * s.radius;
+
+                    ctx.save();
+                    ctx.translate(starX, starY);
+                    ctx.rotate(s.angleOffset);
                     ctx.beginPath();
                     
-                    // Draw a 4-point star path
                     const size = s.size;
                     ctx.moveTo(0, -size);
                     ctx.lineTo(size * 0.3, -size * 0.3);
@@ -277,16 +438,14 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                     ctx.lineTo(-size * 0.3, -size * 0.3);
                     ctx.closePath();
 
-                    ctx.shadowBlur = size * 3;
+                    ctx.shadowBlur = size * 3.5;
                     ctx.shadowColor = `rgba(${s.color}, ${s.alpha})`;
                     ctx.fillStyle = `rgba(${s.color}, ${s.alpha})`;
                     ctx.fill();
                     ctx.restore();
                 }
             });
-
-            // Filter out dead particles
-            starsRef.current = stars.filter((s) => s.alpha > 0);
+            spiralStarsRef.current = spiralStars.filter((s) => s.alpha > 0);
 
             animationFrameId = requestAnimationFrame(updateFrame);
         };
@@ -301,10 +460,25 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
     const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const rect = canvasRef.current?.getBoundingClientRect();
         if (rect) {
-            setMousePos({
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top,
-            });
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            setMousePos({ x, y });
+
+            // Spawn mouse trail sparks
+            if (!unlocked && !isUnlocking && Math.random() < 0.45) {
+                for (let i = 0; i < 2; i++) {
+                    trailSparksRef.current.push({
+                        x: x - 15 + (Math.random() - 0.5) * 8,
+                        y: y + (Math.random() - 0.5) * 8,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5 - 0.2,
+                        size: 0.8 + Math.random() * 1.5,
+                        alpha: 0.8,
+                        fadeSpeed: 0.025 + Math.random() * 0.02,
+                        color: Math.random() > 0.5 ? "251, 191, 36" : "192, 132, 252"
+                    });
+                }
+            }
         }
     };
 
@@ -323,18 +497,16 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                 <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-yellow-500/30 rounded-bl-lg pointer-events-none" />
                 <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-yellow-500/30 rounded-br-lg pointer-events-none" />
 
-                {/* Canvas Element for key drag & unlock animations */}
-                {!unlocked && (
-                    <canvas
-                        ref={canvasRef}
-                        width={512}
-                        height={260}
-                        className="absolute inset-0 z-10 cursor-pointer"
-                        onMouseMove={handleMouseMove}
-                        onMouseLeave={handleMouseLeave}
-                        onClick={handleUnlock}
-                    />
-                )}
+                {/* Canvas Element for key drag & unlock animations (stays mounted to allow stardust to drift over the card) */}
+                <canvas
+                    ref={canvasRef}
+                    width={512}
+                    height={260}
+                    className={`absolute inset-0 z-20 ${unlocked ? "pointer-events-none" : "cursor-pointer"}`}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={handleUnlock}
+                />
 
                 {/* If Locked: show instructions overlay */}
                 {!unlocked && (
@@ -347,63 +519,75 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                     </div>
                 )}
 
-                {/* Unlocked State: Daily Wisdom Prompt Card */}
-                {unlocked && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                        <div className="space-y-3 max-w-md">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[10px] font-bold uppercase tracking-wider">
-                                <Sparkles className="w-3.5 h-3.5" />
-                                Daily Wisdom Prompt
-                            </span>
-
-                            <p className="font-serif text-lg md:text-xl text-yellow-50/90 leading-relaxed italic px-2">
-                                "{dailyPrompt.text}"
-                            </p>
-
-                            <div className="flex items-center justify-center gap-2 pt-2">
-                                <span className="text-[10px] bg-white/5 border border-white/10 text-white/50 px-2.5 py-1 rounded-full font-bold uppercase tracking-wide">
-                                    Topic: {dailyPrompt.category}
+                {/* Unlocked State: Daily Wisdom Prompt Card with Spring Easing Reveal */}
+                <AnimatePresence>
+                    {unlocked && (
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                            transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                            className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center"
+                        >
+                            <div className="space-y-4 max-w-md w-full glass-card p-6 md:p-8 rounded-[2.5rem] border border-yellow-500/20 shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#2E1B38]/90 via-[#1C152B]/95 to-[#2E1B38]/90 backdrop-blur-md">
+                                
+                                {/* Inner gold glow line */}
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent" />
+                                
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    Daily Wisdom Prompt
                                 </span>
-                            </div>
 
-                            {/* Inline post-creation workflow */}
-                            <div className="pt-2">
-                                {posted ? (
-                                    <span className="inline-flex items-center gap-1.5 text-xs text-green-400 font-bold bg-green-500/10 px-4 py-2 rounded-full animate-fade-in border border-green-500/20">
-                                        <Check className="w-4 h-4" /> Discussion launched!
+                                <p className="font-serif text-lg md:text-xl text-yellow-50/90 leading-relaxed italic px-2">
+                                    "{dailyPrompt.text}"
+                                </p>
+
+                                <div className="flex items-center justify-center gap-2 pt-1">
+                                    <span className="text-[9px] bg-white/5 border border-white/10 text-white/50 px-2.5 py-1 rounded-full font-bold uppercase tracking-wide">
+                                        Topic: {dailyPrompt.category}
                                     </span>
-                                ) : confirmPost ? (
-                                    <div className="flex gap-2 justify-center animate-fade-in">
-                                        <Button 
-                                            size="sm" 
-                                            variant="secondary"
-                                            className="border-white/10 hover:bg-white/5 text-white/70 py-4 text-xs font-bold uppercase tracking-wider"
-                                            onClick={() => setConfirmPost(false)}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button 
+                                </div>
+
+                                {/* Inline post-creation workflow */}
+                                <div className="pt-2">
+                                    {posted ? (
+                                        <span className="inline-flex items-center gap-1.5 text-xs text-green-400 font-bold bg-green-500/10 px-4 py-2 rounded-full animate-fade-in border border-green-500/20">
+                                            <Check className="w-4 h-4" /> Discussion launched!
+                                        </span>
+                                    ) : confirmPost ? (
+                                        <div className="flex gap-2 justify-center animate-fade-in">
+                                            <Button 
+                                                size="sm" 
+                                                variant="secondary"
+                                                className="border-white/10 hover:bg-white/5 text-white/70 py-4 text-xs font-bold uppercase tracking-wider"
+                                                onClick={() => setConfirmPost(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button 
+                                                size="sm"
+                                                onClick={handleCreateThread}
+                                                disabled={posting}
+                                                className="bg-yellow-500 hover:bg-yellow-600 text-[#1C152B] py-4 text-xs font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/20"
+                                            >
+                                                {posting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Post to Vault ౨ৎ"}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <Button
                                             size="sm"
-                                            onClick={handleCreateThread}
-                                            disabled={posting}
-                                            className="bg-yellow-500 hover:bg-yellow-600 text-[#1C152B] py-4 text-xs font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/10"
+                                            onClick={() => setConfirmPost(true)}
+                                            className="bg-yellow-500 hover:bg-yellow-600 text-[#1C152B] rounded-full px-6 py-4.5 text-xs font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/20 hover:scale-[1.03] active:scale-95 transition-all duration-300"
                                         >
-                                            {posting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Post to Vault ౨ৎ"}
+                                            Discuss this prompt <ChevronRight className="w-3.5 h-3.5 ml-1" />
                                         </Button>
-                                    </div>
-                                ) : (
-                                    <Button
-                                        size="sm"
-                                        onClick={() => setConfirmPost(true)}
-                                        className="bg-yellow-500 hover:bg-yellow-600 text-[#1C152B] rounded-full px-6 py-4.5 text-xs font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/10 hover:scale-[1.01] active:scale-95 transition-all"
-                                    >
-                                        Discuss this prompt <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                                    </Button>
-                                )}
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
