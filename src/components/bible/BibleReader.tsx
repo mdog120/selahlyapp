@@ -95,15 +95,34 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
             setHighlights(data.map(h => ({
                 id: h.id,
                 verseId: h.verse,
-                text: h.text,
+                text: h.text.trim(),
                 color: getColorClass(h.color)
             })));
         }
     }, [book, chapter, userId, supabase]);
 
+    // Real-time synchronization and fetching of highlights
     useEffect(() => {
         fetchHighlights();
-    }, [fetchHighlights]);
+
+        if (!userId) return;
+
+        // Subscribe to real-time updates for bible highlights to ensure instant UI updates
+        const channel = supabase
+            .channel(`bible_reader_highlights_${book}_${chapter}`)
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'bible_highlights' },
+                () => {
+                    fetchHighlights();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [book, chapter, userId, fetchHighlights, supabase]);
 
     // Handle Text Selection
     useEffect(() => {
@@ -205,7 +224,7 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
 
         if (existingHighlight) {
             setSelection({
-                text: existingHighlight.text,
+                text: existingHighlight.text.trim(),
                 rect,
                 verseRef: `${book} ${chapter}:${verseId}`,
                 verseId,
@@ -213,7 +232,7 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
             });
         } else {
             setSelection({
-                text: verseText,
+                text: verseText.trim(),
                 rect,
                 verseRef: `${book} ${chapter}:${verseId}`,
                 verseId
@@ -232,6 +251,7 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
         };
 
         const newColorClass = colorMap[colorId] || "bg-yellow-200";
+        const cleanText = selection.text.trim();
 
         if (selection.highlightId) {
             // Update existing highlight color (optimistic UI update)
@@ -252,7 +272,7 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
             // Create a new highlight.
             // If user highlights the whole verse, clean up any existing highlights in that verse to prevent overlaps
             const verseRefText = data?.verses.find(v => v.verse === selection.verseId)?.text || "";
-            const isFullVerse = selection.text.trim() === verseRefText.trim();
+            const isFullVerse = cleanText === verseRefText.trim();
 
             if (isFullVerse && userId) {
                 await supabase
@@ -270,7 +290,7 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
             const newHighlight = {
                 id: tempId,
                 verseId: selection.verseId,
-                text: selection.text,
+                text: cleanText,
                 color: newColorClass
             };
 
@@ -285,7 +305,7 @@ export function BibleReader({ book, chapter, onLoading }: BibleReaderProps) {
                         book: book,
                         chapter: chapter,
                         verse: selection.verseId,
-                        text: selection.text,
+                        text: cleanText,
                         color: colorId
                     })
                     .select('id')

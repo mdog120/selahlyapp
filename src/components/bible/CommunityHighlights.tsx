@@ -39,11 +39,12 @@ export function CommunityHighlights() {
             `);
 
         if (filterType === 'friends') {
-            // Fetch accepted friendships
+            // Fetch accepted friendships involving the current user
             const { data: friendships } = await supabase
                 .from('friendships')
                 .select('user_id_1, user_id_2')
-                .eq('status', 'accepted');
+                .eq('status', 'accepted')
+                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
 
             const friendIds = friendships 
                 ? friendships.map((f: any) => f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1)
