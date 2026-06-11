@@ -152,7 +152,7 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 animate-fade-in">
             <div className="relative w-full max-w-md bg-warm-paper rounded-[2.5rem] border border-white/80 shadow-2xl p-6 md:p-8 flex flex-col gap-6 overflow-hidden animate-fade-in">
                 {/* Decorative gradients */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-muted-rose/10 rounded-bl-full pointer-events-none" />
@@ -387,7 +387,6 @@ function StripeCheckoutForm({ amount, clientSecret, onSuccess }: StripeCheckoutF
                         name: cardName.trim(),
                     },
                 },
-                return_url: window.location.href,
             });
 
             if (error) {
