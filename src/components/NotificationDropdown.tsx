@@ -143,10 +143,14 @@ export function NotificationDropdown() {
     }
 
     async function handleRead(notificationId: string) {
-        await supabase
+        const { error } = await supabase
             .from("notifications")
             .update({ read: true })
             .eq("id", notificationId);
+
+        if (error) {
+            console.error("Error marking single notification as read:", error);
+        }
 
         setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
@@ -161,11 +165,15 @@ export function NotificationDropdown() {
         setUnreadCount(0);
 
         // Update ALL unread notifications for this user in DB (resolving limit pagination leak)
-        await supabase
+        const { error } = await supabase
             .from("notifications")
             .update({ read: true })
             .eq("user_id", uid)
             .eq("read", false);
+
+        if (error) {
+            console.error("Error marking all notifications as read in database:", error);
+        }
     }
 
     const getIcon = (type: string) => {
