@@ -775,17 +775,19 @@ export function MomentModal({
                         className="flex items-center gap-1.5 bg-black/50 hover:bg-black/70 backdrop-blur-md px-4 py-2.5 rounded-full text-xs text-white border border-white/10 transition-all active:scale-95"
                     >
                         <Heart className={`w-4 h-4 transition-transform ${userHasLiked ? "fill-red-500 text-red-500 scale-110 animate-pulse" : "text-white"}`} />
-                        <span 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (likes.length > 0 && currentMoment.user_id === currentUserId) {
-                                    setShowLikesModal(true);
-                                }
-                            }}
-                            className={currentMoment.user_id === currentUserId ? "hover:underline font-bold cursor-pointer" : "font-bold cursor-default"}
-                        >
-                            {likes.length}
-                        </span>
+                        {currentMoment.user_id === currentUserId && (
+                            <span 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (likes.length > 0) {
+                                        setShowLikesModal(true);
+                                    }
+                                }}
+                                className="hover:underline font-bold cursor-pointer"
+                            >
+                                {likes.length}
+                            </span>
+                        )}
                     </button>
 
                     <button
