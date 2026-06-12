@@ -161,7 +161,9 @@ export default async function Home() {
               <p className="text-warm-grey/70">A private, moderated community where you can share your heart without fear of judgment or negativity.</p>
             </div>
             <div className="glass-card p-8 rounded-[2rem] text-center hover:-translate-y-2 transition-transform duration-500 delay-100">
-              <div className="w-16 h-16 mx-auto bg-sage-green rounded-full flex items-center justify-center mb-6 text-2xl">🎀</div>
+              <div className="w-16 h-16 mx-auto bg-sage-green rounded-full flex items-center justify-center mb-6">
+                <BowLogo size={24} />
+              </div>
               <h3 className="font-serif text-2xl text-warm-grey mb-3">Sisterhood</h3>
               <p className="text-warm-grey/70">Find friends who share your values. From prayer requests to outfit checks, we do life together.</p>
             </div>

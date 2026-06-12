@@ -198,3 +198,52 @@ img {
   -webkit-user-drag: none;
   user-drag: none;
 }
+
+/* Decorative Frames */
+.border-polaroid {
+  background-color: #ffffff;
+  border: 12px solid #ffffff;
+  border-bottom-width: 48px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.border-lace {
+  background-color: #fffafb;
+  border: 8px double #D4A5A5 !important;
+  outline: 4px solid #FCEADE !important;
+  outline-offset: -6px;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 20px rgba(212, 165, 165, 0.15);
+}
+
+.border-gingham {
+  background-color: #ffffff;
+  background-image: linear-gradient(90deg, rgba(212, 165, 165, 0.25) 50%, transparent 50%),
+                    linear-gradient(rgba(212, 165, 165, 0.25) 50%, transparent 50%);
+  background-size: 24px 24px;
+  padding: 16px;
+  border: 1px solid rgba(212, 165, 165, 0.3) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+}
+
+.border-polka {
+  background-color: #FFF0F5;
+  background-image: radial-gradient(#8D7B68 15%, transparent 16%),
+                    radial-gradient(#D4A5A5 15%, transparent 16%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  padding: 16px;
+  border: 2px dashed rgba(141, 123, 104, 0.2) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* Music Visualizer Animation */
+@keyframes soundWave {
+  0% { transform: scaleY(0.25); }
+  100% { transform: scaleY(1.2); }
+}
+
+.animate-soundwave {
+  animation: soundWave 0.7s ease-in-out infinite alternate;
+  transform-origin: bottom;
+}

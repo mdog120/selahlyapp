@@ -40,6 +40,14 @@ const PASTEL_COLORS = [
     { name: 'cream', bg: '#FAF5EF', text: '#7E6D59', label: 'Cream' }
 ];
 
+const FRAMES = [
+    { name: "none", label: "No Frame" },
+    { name: "polaroid", label: "Polaroid 📸" },
+    { name: "lace", label: "Lace 🎀" },
+    { name: "gingham", label: "Gingham 🏁" },
+    { name: "polka", label: "Polka Dot ⚪" }
+];
+
 export function MomentsBar() {
     const [groupedMoments, setGroupedMoments] = useState<GroupedMoment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,10 +60,10 @@ export function MomentsBar() {
 
     // Modal create states
     const [isCreatorOpen, setIsCreatorOpen] = useState(false);
-    const [caption, setCaption] = useState("");
     const [bgColor, setBgColor] = useState("rose");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [filePreview, setFilePreview] = useState<string | null>(null);
+    const [selectedFrame, setSelectedFrame] = useState("none");
     const [creating, setCreating] = useState(false);
 
     // Trimming states
@@ -78,111 +86,6 @@ export function MomentsBar() {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
-
-    // Mention State for story caption
-    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
-    const [isMentionOpen, setIsMentionOpen] = useState(false);
-    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
-    const storyInputRef = useRef<HTMLInputElement>(null);
-
-    // Mention Search
-    useEffect(() => {
-        if (mentionQuery === null) {
-            setMentionResults([]);
-            setIsMentionOpen(false);
-            return;
-        }
-
-        const fetchFriendsForMention = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const { data, error } = await supabase
-                .from("friendships")
-                .select(`
-                    user_id_1,
-                    user_id_2,
-                    user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
-                    user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
-                `)
-                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-                .eq("status", "accepted");
-
-            if (error) {
-                console.error("Error fetching friends for mention:", error);
-                setMentionResults([]);
-                setIsMentionOpen(false);
-                return;
-            }
-
-            if (data) {
-                const friendsList = data.map((f: any) => {
-                    return f.user_id_1 === user.id ? f.user2 : f.user1;
-                }).filter(Boolean);
-
-                const lowerQuery = mentionQuery.toLowerCase();
-                const filtered = friendsList.filter((friend: any) => {
-                    return (
-                        friend.username?.toLowerCase().includes(lowerQuery) ||
-                        friend.first_name?.toLowerCase().includes(lowerQuery)
-                    );
-                });
-
-                if (filtered.length > 0) {
-                    setMentionResults(filtered as any);
-                    setIsMentionOpen(true);
-                } else {
-                    setMentionResults([]);
-                    setIsMentionOpen(false);
-                }
-            } else {
-                setMentionResults([]);
-                setIsMentionOpen(false);
-            }
-        };
-
-        const timeoutId = setTimeout(fetchFriendsForMention, 300);
-        return () => clearTimeout(timeoutId);
-    }, [mentionQuery]);
-
-    const handleStoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value.slice(0, 100);
-        const pos = e.target.selectionStart || 0;
-        setCaption(value);
-        setCursorPosition(pos);
-
-        // Detect @ match
-        const textBeforeCursor = value.slice(0, pos);
-        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
-
-        if (match) {
-            setMentionQuery(match[1]);
-        } else {
-            setMentionQuery(null);
-            setIsMentionOpen(false);
-        }
-    };
-
-    const insertStoryMention = (username: string) => {
-        if (!cursorPosition) return;
-        const textBeforeCursor = caption.slice(0, cursorPosition);
-        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
-
-        if (match) {
-            const matchIndex = match.index! + match[0].indexOf('@');
-            const textAfterCursor = caption.slice(cursorPosition);
-            const newText = caption.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
-
-            setCaption(newText.slice(0, 100));
-            setMentionQuery(null);
-            setIsMentionOpen(false);
-
-            setTimeout(() => {
-                storyInputRef.current?.focus();
-            }, 50);
-        }
-    };
 
     useEffect(() => {
         loadCurrentUserAndMoments();
@@ -280,7 +183,7 @@ export function MomentsBar() {
 
     const handleShareMoment = async () => {
         if (!currentUser) return;
-        if (!caption.trim() && !selectedFile) return;
+        if (!selectedFile && !songTitle) return;
 
         setCreating(true);
         try {
@@ -310,9 +213,9 @@ export function MomentsBar() {
                 .from("moments")
                 .insert({
                     user_id: currentUser.id,
-                    caption: caption.trim() || null,
+                    caption: null,
                     media_url: mediaUrl,
-                    background_color: selectedFile ? 'default' : bgColor,
+                    background_color: `${selectedFile ? 'default' : bgColor}|${selectedFrame}`,
                     song_title: songTitle.trim() || null,
                     song_artist: songArtist.trim() || null,
                     song_album_art: songArtwork?.trim() || null,
@@ -323,7 +226,7 @@ export function MomentsBar() {
             if (insertError) throw insertError;
 
             // Reset states
-            setCaption("");
+            setSelectedFrame("none");
             setBgColor("rose");
             setSelectedFile(null);
             setFilePreview(null);
@@ -334,8 +237,6 @@ export function MomentsBar() {
             setSongArtwork("");
             setShowSongInput(false);
             setIsCreatorOpen(false);
-            setMentionQuery(null);
-            setIsMentionOpen(false);
 
             // Reload moments
             await loadCurrentUserAndMoments();
@@ -469,7 +370,7 @@ export function MomentsBar() {
 
             {/* Moments Creator Modal */}
             {isCreatorOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in px-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in px-4 pb-24">
                     <div className="bg-warm-paper rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-white flex flex-col gap-4 animate-fade-in-up text-left">
                         <div className="flex justify-between items-center pb-2 border-b border-warm-grey/5">
                             <h3 className="font-serif text-lg text-warm-cocoa flex items-center gap-2">
@@ -478,11 +379,9 @@ export function MomentsBar() {
                             <button 
                                 onClick={() => {
                                     setIsCreatorOpen(false);
-                                    setCaption("");
                                     setSelectedFile(null);
                                     setFilePreview(null);
-                                    setMentionQuery(null);
-                                    setIsMentionOpen(false);
+                                    setSelectedFrame("none");
                                 }}
                                 className="p-1 rounded-full hover:bg-stone-100 text-warm-grey/60"
                             >
@@ -491,96 +390,109 @@ export function MomentsBar() {
                         </div>
 
                         {/* File preview or Text-only preview */}
-                        <div className="relative aspect-[9/16] max-h-[300px] w-full rounded-2xl border border-warm-grey/10 overflow-hidden flex items-center justify-center shadow-inner">
-                            {filePreview ? (
-                                <>
-                                    {selectedFile?.type.startsWith('video/') ? (
-                                        <video src={filePreview} controls muted className="w-full h-full object-cover" />
+                        <div className="relative aspect-[9/16] max-h-[300px] w-full rounded-2xl border border-warm-grey/10 overflow-hidden bg-stone-900 flex items-center justify-center shadow-inner p-3">
+                            <div className={`w-full h-full relative overflow-hidden flex items-center justify-center transition-all duration-300 ${
+                                selectedFrame === 'polaroid' ? 'border-[8px] border-white pb-10 bg-white shadow-md rounded-sm' :
+                                selectedFrame === 'lace' ? 'border-[6px] border-double border-muted-rose bg-white outline-[3px] outline-soft-blush outline-offset-[-5px] rounded-2xl shadow-md p-1' :
+                                selectedFrame === 'gingham' ? 'border-gingham bg-white p-2.5 rounded-xl shadow-md' :
+                                selectedFrame === 'polka' ? 'border-polka bg-white p-2.5 rounded-xl shadow-md' : ''
+                            }`}>
+                                <div className="w-full h-full relative overflow-hidden bg-stone-100 flex items-center justify-center">
+                                    {filePreview ? (
+                                        <>
+                                            {selectedFile?.type.startsWith('video/') ? (
+                                                <video src={filePreview} controls muted className="w-full h-full object-cover" />
+                                            ) : (
+                                                <img src={filePreview} alt="Preview" className="w-full h-full object-cover" />
+                                            )}
+                                        </>
                                     ) : (
-                                        <img src={filePreview} alt="Preview" className="w-full h-full object-cover" />
-                                    )}
-                                    <button 
-                                        onClick={() => {
-                                            setSelectedFile(null);
-                                            setFilePreview(null);
-                                        }}
-                                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
-                                    >
-                                        <X className="w-3.5 h-3.5" />
-                                    </button>
-                                    {selectedFile?.type.startsWith('video/') && (
-                                        <button 
-                                            type="button"
-                                            onClick={() => {
-                                                setTempTrimStart(trimStart);
-                                                setTempTrimEnd(trimEnd || videoDuration);
-                                                setIsTrimming(true);
+                                        <div 
+                                            className="w-full h-full flex flex-col items-center justify-center p-4 text-center select-none"
+                                            style={{
+                                                backgroundColor: PASTEL_COLORS.find(c => c.name === bgColor)?.bg || '#FFF0F0',
+                                                color: PASTEL_COLORS.find(c => c.name === bgColor)?.text || '#B85C5C'
                                             }}
-                                            className="absolute bottom-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors flex items-center justify-center z-10"
-                                            title="Trim video"
                                         >
-                                            <Scissors className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                    {selectedFile?.type.startsWith('video/') && (trimStart > 0 || trimEnd < videoDuration) && (
-                                        <div className="absolute bottom-2 left-2 bg-pink-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-sm z-10">
-                                            Trimmed
+                                            {songTitle ? (
+                                                <div className="flex flex-col items-center justify-center">
+                                                    {songArtwork ? (
+                                                        <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/40 shadow-sm mb-2 animate-spin-slow">
+                                                            <img src={songArtwork} alt="Cover" className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-full bg-current/10 flex items-center justify-center mb-2">
+                                                            <Music className="w-5 h-5" />
+                                                        </div>
+                                                    )}
+                                                    <span className="font-bold text-[11px] line-clamp-1 max-w-[120px]">{songTitle}</span>
+                                                    <span className="text-[9px] opacity-75 line-clamp-1 max-w-[120px] mt-0.5">{songArtist}</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-1.5 opacity-40">
+                                                    <Music className="w-6 h-6" />
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider">Photo/Video or Song</span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                </>
-                            ) : (
-                                <div 
-                                    className="w-full h-full flex flex-col items-center justify-center p-6 transition-all duration-300"
-                                    style={{
-                                        backgroundColor: PASTEL_COLORS.find(c => c.name === bgColor)?.bg || '#FFF0F0',
-                                        color: PASTEL_COLORS.find(c => c.name === bgColor)?.text || '#B85C5C'
+                                </div>
+                            </div>
+
+                            {/* Remove file button */}
+                            {filePreview && (
+                                <button 
+                                    onClick={() => {
+                                        setSelectedFile(null);
+                                        setFilePreview(null);
                                     }}
+                                    className="absolute top-5 right-5 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors z-20"
                                 >
-                                    <p className="font-serif text-lg leading-relaxed italic max-w-xs px-2 break-words">
-                                        {caption.trim() ? `"${caption}"` : '"Be still..."'}
-                                    </p>
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+
+                            {selectedFile?.type.startsWith('video/') && (
+                                <button 
+                                    type="button"
+                                    onClick={() => {
+                                        setTempTrimStart(trimStart);
+                                        setTempTrimEnd(trimEnd || videoDuration);
+                                        setIsTrimming(true);
+                                    }}
+                                    className="absolute bottom-5 right-5 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors flex items-center justify-center z-20"
+                                    title="Trim video"
+                                >
+                                    <Scissors className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+
+                            {selectedFile?.type.startsWith('video/') && (trimStart > 0 || trimEnd < videoDuration) && (
+                                <div className="absolute bottom-5 left-5 bg-pink-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-sm z-20">
+                                    Trimmed
                                 </div>
                             )}
                         </div>
 
-                        {/* Caption input */}
-                        <div className="space-y-1 relative">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Caption / Thought</label>
-                            <input 
-                                ref={storyInputRef}
-                                type="text"
-                                value={caption}
-                                onChange={handleStoryInputChange}
-                                placeholder="Type a cozy thought..."
-                                className="w-full px-4 py-2.5 text-xs rounded-xl bg-white/50 border border-warm-grey/5 focus:outline-none text-warm-grey placeholder:text-warm-grey/30"
-                            />
-                            {/* Mention Autocomplete */}
-                            {isMentionOpen && mentionResults.length > 0 && (
-                                <div className="absolute bottom-full mb-2 left-0 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
-                                    {mentionResults.map((profile) => (
-                                        <button
-                                            type="button"
-                                            key={profile.id}
-                                            className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
-                                            onClick={() => insertStoryMention(profile.username)}
-                                        >
-                                            <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
-                                                {profile.avatar_url ? (
-                                                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
-                                                        {profile.first_name?.[0]}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
-                                                <p className="text-[10px] text-warm-grey/60 truncate">{profile.first_name}</p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                        {/* Frame picker */}
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Select Frame</label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {FRAMES.map((frame) => (
+                                    <button 
+                                        key={frame.name}
+                                        type="button"
+                                        onClick={() => setSelectedFrame(frame.name)}
+                                        className={`px-2.5 py-1 rounded-full text-[9px] font-bold border transition-all ${
+                                            selectedFrame === frame.name
+                                                ? "bg-muted-rose text-white border-muted-rose"
+                                                : "bg-white/50 text-warm-grey/70 border-warm-grey/10 hover:bg-white"
+                                        }`}
+                                    >
+                                        {frame.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* BG Color picker if text-only */}

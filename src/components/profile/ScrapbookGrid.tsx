@@ -82,27 +82,32 @@ export function ScrapbookGrid({ userId, isOwner }: ScrapbookGridProps) {
                     {entries.map((entry, index) => (
                         <div
                             key={entry.id}
-                            className="bg-white p-4 pb-12 shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1 relative group"
+                            className={`hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1 relative group flex flex-col justify-between ${
+                                entry.styles?.frame === 'polaroid' || !entry.styles?.frame ? 'border-polaroid' :
+                                entry.styles?.frame === 'lace' ? 'border-lace' :
+                                entry.styles?.frame === 'gingham' ? 'border-gingham' :
+                                entry.styles?.frame === 'polka' ? 'border-polka' : 'border-polaroid'
+                            }`}
                             style={{
                                 transform: `rotate(${index % 2 === 0 ? '-2deg' : '2deg'})`, // Slight random rotation
                             }}
                         >
-                            {/* Polaroid Image */}
-                            <div className="aspect-square bg-stone-100 mb-4 overflow-hidden relative filter sepia-[.2] contrast-110 brightness-110">
-                                <img src={entry.image_url} alt={entry.caption} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
+                            {/* Card Content wrapper to flow nicely */}
+                            <div className="w-full flex flex-col justify-between h-full">
+                                <div className="aspect-square bg-stone-100 overflow-hidden relative rounded filter sepia-[.2] contrast-110 brightness-110 mb-4">
+                                    <img src={entry.image_url} alt={entry.caption} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
+                                </div>
+                                <p className="font-handwriting text-center text-warm-grey text-lg leading-tight px-2 min-h-6">
+                                    {entry.caption}
+                                </p>
                             </div>
-
-                            {/* Caption */}
-                            <p className="font-handwriting text-center text-warm-grey text-lg leading-tight px-2">
-                                {entry.caption}
-                            </p>
 
                             {/* Delete Button (Owner Only) */}
                             {isOwner && (
                                 <button
                                     onClick={() => handleDelete(entry.id, entry.image_url)}
-                                    className="absolute top-2 right-2 bg-white/80 p-2 rounded-full text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                                    className="absolute top-2 right-2 bg-white/80 p-2 rounded-full text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>

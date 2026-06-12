@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ImagePlus, Loader2 } from "lucide-react";
 
+const SCRAPBOOK_FRAMES = [
+    { name: "polaroid", label: "Polaroid 📸" },
+    { name: "lace", label: "Lace 🎀" },
+    { name: "gingham", label: "Gingham 🏁" },
+    { name: "polka", label: "Polka Dot ⚪" }
+];
+
 interface ScrapbookModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -17,6 +24,7 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [caption, setCaption] = useState("");
+    const [selectedFrame, setSelectedFrame] = useState("polaroid");
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
@@ -54,7 +62,7 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
                 user_id: user.id,
                 image_url: publicUrl,
                 caption: caption,
-                styles: { filter: "polaroid" }
+                styles: { filter: "polaroid", frame: selectedFrame }
             });
 
             if (dbError) throw dbError;
@@ -63,6 +71,7 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
             setFile(null);
             setPreview(null);
             setCaption("");
+            setSelectedFrame("polaroid");
             onSuccess();
 
         } catch (error) {
@@ -83,20 +92,34 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
                 <div className="space-y-6 py-4">
                     {/* Image Preview / Upload Area */}
                     <div
-                        className="aspect-square bg-white shadow-lg mx-auto w-64 relative cursor-pointer group flex items-center justify-center border-8 border-white border-b-[3rem] transition-transform hover:scale-[1.02]"
+                        className={`aspect-square mx-auto w-64 relative cursor-pointer group transition-transform hover:scale-[1.02] ${
+                            selectedFrame === 'polaroid' ? 'border-polaroid' :
+                            selectedFrame === 'lace' ? 'border-lace' :
+                            selectedFrame === 'gingham' ? 'border-gingham' :
+                            selectedFrame === 'polka' ? 'border-polka' : 'border-polaroid'
+                        }`}
                         onClick={() => fileInputRef.current?.click()}
                     >
-                        {preview ? (
-                            <div className="w-full h-full relative overflow-hidden filter sepia-[.2] contrast-110 brightness-110">
-                                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
+                        <div className="w-full h-full flex flex-col justify-between">
+                            <div className="flex-1 bg-stone-100 overflow-hidden relative rounded filter sepia-[.2] contrast-110 brightness-110">
+                                {preview ? (
+                                    <>
+                                        <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
+                                    </>
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-center text-warm-grey/40 group-hover:text-muted-rose transition-colors p-4">
+                                        <ImagePlus className="w-8 h-8 mb-1" />
+                                        <span className="text-xs font-medium">Click to upload photo</span>
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <div className="text-center text-warm-grey/40 group-hover:text-muted-rose transition-colors">
-                                <ImagePlus className="w-12 h-12 mx-auto mb-2" />
-                                <span className="text-sm font-medium">Click to upload photo</span>
+                            <div className="h-6 flex items-center justify-center mt-2 overflow-hidden shrink-0">
+                                <p className="font-handwriting text-warm-grey text-base truncate px-1">
+                                    {caption || "Memory lane..."}
+                                </p>
                             </div>
-                        )}
+                        </div>
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -104,13 +127,6 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
                             accept="image/*"
                             onChange={handleFileSelect}
                         />
-
-                        {/* Simulation of handwritten caption on the frame bottom */}
-                        {caption && (
-                            <div className="absolute -bottom-10 left-0 right-0 text-center font-handwriting text-warm-grey truncate px-2">
-                                {caption}
-                            </div>
-                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -123,6 +139,26 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
                             maxLength={40}
                         />
                         <p className="text-[10px] text-warm-grey/40 text-right">{caption.length}/40</p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-warm-grey uppercase tracking-widest">Select Frame</label>
+                        <div className="flex flex-wrap gap-2">
+                            {SCRAPBOOK_FRAMES.map((frame) => (
+                                <button
+                                    key={frame.name}
+                                    type="button"
+                                    onClick={() => setSelectedFrame(frame.name)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                                        selectedFrame === frame.name
+                                            ? "bg-muted-rose text-white border-muted-rose shadow-sm"
+                                            : "bg-white text-warm-grey/70 border-warm-grey/10 hover:bg-stone-50"
+                                    }`}
+                                >
+                                    {frame.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">

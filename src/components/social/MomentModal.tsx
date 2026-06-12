@@ -468,6 +468,94 @@ export function MomentModal({
         };
     };
 
+    const getMomentConfig = (bgColorField: string | null) => {
+        if (!bgColorField) return { color: 'rose', frame: 'none' };
+        const parts = bgColorField.split('|');
+        const color = parts[0] || 'rose';
+        const frame = parts[1] || 'none';
+        return { color, frame };
+    };
+
+    const getFrameClass = (frame: string) => {
+        switch (frame) {
+            case 'polaroid':
+                return 'border-[12px] border-white pb-16 bg-white shadow-xl rounded-sm';
+            case 'lace':
+                return 'border-[8px] border-double border-muted-rose bg-white outline-[4px] outline-soft-blush outline-offset-[-6px] rounded-3xl shadow-xl p-2';
+            case 'gingham':
+                return 'border-gingham bg-white p-3 rounded-2xl shadow-xl';
+            case 'polka':
+                return 'border-polka bg-white p-3 rounded-2xl shadow-xl';
+            default:
+                return '';
+        }
+    };
+
+    const MusicCard = ({ moment, bgName }: { moment: any; bgName: string }) => {
+        const color = PASTEL_COLORS.find(c => c.name === bgName) || PASTEL_COLORS[0];
+        return (
+            <div 
+                className="w-full h-full flex flex-col items-center justify-center p-6 text-center select-none"
+                style={{
+                    backgroundColor: color.bg,
+                    color: color.text
+                }}
+            >
+                {/* Rotating vinyl record mockup */}
+                <div className="relative w-36 h-36 md:w-40 md:h-40 rounded-full bg-stone-900 shadow-xl border-4 border-white/20 flex items-center justify-center overflow-hidden mb-6 animate-spin-slow">
+                    {/* Vinyl grooves */}
+                    <div className="absolute inset-2 border border-white/5 rounded-full" />
+                    <div className="absolute inset-4 border border-white/5 rounded-full" />
+                    <div className="absolute inset-6 border border-white/5 rounded-full" />
+                    <div className="absolute inset-8 border border-white/5 rounded-full" />
+                    <div className="absolute inset-10 border border-white/5 rounded-full" />
+                    
+                    {/* Album art in the middle */}
+                    <div className="w-16 h-16 md:w-18 md:h-18 rounded-full overflow-hidden border-2 border-stone-850 bg-stone-700 shrink-0">
+                        {moment.song_album_art ? (
+                            <img src={moment.song_album_art} alt="Cover" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-muted-rose text-white">
+                                🎵
+                            </div>
+                        )}
+                    </div>
+                    {/* Center spindle hole */}
+                    <div className="absolute w-3 h-3 bg-white rounded-full border border-stone-900 shadow-inner z-10" />
+                </div>
+
+                {/* Song details */}
+                <div className="space-y-1 max-w-xs">
+                    <h4 className="font-serif text-xl md:text-2xl font-bold tracking-tight text-current drop-shadow-sm line-clamp-2">
+                        {moment.song_title || "Untitled Song"}
+                    </h4>
+                    <p className="text-xs font-semibold opacity-75 line-clamp-1">
+                        {moment.song_artist || "Unknown Artist"}
+                    </p>
+                </div>
+
+                {/* Aesthetic visualizer lines */}
+                <div className="flex items-end gap-1 mt-6 h-8 justify-center">
+                    {[...Array(6)].map((_, i) => (
+                        <div 
+                            key={i} 
+                            className="w-1 bg-current rounded-full animate-soundwave"
+                            style={{
+                                height: '24px',
+                                animationDelay: `${i * 0.15}s`
+                            }}
+                        />
+                    ))}
+                </div>
+                
+                <span className="text-[9px] uppercase tracking-widest opacity-40 mt-8 font-bold">
+                    Sisters, tune in! ౨ৎ
+                </span>
+            </div>
+        );
+    };
+
+    const { color: bgColorName, frame: frameStyle } = getMomentConfig(currentMoment.background_color);
     const mediaUrl = currentMoment.media_url;
     const isVideo = mediaUrl ? (
         mediaUrl.endsWith(".mp4") || 
@@ -570,43 +658,63 @@ export function MomentModal({
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 flex flex-col items-center justify-center relative bg-stone-950">
-                    {mediaUrl ? (
-                        <>
-                            {isVideo ? (
-                                <video 
-                                    src={mediaUrl || undefined} 
-                                    autoPlay 
-                                    playsInline 
-                                    muted 
-                                    loop 
-                                    onLoadedMetadata={handleVideoLoadedMetadata(mediaUrl!)}
-                                    onTimeUpdate={handleVideoTimeUpdate(mediaUrl!)}
-                                    className="w-full h-full object-contain" 
-                                />
-                            ) : (
-                                <img 
-                                    src={mediaUrl} 
-                                    alt="Moment Content" 
-                                    className="w-full h-full object-contain" 
-                                />
-                            )}
-                            {currentMoment.caption && (
-                                <div className="absolute bottom-16 left-4 right-4 bg-black/50 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center">
-                                    <p className="text-white text-sm font-medium">{renderContentWithMentions(currentMoment.caption)}</p>
-                                </div>
-                            )}
-                        </>
+                <div className="flex-1 flex flex-col items-center justify-center relative bg-stone-950 p-6">
+                    {frameStyle && frameStyle !== 'none' ? (
+                        <div className={`w-full aspect-[9/16] relative flex flex-col overflow-hidden ${getFrameClass(frameStyle)}`}>
+                            <div className="w-full h-full relative overflow-hidden bg-stone-100 flex items-center justify-center">
+                                {mediaUrl ? (
+                                    isVideo ? (
+                                        <video 
+                                            src={mediaUrl || undefined} 
+                                            autoPlay 
+                                            playsInline 
+                                            muted 
+                                            loop 
+                                            onLoadedMetadata={handleVideoLoadedMetadata(mediaUrl!)}
+                                            onTimeUpdate={handleVideoTimeUpdate(mediaUrl!)}
+                                            className="w-full h-full object-cover" 
+                                        />
+                                    ) : (
+                                        <img 
+                                            src={mediaUrl} 
+                                            alt="Moment Content" 
+                                            className="w-full h-full object-cover" 
+                                        />
+                                    )
+                                ) : (
+                                    <MusicCard moment={currentMoment} bgName={bgColorName} />
+                                )}
+                            </div>
+                        </div>
                     ) : (
-                        <div 
-                            className="w-full h-full flex flex-col items-center justify-center p-8 text-center"
-                            style={getPastelStyle(currentMoment.background_color)}
-                        >
-                            <p className="font-serif text-2xl md:text-3xl leading-relaxed italic max-w-xs break-words">
-                                <>
-                                    "{currentMoment.caption ? renderContentWithMentions(currentMoment.caption) : "Be still, and know..."}"
-                                </>
-                            </p>
+                        <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
+                            {mediaUrl ? (
+                                isVideo ? (
+                                    <video 
+                                        src={mediaUrl || undefined} 
+                                        autoPlay 
+                                        playsInline 
+                                        muted 
+                                        loop 
+                                        onLoadedMetadata={handleVideoLoadedMetadata(mediaUrl!)}
+                                        onTimeUpdate={handleVideoTimeUpdate(mediaUrl!)}
+                                        className="w-full h-full object-contain" 
+                                    />
+                                ) : (
+                                    <img 
+                                        src={mediaUrl} 
+                                        alt="Moment Content" 
+                                        className="w-full h-full object-contain" 
+                                    />
+                                )
+                            ) : (
+                                <MusicCard moment={currentMoment} bgName={bgColorName} />
+                            )}
+                        </div>
+                    )}
+                    {currentMoment.caption && (
+                        <div className="absolute bottom-16 left-4 right-4 bg-black/50 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center z-10">
+                            <p className="text-white text-sm font-medium">{renderContentWithMentions(currentMoment.caption)}</p>
                         </div>
                     )}
                 </div>

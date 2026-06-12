@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Flame, Feather, Users, Heart, Sparkles, HandHeart, MessageCircle, Sun, Flower2, TreeDeciduous, Star, CloudSun, HeartHandshake, Lock, X, Award, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { BowLogo } from "@/components/ui/BowLogo";
 
 type Badge = {
     id: string;
@@ -168,8 +169,8 @@ export function BadgeGrid({ userId }: { userId: string }) {
                             className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl overflow-hidden border border-warm-grey/10 text-center"
                         >
                             {/* Top bow emoji deco */}
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 text-2xl">
-                                ౨ৎ
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2">
+                                <BowLogo size={24} />
                             </div>
 
                             <button
