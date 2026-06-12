@@ -585,7 +585,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
 
             {/* Moments Creator Modal */}
             {isCreatorOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in px-4 pb-24">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in px-4 pb-16 md:pb-0">
                     <div className="bg-warm-paper rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-white flex flex-col gap-4 animate-fade-in-up text-left">
                         <div className="flex justify-between items-center pb-2 border-b border-warm-grey/5">
                             <h3 className="font-serif text-lg text-warm-cocoa flex items-center gap-2">
