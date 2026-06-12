@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X, Search, Send, Check } from "lucide-react";
-import { StickerPicker } from "@/components/gamification/StickerPicker";
+// StickerPicker removed
 import { Smile, Sun, Flower2, Heart as HeartIcon, Star, TreeDeciduous, Users, Feather, Flame, Mail, Heart } from "lucide-react";
 
 type Friend = {
@@ -111,11 +111,7 @@ export function ShareModal({ isOpen, onClose, content }: ShareModalProps) {
         );
     };
 
-    const handleStickerSelect = (badge: any) => {
-        // Appending icon shortcode to content
-        const shortcode = `[sticker:${badge.icon_name}]`;
-        setMessageText(prev => prev + " " + shortcode);
-    };
+    // handleStickerSelect removed
 
     const filteredFriends = friends.filter(f => {
         const query = searchQuery.toLowerCase();
@@ -255,7 +251,7 @@ export function ShareModal({ isOpen, onClose, content }: ShareModalProps) {
                     )}
 
                     <div className="flex justify-between items-center mb-2">
-                        <StickerPicker onSelect={handleStickerSelect} />
+                        {/* StickerPicker removed */}
                         <span className="text-xs text-warm-grey/40">{messageText.length}/500</span>
                     </div>
 
