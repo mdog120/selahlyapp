@@ -93,7 +93,11 @@ export function SocialFeed() {
         ));
     };
 
-    const handleCloseModal = () => {
+    const handleCloseModal = (e?: React.MouseEvent | React.TouchEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         justClosedRef.current = true;
         setSelectedPost(null);
         setIsFeedLocked(true);
@@ -226,6 +230,7 @@ export function SocialFeed() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={handleCloseModal}
+                        onTouchEnd={handleCloseModal}
                         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 cursor-default"
                     >
                         <motion.div 
@@ -234,11 +239,13 @@ export function SocialFeed() {
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: "spring", damping: 20, stiffness: 280 }}
                             onClick={(e) => e.stopPropagation()} // Prevent modal closure when clicking inside the card content
-                            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-warm-paper rounded-[2rem] shadow-2xl z-10 p-1 custom-scrollbar border border-white/60 cursor-default"
+                            onTouchEnd={(e) => e.stopPropagation()} // Prevent modal closure on touch inside the card
+                            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-warm-paper rounded-[2rem] shadow-2xl z-10 pt-14 pb-2 px-2 custom-scrollbar border border-white/60 cursor-default"
                         >
                             {/* Close Button overlay */}
                             <button 
                                 onClick={handleCloseModal}
+                                onTouchEnd={handleCloseModal}
                                 className="absolute top-4 right-4 z-50 bg-white/95 hover:bg-stone-50 text-warm-grey border border-warm-grey/5 p-2 rounded-full shadow-md transition-all active:scale-90"
                             >
                                 <X className="w-4 h-4" />
