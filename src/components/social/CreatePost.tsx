@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { Image, Send, X, Video, Layers, Music, Star, Flame, Feather, Users, Heart, Mail, Sun, Flower2, TreeDeciduous, Plus, Scissors } from "lucide-react";
+import { Image, Send, X, Video, Layers, Music, Star, Flame, Feather, Users, Heart, Mail, Sun, Flower2, TreeDeciduous, Plus, Scissors, MapPin } from "lucide-react";
 import * as tus from 'tus-js-client';
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 // StickerPicker removed
@@ -113,7 +113,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         return () => clearTimeout(timeoutId);
     }, [mentionQuery]);
 
-    const handleCaptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCaptionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const value = e.target.value;
         const pos = e.target.selectionStart || 0;
         setCaption(value);
@@ -577,13 +577,14 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                     )}
                 </div>
                 <div className="flex-1">
-                    <input
-                        type="text"
+                    <textarea
                         value={caption}
                         onChange={handleCaptionChange}
                         onFocus={() => setExpanded(true)}
                         placeholder="Share a thought, verse, or OOTD..."
-                        className="w-full bg-transparent border-none outline-none text-warm-grey placeholder:text-warm-grey/40 py-2"
+                        className="w-full bg-transparent border-none outline-none text-warm-grey placeholder:text-warm-grey/40 py-2 resize-none transition-all duration-300 font-sans"
+                        rows={expanded ? 3 : 1}
+                        style={{ height: expanded ? "80px" : "36px" }}
                     />
 
                     {/* Live Sticker Preview */}
@@ -758,8 +759,8 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                 onChange={handleFileSelect}
                             />
 
-                            <div className="flex justify-between items-center">
-                                <div className="flex gap-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mt-3 pt-3 border-t border-warm-grey/5">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 flex-1">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className="text-warm-grey/40 hover:text-sage-green transition-colors flex items-center gap-2 text-xs"
@@ -792,9 +793,10 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                         </button>
                                     )}
 
-                                    <div className="h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
+                                    <div className="hidden sm:block h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
 
-                                    <div className="relative">
+                                    <div className="relative flex items-center gap-1.5 text-warm-grey/40">
+                                        <MapPin className="w-5 h-5 flex-shrink-0" />
                                         <input
                                             type="text"
                                             value={location}
@@ -805,7 +807,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             onFocus={() => setIsLocationOpen(true)}
                                             onBlur={() => setTimeout(() => setIsLocationOpen(false), 200)} // Delay to allow click
                                             placeholder="Add Location"
-                                            className="bg-transparent text-xs text-warm-grey placeholder:text-warm-grey/40 outline-none w-24 focus:w-40 transition-all border-b border-transparent focus:border-sage-green/50 pb-0.5"
+                                            className="bg-transparent text-xs text-warm-grey placeholder:text-warm-grey/40 outline-none w-24 focus:w-32 transition-all border-b border-transparent focus:border-sage-green/50 pb-0.5"
                                         />
                                         {isLocationOpen && (suggestedLocations.length > 0 || location.length > 0) && (
                                             <div className="absolute bottom-full mb-2 left-0 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
@@ -859,7 +861,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 justify-end shrink-0">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>
                                     <Button size="sm" onClick={handlePost} disabled={loading || !canPost}>
                                         {loading ? "Posting..." : "Post"}
