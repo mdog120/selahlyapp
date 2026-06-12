@@ -160,7 +160,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                     profiles!moments_user_id_fkey (first_name, username, avatar_url)
                 `)
                 .eq("user_id", targetUserId)
-                .or(`created_at.gt.${twentyFourHoursAgo},background_color.like.*highlight*`)
+                .or(`created_at.gt.${twentyFourHoursAgo},background_color.like.%highlight%`)
                 .order("created_at", { ascending: true });
 
             // 2. Fetch active moments for friends (ONLY if we are on own dashboard view)
