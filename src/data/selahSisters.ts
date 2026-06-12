@@ -431,6 +431,42 @@ export const selahSisters: SelahSister[] = [
         biography: "A faithful sister. Mentioned by Paul in his final days, standing with him when many had fallen away.",
         book: "2 Timothy",
         chapter: "4"
+    },
+    {
+        name: "Tryphena & Tryphosa",
+        biography: "Two sisters who 'labored in the Lord,' serving the early church with diligence and dedication. They show the beauty of sisterly teamwork in ministry.",
+        book: "Romans",
+        chapter: "16"
+    },
+    {
+        name: "Sherah",
+        biography: "An Ephraimite woman who built three cities: Upper and Lower Beth-horon, and Uzzen-sherah. Her name stands as a testament to female strength, leadership, and legacy.",
+        book: "1 Chronicles",
+        chapter: "7"
+    },
+    {
+        name: "Mary of Jerusalem",
+        biography: "Mother of John Mark, who opened her home as a vital sanctuary for prayer for the early church, where believers gathered to pray for Peter's release.",
+        book: "Acts",
+        chapter: "12"
+    },
+    {
+        name: "Daughters of Philip",
+        biography: "Four unmarried sisters who possessed the gift of prophecy, serving the church and illustrating the power of young women speaking God's truth.",
+        book: "Acts",
+        chapter: "21"
+    },
+    {
+        name: "Elisheba",
+        biography: "The wife of Aaron and mother of the high priestly line. Her name means 'God is my oath,' representing covenant faithfulness and legacy.",
+        book: "Exodus",
+        chapter: "6"
+    },
+    {
+        name: "The Widow with the Oil",
+        biography: "A mother who cried out to God in her debt. Through Elisha, God multiplied her small jar of oil to pay her debts and save her sons, demonstrating God's faithful provision.",
+        book: "2 Kings",
+        chapter: "4"
     }
 ];
 
