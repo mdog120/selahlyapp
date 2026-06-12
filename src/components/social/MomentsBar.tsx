@@ -29,6 +29,17 @@ type GroupedMoment = {
     moments: Moment[];
 };
 
+const PASTEL_COLORS = [
+    { name: 'rose', bg: '#FFF0F0', text: '#B85C5C', label: 'Rose' },
+    { name: 'lavender', bg: '#F5EFFF', text: '#6C5CB8', label: 'Lavender' },
+    { name: 'blue', bg: '#E8F4FF', text: '#3D7AB8', label: 'Blue' },
+    { name: 'mint', bg: '#E8FDF5', text: '#2D8A66', label: 'Mint' },
+    { name: 'sage', bg: '#F0F4F1', text: '#556B5D', label: 'Sage' },
+    { name: 'peach', bg: '#FFF4EC', text: '#B87845', label: 'Peach' },
+    { name: 'yellow', bg: '#FFFCE6', text: '#948010', label: 'Yellow' },
+    { name: 'cream', bg: '#FAF5EF', text: '#7E6D59', label: 'Cream' }
+];
+
 export function MomentsBar() {
     const [groupedMoments, setGroupedMoments] = useState<GroupedMoment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -355,75 +366,88 @@ export function MomentsBar() {
     }
 
     return (
-        <div className="flex gap-4 overflow-x-auto py-3 px-2 mb-6 scrollbar-hide select-none border-b border-warm-grey/5">
-            {/* My Moment Bubble */}
-            <div className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer">
-                <div className="relative">
-                    {myGroup ? (
-                        // If I have an active moment
-                        <div 
-                            onClick={() => openViewer(myGroup)}
-                            className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-muted-rose to-sage-green shadow-md active:scale-95 transition-transform"
-                        >
-                            <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
-                                {currentUserProfile?.avatar_url ? (
-                                    <img src={currentUserProfile.avatar_url} alt="My Moment" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-soft-blush text-warm-grey font-serif uppercase text-lg">
-                                        {currentUserProfile?.first_name?.[0] || "Me"}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        // If I do NOT have an active moment
-                        <div 
-                            onClick={() => setIsCreatorOpen(true)}
-                            className="w-16 h-16 rounded-full border-2 border-dashed border-warm-grey/20 flex items-center justify-center bg-white/40 hover:border-muted-rose/40 hover:bg-white transition-all shadow-sm active:scale-95"
-                        >
-                            {currentUserProfile?.avatar_url ? (
-                                <img src={currentUserProfile.avatar_url} alt="Me" className="w-full h-full rounded-full object-cover p-[2px]" />
-                            ) : (
-                                <span className="text-xl text-warm-grey/40 font-bold font-serif">+</span>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Plus badge overlay */}
-                    {!myGroup && (
-                        <div 
-                            onClick={() => setIsCreatorOpen(true)}
-                            className="absolute bottom-0 right-0 w-5 h-5 bg-muted-rose text-white rounded-full flex items-center justify-center border border-white hover:scale-105 active:scale-95"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                        </div>
-                    )}
-                </div>
-                <span className="text-[10px] font-bold text-warm-grey/60">Your Moment</span>
-            </div>
-
-            {/* Friend Moments Bubbles */}
-            {otherGroups.map((group) => (
-                <motion.div 
-                    key={group.user_id}
-                    onClick={() => openViewer(group)}
-                    whileTap={{ scale: 0.92 }}
-                    className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer"
+        <div className="w-full flex flex-col gap-5 select-none mb-6">
+            {/* My Moment Cute Centered Card */}
+            <div 
+                className="w-full max-w-sm mx-auto p-6 rounded-3xl border-2 border-dashed border-[#8D7B68]/30 shadow-sm relative overflow-hidden flex flex-col items-center justify-center"
+                style={{
+                    backgroundColor: "#FFF0F5",
+                    backgroundImage: "radial-gradient(#8D7B68 10%, transparent 11%), radial-gradient(#FFFFFF 12%, transparent 13%)",
+                    backgroundSize: "16px 16px",
+                    backgroundPosition: "0 0, 8px 8px"
+                }}
+            >
+                <div 
+                    onClick={myGroup ? () => openViewer(myGroup) : () => setIsCreatorOpen(true)}
+                    className="relative cursor-pointer group flex flex-col items-center"
                 >
-                    <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-muted-rose via-soft-blush to-sage-green shadow-md transition-transform">
-                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
-                            {group.userAvatar ? (
-                                <img src={group.userAvatar} alt={group.userName} className="w-full h-full object-cover" />
+                    {/* Signature Bow on top */}
+                    <img 
+                        src="/images/selahly_bow.png" 
+                        alt="Signature Bow" 
+                        className="absolute -top-5 w-10 h-10 object-contain z-20 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-200" 
+                    />
+
+                    {/* Bigger Circle (w-20 h-20) */}
+                    <div className={`w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr ${myGroup ? 'from-muted-rose to-sage-green animate-pulse' : 'from-warm-grey/15 to-warm-grey/30'} shadow-md transition-all group-hover:scale-[1.03] duration-200`}>
+                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
+                            {currentUserProfile?.avatar_url ? (
+                                <img src={currentUserProfile.avatar_url} alt="Me" className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-sage-green/20 text-warm-grey font-serif uppercase text-lg">
-                                    {group.userName[0]}
+                                <div className="w-full h-full flex items-center justify-center bg-soft-blush text-warm-grey font-serif uppercase text-2xl">
+                                    {currentUserProfile?.first_name?.[0] || "Me"}
                                 </div>
                             )}
                         </div>
                     </div>
-                    <span className="text-[10px] font-bold text-warm-grey/70">{group.userName}</span>
-                </motion.div>
-            ))}
+
+                    {/* Plus badge overlay if no moment */}
+                    {!myGroup && (
+                        <div className="absolute bottom-0 right-0 w-6 h-6 bg-muted-rose text-white rounded-full flex items-center justify-center border-2 border-white shadow-sm hover:scale-105 active:scale-95 transition-all">
+                            <Plus className="w-4 h-4" />
+                        </div>
+                    )}
+                </div>
+
+                <div 
+                    onClick={myGroup ? () => openViewer(myGroup) : () => setIsCreatorOpen(true)}
+                    className="cursor-pointer text-center mt-3.5 relative z-10 bg-white/80 backdrop-blur-md py-1.5 px-5 rounded-full border border-warm-grey/10 shadow-sm transition-all hover:bg-white hover:shadow"
+                >
+                    <span className="text-xs font-serif text-warm-cocoa font-bold">
+                        {myGroup ? "View Your Story" : "Share Your Moment ౨ৎ"}
+                    </span>
+                </div>
+            </div>
+
+            {/* Friend bubbles scrollable row */}
+            {otherGroups.length > 0 && (
+                <div className="flex flex-col gap-1.5 px-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 mb-1">Sister Updates</span>
+                    <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
+                        {otherGroups.map((group) => (
+                            <motion.div 
+                                key={group.user_id}
+                                onClick={() => openViewer(group)}
+                                whileTap={{ scale: 0.92 }}
+                                className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer"
+                            >
+                                <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-muted-rose via-soft-blush to-sage-green shadow-md transition-transform">
+                                    <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
+                                        {group.userAvatar ? (
+                                            <img src={group.userAvatar} alt={group.userName} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-sage-green/20 text-warm-grey font-serif uppercase text-lg">
+                                                {group.userName[0]}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <span className="text-[10px] font-bold text-warm-grey/70">{group.userName}</span>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Moments Viewer Modal */}
             <AnimatePresence>
@@ -505,15 +529,13 @@ export function MomentsBar() {
                                     )}
                                 </>
                             ) : (
-                                <div className={`w-full h-full flex flex-col items-center justify-center p-6 transition-all duration-300 ${
-                                    bgColor === 'rose' ? 'bg-muted-rose text-white' :
-                                    bgColor === 'blue' ? 'bg-indigo-400 text-white' :
-                                    bgColor === 'green' ? 'bg-sage-green text-warm-grey' :
-                                    bgColor === 'orange' ? 'bg-orange-400 text-white' :
-                                    bgColor === 'purple' ? 'bg-purple-400 text-white' :
-                                    bgColor === 'yellow' ? 'bg-yellow-400 text-warm-grey' :
-                                    'bg-white text-warm-grey'
-                                }`}>
+                                <div 
+                                    className="w-full h-full flex flex-col items-center justify-center p-6 transition-all duration-300"
+                                    style={{
+                                        backgroundColor: PASTEL_COLORS.find(c => c.name === bgColor)?.bg || '#FFF0F0',
+                                        color: PASTEL_COLORS.find(c => c.name === bgColor)?.text || '#B85C5C'
+                                    }}
+                                >
                                     <p className="font-serif text-lg leading-relaxed italic max-w-xs px-2 break-words">
                                         {caption.trim() ? `"${caption}"` : '"Be still..."'}
                                     </p>
@@ -565,19 +587,18 @@ export function MomentsBar() {
                         {!selectedFile && (
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Background Color</label>
-                                <div className="flex gap-2">
-                                    {['rose', 'blue', 'green', 'orange', 'purple', 'yellow'].map((color) => (
+                                <div className="flex flex-wrap gap-2">
+                                    {PASTEL_COLORS.map((color) => (
                                         <button 
-                                            key={color}
-                                            onClick={() => setBgColor(color)}
-                                            className={`w-6 h-6 rounded-full border-2 transition-all ${
-                                                color === 'rose' ? 'bg-muted-rose' :
-                                                color === 'blue' ? 'bg-indigo-400' :
-                                                color === 'green' ? 'bg-sage-green' :
-                                                color === 'orange' ? 'bg-orange-400' :
-                                                color === 'purple' ? 'bg-purple-400' :
-                                                'bg-yellow-400'
-                                            } ${bgColor === color ? 'border-warm-grey scale-110' : 'border-transparent hover:scale-105'}`}
+                                            key={color.name}
+                                            type="button"
+                                            onClick={() => setBgColor(color.name)}
+                                            className="w-6 h-6 rounded-full border-2 transition-all hover:scale-105 active:scale-95"
+                                            style={{
+                                                backgroundColor: color.bg,
+                                                borderColor: bgColor === color.name ? '#8D7B68' : 'transparent'
+                                            }}
+                                            title={color.label}
                                         />
                                     ))}
                                 </div>
@@ -645,11 +666,16 @@ export function MomentsBar() {
                                     </Button>
                                 )}
                             </div>
+                            {(!selectedFile && !songTitle) && (
+                                <p className="text-[10px] text-pink-500 font-bold text-center italic mt-1">
+                                    * Stories require a photo, video, or song selection! 🎵
+                                </p>
+                            )}
                             <Button 
                                 size="sm"
                                 onClick={handleShareMoment}
-                                disabled={creating || (!caption.trim() && !selectedFile)}
-                                className="w-full bg-muted-rose hover:bg-muted-rose/90 text-white flex items-center justify-center gap-1 shadow-md shadow-muted-rose/10 py-5 text-xs font-bold uppercase tracking-wider"
+                                disabled={creating || (!selectedFile && !songTitle)}
+                                className="w-full bg-muted-rose hover:bg-muted-rose/90 text-white flex items-center justify-center gap-1 shadow-md shadow-muted-rose/10 py-5 text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Share Moment ౨ৎ"}
                             </Button>

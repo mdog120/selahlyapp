@@ -34,6 +34,17 @@ type MomentModalProps = {
     onMomentDeleted?: () => void;
 };
 
+const PASTEL_COLORS = [
+    { name: 'rose', bg: '#FFF0F0', text: '#B85C5C', label: 'Rose' },
+    { name: 'lavender', bg: '#F5EFFF', text: '#6C5CB8', label: 'Lavender' },
+    { name: 'blue', bg: '#E8F4FF', text: '#3D7AB8', label: 'Blue' },
+    { name: 'mint', bg: '#E8FDF5', text: '#2D8A66', label: 'Mint' },
+    { name: 'sage', bg: '#F0F4F1', text: '#556B5D', label: 'Sage' },
+    { name: 'peach', bg: '#FFF4EC', text: '#B87845', label: 'Peach' },
+    { name: 'yellow', bg: '#FFFCE6', text: '#948010', label: 'Yellow' },
+    { name: 'cream', bg: '#FAF5EF', text: '#7E6D59', label: 'Cream' }
+];
+
 export function MomentModal({ 
     isOpen, 
     onClose, 
@@ -449,16 +460,12 @@ export function MomentModal({
         }
     };
 
-    const getBgClass = (bg: string) => {
-        switch (bg) {
-            case 'rose': return 'bg-muted-rose text-white';
-            case 'blue': return 'bg-indigo-400 text-white';
-            case 'green': return 'bg-sage-green text-warm-grey';
-            case 'orange': return 'bg-orange-400 text-white';
-            case 'purple': return 'bg-purple-400 text-white';
-            case 'yellow': return 'bg-yellow-400 text-warm-grey';
-            default: return 'bg-warm-paper text-warm-grey';
-        }
+    const getPastelStyle = (bgName: string) => {
+        const color = PASTEL_COLORS.find(c => c.name === bgName) || PASTEL_COLORS[0];
+        return {
+            backgroundColor: color.bg,
+            color: color.text
+        };
     };
 
     const mediaUrl = currentMoment.media_url;
@@ -591,7 +598,10 @@ export function MomentModal({
                             )}
                         </>
                     ) : (
-                        <div className={`w-full h-full flex flex-col items-center justify-center p-8 text-center ${getBgClass(currentMoment.background_color)}`}>
+                        <div 
+                            className="w-full h-full flex flex-col items-center justify-center p-8 text-center"
+                            style={getPastelStyle(currentMoment.background_color)}
+                        >
                             <p className="font-serif text-2xl md:text-3xl leading-relaxed italic max-w-xs break-words">
                                 <>
                                     "{currentMoment.caption ? renderContentWithMentions(currentMoment.caption) : "Be still, and know..."}"
