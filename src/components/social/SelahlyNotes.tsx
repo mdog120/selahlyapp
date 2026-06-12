@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Heart, Music, Smile, Sun, Flower2, Star, TreeDeciduous, Users, Feather, Flame, Mail, CloudSun } from "lucide-react";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { SongPlayer } from "@/components/ui/SongPlayer";
-import { StickerPicker } from "@/components/gamification/StickerPicker";
+// StickerPicker removed
 // MVP wrapping manual implementation below
 import { Button } from "@/components/ui/Button";
 
@@ -734,7 +734,7 @@ export function SelahlyNotes() {
                             )}
 
                             <div className="flex justify-between items-center mt-4">
-                                <StickerPicker onSelect={handleStickerSelect} />
+                                {/* StickerPicker removed */}
                                 <div className="flex gap-2">
                                     <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>Cancel</Button>
                                     <Button size="sm" onClick={handleCreateNote} disabled={!newNote.trim() && !songTitle && !songLink}>{myNote ? "Update" : "Share"}</Button>

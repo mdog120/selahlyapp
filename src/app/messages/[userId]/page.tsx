@@ -6,7 +6,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Send, Phone, Video, Info, Smile, Image as ImageIcon, Mic, X, MoreVertical, Flame, Feather, Users, Heart, Mail, Sun, Flower2, CloudSun, TreeDeciduous, Star, ArrowLeft, Check, CheckCheck, Trash2, Pencil, User, Ban, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
-import { StickerPicker } from "@/components/gamification/StickerPicker";
+// StickerPicker removed
 
 type Message = {
     id: string;
@@ -797,7 +797,7 @@ export default function ChatPage() {
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
                 >
-                    <StickerPicker onSelect={(badge) => sendSticker(badge.icon_name)} />
+                    {/* StickerPicker removed */}
 
                     <div className="relative flex-1">
                         <input

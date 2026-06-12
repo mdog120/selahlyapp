@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Image, Send, X, Video, Layers, Music, Star, Flame, Feather, Users, Heart, Mail, Sun, Flower2, TreeDeciduous, Plus, Scissors } from "lucide-react";
 import * as tus from 'tus-js-client';
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
-import { StickerPicker } from "@/components/gamification/StickerPicker";
+// StickerPicker removed
 
 export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [caption, setCaption] = useState("");
@@ -791,10 +791,6 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             <span>Add Poll</span>
                                         </button>
                                     )}
-
-                                    <StickerPicker onSelect={handleStickerSelect} />
-
-                                    <div className="h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
 
                                     <div className="h-5 w-px bg-warm-grey/10 self-center mx-1"></div>
 

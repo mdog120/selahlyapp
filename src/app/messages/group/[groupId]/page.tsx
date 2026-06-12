@@ -7,7 +7,7 @@ import { Send, Phone, Video, Info, Smile, Image as ImageIcon, Mic, X, MoreVertic
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { GroupSettingsModal } from "@/components/messaging/GroupSettingsModal";
-import { StickerPicker } from "@/components/gamification/StickerPicker";
+// StickerPicker removed
 
 type Message = {
     id: string;
@@ -652,7 +652,7 @@ export default function GroupChatPage() {
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
                 >
-                    <StickerPicker onSelect={(badge) => sendSticker(badge.icon_name)} />
+                    {/* StickerPicker removed */}
 
                     <input
                         ref={inputRef}
