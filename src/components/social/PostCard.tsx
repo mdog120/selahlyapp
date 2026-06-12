@@ -114,13 +114,17 @@ export function PostCard({ post }: { post: Post }) {
         setEditSongArtwork(post.song_album_art || "");
     }, [post]);
 
+    // Autoplay post song when details open, and clean up global music states
     useEffect(() => {
         checkOwnership();
         if (post.type === 'poll') {
             fetchPollData();
         }
 
-
+        // Autoplay the song when the post detail is opened
+        if (post.song_preview_url) {
+            setIsPlaying(true);
+        }
 
         // Header Cycling Interval
         const interval = setInterval(() => {
@@ -139,8 +143,27 @@ export function PostCard({ post }: { post: Post }) {
             document.removeEventListener("mousedown", handleClickOutside);
             clearInterval(interval);
             if (audioRef.current) audioRef.current.pause();
+            window.dispatchEvent(new CustomEvent("selahly_post_audio_stop"));
         };
-    }, []);
+    }, [post.song_preview_url]);
+
+    // Handle post audio play/pause and dispatch events to pause/resume global background music
+    useEffect(() => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.play()
+                .then(() => {
+                    window.dispatchEvent(new CustomEvent("selahly_post_audio_play"));
+                })
+                .catch(err => {
+                    console.log("Post audio autoplay blocked/failed:", err);
+                    setIsPlaying(false);
+                });
+        } else {
+            audioRef.current.pause();
+            window.dispatchEvent(new CustomEvent("selahly_post_audio_stop"));
+        }
+    }, [isPlaying]);
 
     // Handle Mute Toggle
     const toggleMute = (e: React.MouseEvent) => {
@@ -562,15 +585,7 @@ export function PostCard({ post }: { post: Post }) {
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (audioRef.current) {
-                                            if (isPlaying) {
-                                                audioRef.current.pause();
-                                                setIsPlaying(false);
-                                            } else {
-                                                audioRef.current.play().catch(err => console.error("Play blocked", err));
-                                                setIsPlaying(true);
-                                            }
-                                        }
+                                        setIsPlaying(!isPlaying);
                                     }}
                                     className="px-3 py-1 rounded-full bg-white hover:bg-stone-50 border border-warm-grey/5 text-[10px] font-bold text-warm-cocoa transition-all shadow-sm flex items-center gap-1"
                                 >

@@ -11,13 +11,18 @@ export function AmbiencePlayer() {
 
     // Track user preference and setup interaction listener to resume play if enabled
     useEffect(() => {
-        const savedPref = localStorage.getItem("selahly_ambient_music") === "true";
+        // Default to true (play ambient music) unless the user has explicitly turned it off
+        const savedPref = localStorage.getItem("selahly_ambient_music") !== "false";
         setIsPlaying(savedPref);
 
         // Standard browsers block autoplay until a user interaction occurs.
-        // If the user had it enabled previously, we play it on their first click/tap anywhere.
+        // If the user has it enabled, we play it on their first click/tap anywhere.
         if (savedPref) {
-            const startOnInteraction = () => {
+            const startOnInteraction = (e: Event) => {
+                // If they click/tap the ambience toggle button itself, let handleToggle handle it.
+                if (e.target instanceof Element && e.target.closest("#ambience-toggle-btn")) {
+                    return;
+                }
                 if (audioRef.current && audioRef.current.paused) {
                     audioRef.current.play()
                         .then(() => {
@@ -38,12 +43,28 @@ export function AmbiencePlayer() {
         }
     }, []);
 
+    const [pausedByPost, setPausedByPost] = useState(false);
+
+    // Listen to post song playback events to pause/resume ambient music
+    useEffect(() => {
+        const handlePostPlay = () => setPausedByPost(true);
+        const handlePostStop = () => setPausedByPost(false);
+
+        window.addEventListener("selahly_post_audio_play", handlePostPlay);
+        window.addEventListener("selahly_post_audio_stop", handlePostStop);
+
+        return () => {
+            window.removeEventListener("selahly_post_audio_play", handlePostPlay);
+            window.removeEventListener("selahly_post_audio_stop", handlePostStop);
+        };
+    }, []);
+
     // Handle audio play/pause states based on state changes
     useEffect(() => {
         if (!audioRef.current) return;
-        audioRef.current.volume = 0.10; // Keep it very soft and soothing in the background
+        audioRef.current.volume = 0.05; // Keep it very soft and soothing in the background (5% volume)
 
-        if (isPlaying) {
+        if (isPlaying && !pausedByPost) {
             const playPromise = audioRef.current.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
@@ -55,11 +76,14 @@ export function AmbiencePlayer() {
             localStorage.setItem("selahly_ambient_music", "true");
         } else {
             audioRef.current.pause();
-            localStorage.setItem("selahly_ambient_music", "false");
+            if (!pausedByPost) {
+                localStorage.setItem("selahly_ambient_music", "false");
+            }
         }
-    }, [isPlaying]);
+    }, [isPlaying, pausedByPost]);
 
-    const handleToggle = () => {
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
         setIsPlaying(!isPlaying);
     };
 
@@ -67,7 +91,7 @@ export function AmbiencePlayer() {
         <>
             <audio
                 ref={audioRef}
-                src="https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/f1/0e/31/f10e319b-07f2-59c4-1784-584951243cda/mzaf_581018986493473285.plus.aac.p.m4a"
+                src="https://archive.org/download/Gymnopedie_201309/Gymnop%C3%A9die%20No.%201.mp3"
                 loop
             />
 
@@ -91,6 +115,7 @@ export function AmbiencePlayer() {
                 </AnimatePresence>
 
                 <button
+                    id="ambience-toggle-btn"
                     onClick={handleToggle}
                     className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all active:scale-[0.93] shadow-md ${
                         isPlaying 
