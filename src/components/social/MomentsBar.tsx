@@ -15,6 +15,11 @@ type Moment = {
     background_color: string;
     created_at: string;
     user_id: string;
+    song_title?: string | null;
+    song_artist?: string | null;
+    song_album_art?: string | null;
+    song_preview_url?: string | null;
+    song_link?: string | null;
     profiles: {
         first_name: string;
         username: string;
