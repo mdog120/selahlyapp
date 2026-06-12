@@ -99,6 +99,8 @@ export default function ProfilePage() {
     const [highlightAlbums, setHighlightAlbums] = useState<any[]>([]);
     const [selectedAlbumMoments, setSelectedAlbumMoments] = useState<any[] | null>(null);
     const [isAlbumViewerOpen, setIsAlbumViewerOpen] = useState(false);
+    const [favVerseText, setFavVerseText] = useState<string | null>(null);
+    const [loadingVerse, setLoadingVerse] = useState(false);
 
     const { triggerBadge } = useBadge();
     const supabase = createClient();
@@ -258,6 +260,31 @@ export default function ProfilePage() {
 
         fetchData();
     }, [username]);
+
+    // Fetch Bible verse scripture text for profile card
+    useEffect(() => {
+        if (!profile?.fav_verse) {
+            setFavVerseText(null);
+            return;
+        }
+
+        const fetchProfileVerse = async () => {
+            setLoadingVerse(true);
+            try {
+                const res = await fetch(`https://bible-api.com/${encodeURIComponent(profile.fav_verse!)}?translation=kjv`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setFavVerseText(data.text || null);
+                }
+            } catch (err) {
+                console.error("Error loading profile fav verse:", err);
+            } finally {
+                setLoadingVerse(false);
+            }
+        };
+
+        fetchProfileVerse();
+    }, [profile?.fav_verse]);
 
     // Handlers
     const handleAddFriend = async () => {
@@ -500,15 +527,27 @@ export default function ProfilePage() {
                                         {profile.hobby}
                                     </div>
                                 )}
-                                {profile.fav_verse && (
-                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm ${getBadgeStyle(profile.fav_verse_color)}`} title="My Fav Verse">
-                                        <Heart className="w-3.5 h-3.5" />
-                                        {profile.fav_verse}
-                                    </div>
-                                )}
                             </div>
 
-
+                            {/* Beautiful Verse Card */}
+                            {profile.fav_verse && (
+                                <div className={`p-4 rounded-2xl border mb-6 text-left relative overflow-hidden backdrop-blur-sm ${getBadgeStyle(profile.fav_verse_color)} shadow-sm`}>
+                                    <div className="flex items-center gap-2 mb-1.5 opacity-85">
+                                        <Heart className="w-3.5 h-3.5 fill-current" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">Favorite Verse</span>
+                                    </div>
+                                    {loadingVerse ? (
+                                        <p className="text-xs italic opacity-75">Loading scripture...</p>
+                                    ) : favVerseText ? (
+                                        <div className="space-y-1">
+                                            <p className="font-serif italic text-sm leading-relaxed text-current">"{favVerseText.trim()}"</p>
+                                            <p className="text-[10px] font-bold text-right opacity-90">— {profile.fav_verse} (KJV)</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs font-serif italic text-sm">{profile.fav_verse}</p>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                                 <div className="px-4 py-2 rounded-2xl bg-stone-50 border border-warm-grey/5 flex items-center gap-2 text-xs font-medium text-warm-grey">

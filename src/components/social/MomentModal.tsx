@@ -5,6 +5,7 @@ import { X, ChevronLeft, ChevronRight, Heart, MessageSquare, Trash2, Volume2, Vo
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 
 type Moment = {
     id: string;
@@ -1029,15 +1030,20 @@ export function MomentModal({
                         </div>
                         <div className="flex-1 overflow-y-auto py-3 space-y-3 text-left">
                             {likes.map(l => (
-                                <div key={l.user_id} className="flex items-center gap-3 py-1 border-b border-white/5">
-                                    <div className="w-8 h-8 rounded-full bg-soft-blush flex items-center justify-center font-serif text-xs text-warm-cocoa uppercase border border-white/10">
+                                <Link 
+                                    href={`/profile/${l.profiles.username}`}
+                                    key={l.user_id} 
+                                    onClick={() => onClose()}
+                                    className="flex items-center gap-3 py-1 border-b border-white/5 hover:bg-white/5 px-2 rounded-xl transition-colors cursor-pointer w-full text-left"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-soft-blush flex items-center justify-center font-serif text-xs text-warm-cocoa uppercase border border-white/10 shrink-0">
                                         {l.profiles.first_name[0]}
                                     </div>
                                     <div>
                                         <p className="font-bold text-white text-xs">@{l.profiles.username}</p>
                                         <p className="text-[10px] text-white/50">{l.profiles.first_name}</p>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     </div>

@@ -18,6 +18,17 @@ function SettingsIcon({ className }: { className?: string }) {
     )
 }
 
+const BIBLE_BOOKS = [
+    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth", 
+    "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther", 
+    "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations", 
+    "Ezekiel", "Daniel", "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", 
+    "Zephaniah", "Haggai", "Zechariah", "Malachi", "Matthew", "Mark", "Luke", "John", "Acts", "Romans", 
+    "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians", "Philippians", "Colossians", 
+    "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", 
+    "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
+];
+
 const PASTEL_COLORS = [
     { name: 'rose', value: 'bg-muted-rose text-white', label: 'Rose' },
     { name: 'blue', value: 'bg-indigo-400 text-white', label: 'Blue' },
@@ -88,6 +99,13 @@ export default function SettingsPage() {
     const [favVerse, setFavVerse] = useState("");
     const [favVerseColor, setFavVerseColor] = useState("purple");
 
+    // Verse picker states
+    const [bibleBook, setBibleBook] = useState("John");
+    const [bibleChapter, setBibleChapter] = useState("3");
+    const [bibleVerse, setBibleVerse] = useState("16");
+    const [fetchedVerseText, setFetchedVerseText] = useState("");
+    const [isFetchingVerse, setIsFetchingVerse] = useState(false);
+
     useEffect(() => {
         const getProfile = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -126,11 +144,48 @@ export default function SettingsPage() {
                 setHobbyColor(profile.hobby_color || "green");
                 setFavVerse(profile.fav_verse || "");
                 setFavVerseColor(profile.fav_verse_color || "purple");
+
+                if (profile.fav_verse) {
+                    const match = profile.fav_verse.match(/^(.*?)\s+(\d+):(\d+)$/);
+                    if (match) {
+                        setBibleBook(match[1]);
+                        setBibleChapter(match[2]);
+                        setBibleVerse(match[3]);
+                    }
+                }
             }
             setLoading(false);
         };
         getProfile();
     }, [router]);
+
+    // Fetch Bible verse scripture
+    useEffect(() => {
+        if (!bibleBook || !bibleChapter || !bibleVerse) return;
+        
+        const fetchVerse = async () => {
+            setIsFetchingVerse(true);
+            try {
+                const reference = `${bibleBook} ${bibleChapter}:${bibleVerse}`;
+                const res = await fetch(`https://bible-api.com/${encodeURIComponent(reference)}?translation=kjv`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setFetchedVerseText(data.text || "Verse not found.");
+                    setFavVerse(reference);
+                } else {
+                    setFetchedVerseText("Verse not found.");
+                }
+            } catch (err) {
+                console.error("Error fetching Bible verse:", err);
+                setFetchedVerseText("Error loading verse text.");
+            } finally {
+                setIsFetchingVerse(false);
+            }
+        };
+
+        const timer = setTimeout(fetchVerse, 500);
+        return () => clearTimeout(timer);
+    }, [bibleBook, bibleChapter, bibleVerse]);
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -558,14 +613,57 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">My Fav Verse</label>
-                                    <input
-                                        type="text"
-                                        value={favVerse}
-                                        onChange={(e) => setFavVerse(e.target.value)}
-                                        placeholder="Philippians 4:13"
-                                        className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none mb-2"
-                                    />
-                                    <ColorPicker selected={favVerseColor} onChange={setFavVerseColor} />
+                                    
+                                    <div className="flex flex-col md:flex-row gap-3 mb-3">
+                                        {/* Book Select */}
+                                        <select
+                                            value={bibleBook}
+                                            onChange={(e) => setBibleBook(e.target.value)}
+                                            className="bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none flex-1"
+                                        >
+                                            {BIBLE_BOOKS.map(book => (
+                                                <option key={book} value={book}>{book}</option>
+                                            ))}
+                                        </select>
+                                        
+                                        {/* Chapter Input */}
+                                        <input
+                                            type="number"
+                                            value={bibleChapter}
+                                            onChange={(e) => setBibleChapter(e.target.value)}
+                                            placeholder="Ch"
+                                            min="1"
+                                            className="bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none w-20 text-center"
+                                        />
+                                        
+                                        {/* Verse Input */}
+                                        <input
+                                            type="number"
+                                            value={bibleVerse}
+                                            onChange={(e) => setBibleVerse(e.target.value)}
+                                            placeholder="Verse"
+                                            min="1"
+                                            className="bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none w-24 text-center"
+                                        />
+                                    </div>
+
+                                    {/* Verse Preview Card */}
+                                    <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 text-left min-h-[60px] flex flex-col justify-center">
+                                        {isFetchingVerse ? (
+                                            <p className="text-xs text-warm-grey/40 italic">Fetching scripture...</p>
+                                        ) : fetchedVerseText ? (
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-serif italic text-warm-cocoa">"{fetchedVerseText.trim()}"</p>
+                                                <p className="text-[10px] font-bold text-muted-rose text-right">— {bibleBook} {bibleChapter}:{bibleVerse} (KJV)</p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-warm-grey/40 italic">Select a verse to preview</p>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="mt-3">
+                                        <ColorPicker selected={favVerseColor} onChange={setFavVerseColor} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
