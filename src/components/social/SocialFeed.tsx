@@ -189,7 +189,7 @@ export function SocialFeed() {
                         <p className="text-sm text-warm-grey/60">Be the first to share something beautiful!</p>
                     </div>
                 ) : (
-                    {/* Lemon8-Style Two-Column Masonry Grid */}
+                    // Lemon8-Style Two-Column Masonry Grid
                     <div className="grid grid-cols-2 gap-3.5 items-start">
                         {/* Left Column */}
                         <div className="flex flex-col gap-3.5">

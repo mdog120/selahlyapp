@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useRef, useEffect, useState, useMemo } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Image as ImageIcon, X, Flame, Feather, Users, Mail, Sun, Flower2, Star, TreeDeciduous, CloudSun, Send, Trash2, Flag, AlertTriangle, Music, Volume2, VolumeX, MapPin, Smile, Edit2 } from "lucide-react";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";

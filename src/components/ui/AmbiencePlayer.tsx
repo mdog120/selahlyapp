@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
