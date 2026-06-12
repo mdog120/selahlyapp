@@ -114,7 +114,7 @@ export function PostCard({ post }: { post: Post }) {
         setEditSongArtwork(post.song_album_art || "");
     }, [post]);
 
-    // Autoplay post song when details open, and clean up global music states
+    // Autoplay post song when details open
     useEffect(() => {
         checkOwnership();
         if (post.type === 'poll') {
@@ -143,25 +143,20 @@ export function PostCard({ post }: { post: Post }) {
             document.removeEventListener("mousedown", handleClickOutside);
             clearInterval(interval);
             if (audioRef.current) audioRef.current.pause();
-            window.dispatchEvent(new CustomEvent("selahly_post_audio_stop"));
         };
     }, [post.song_preview_url]);
 
-    // Handle post audio play/pause and dispatch events to pause/resume global background music
+    // Handle post audio play/pause
     useEffect(() => {
         if (!audioRef.current) return;
         if (isPlaying) {
             audioRef.current.play()
-                .then(() => {
-                    window.dispatchEvent(new CustomEvent("selahly_post_audio_play"));
-                })
                 .catch(err => {
                     console.log("Post audio autoplay blocked/failed:", err);
                     setIsPlaying(false);
                 });
         } else {
             audioRef.current.pause();
-            window.dispatchEvent(new CustomEvent("selahly_post_audio_stop"));
         }
     }, [isPlaying]);
 
