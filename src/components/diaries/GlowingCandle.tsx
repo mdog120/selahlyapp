@@ -118,8 +118,8 @@ export function GlowingCandle({ isLit, streak = 0, hasJournaledToday = false, is
 
             // 2. Draw Flame & Rising Sparks (If lit or igniting)
             if (isLit || igniting) {
-                // Streak multiplier: flame grows by 10% per day of streak, capping at 7 days (+70% size)
-                const scale = 1 + Math.min(streak, 7) * 0.1;
+                // Flame grows every day based on streak using a square root scale (so it always grows, but stays within canvas limits)
+                const scale = 1 + Math.min(Math.sqrt(streak) * 0.25, 3.0);
 
                 const h = 36 * scale;
                 const wOuter = 18 * scale;
@@ -338,40 +338,42 @@ export function GlowingCandle({ isLit, streak = 0, hasJournaledToday = false, is
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md pointer-events-none"
                     >
-                        <motion.div
-                            initial={{ scale: 0.1, y: 100, rotate: -10 }}
-                            animate={{ scale: [1, 2.5, 3.5, 3.2], y: 0, rotate: 0 }}
-                            exit={{ scale: 6, opacity: 0, y: -200 }}
-                            transition={{ duration: 1.8, ease: "easeOut" }}
-                            className="flex flex-col items-center justify-center"
-                        >
-                            {/* A massive golden-rose flame that pulses and glows */}
-                            <div className="relative w-72 h-72 flex items-center justify-center">
+                        <div className="flex flex-col items-center justify-center max-w-sm px-6">
+                            {/* A beautiful golden-rose flame that pulses and glows (scaled down so text is clearly visible) */}
+                            <motion.div
+                                initial={{ scale: 0.2, y: 50, rotate: -10 }}
+                                animate={{ scale: [1, 1.5, 1.8, 1.6], y: 0, rotate: 0 }}
+                                exit={{ scale: 3, opacity: 0, y: -100 }}
+                                transition={{ duration: 1.5, ease: "easeOut" }}
+                                className="relative w-40 h-40 flex items-center justify-center mb-8"
+                            >
                                 {/* Radial gradients */}
-                                <div className="absolute inset-0 bg-radial-gradient from-amber-400/60 via-rose-500/30 to-transparent filter blur-2xl rounded-full scale-150 animate-pulse" />
-                                <Flame className="w-56 h-56 text-orange-500 fill-orange-400 drop-shadow-[0_0_50px_rgba(251,191,36,0.9)]" />
-                                <Sparkles className="absolute top-0 right-4 w-12 h-12 text-yellow-300 animate-bounce" />
-                                <Sparkles className="absolute bottom-4 left-0 w-10 h-10 text-pink-300 animate-pulse" />
-                            </div>
+                                <div className="absolute inset-0 bg-radial-gradient from-amber-400/60 via-rose-500/30 to-transparent filter blur-xl rounded-full scale-125 animate-pulse" />
+                                <Flame className="w-28 h-28 text-orange-500 fill-orange-400 drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] animate-pulse" />
+                                <Sparkles className="absolute -top-1 -right-1 w-8 h-8 text-yellow-300 animate-bounce" />
+                                <Sparkles className="absolute -bottom-1 -left-1 w-6 h-6 text-pink-300 animate-pulse" />
+                            </motion.div>
+
                             <motion.h2 
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
-                                className="font-serif text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] mt-6 font-bold text-center"
+                                transition={{ delay: 0.4 }}
+                                className="font-serif text-4xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)] font-bold text-center"
                             >
                                 Flame Restored! 🔥
                             </motion.h2>
+                            
                             <motion.p
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                transition={{ delay: 0.6 }}
-                                className="text-white/95 text-xl font-medium tracking-wide mt-2 drop-shadow-md text-center"
+                                transition={{ delay: 0.7 }}
+                                className="text-pink-100 text-lg font-medium tracking-wide mt-3 drop-shadow-md text-center"
                             >
                                 Streak continued: {streak} {streak === 1 ? "day" : "days"} of grace
                             </motion.p>
-                        </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
