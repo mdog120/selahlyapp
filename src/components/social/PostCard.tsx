@@ -119,6 +119,21 @@ export function PostCard({ post }: { post: Post }) {
         if (post.type === 'poll') {
             fetchPollData();
         }
+
+        // Direct autoplay on mount (especially useful when opened inside the details modal)
+        if (post.song_preview_url && audioRef.current) {
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Autoplay blocked, falling back to muted", error);
+                    setIsMuted(true);
+                    if (audioRef.current) {
+                        audioRef.current.muted = true;
+                        audioRef.current.play().catch(e => console.error("Muted autoplay also failed", e));
+                    }
+                });
+            }
+        }
  
         // Audio & Intersection Observer
         const observer = new IntersectionObserver(

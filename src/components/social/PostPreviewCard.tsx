@@ -111,55 +111,59 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
 
     const renderMedia = () => {
         const bgStyle = getPastelBg(post.id);
+        const imgUrl = post.media_urls?.[0] || post.image_url;
 
-        // 1. Image, Carousel, Video
-        if (post.type === 'image' || post.type === 'carousel' || post.type === 'video') {
-            const imgUrl = post.media_urls?.[0] || post.image_url;
-            if (imgUrl) {
-                return (
-                    <div 
-                        className="relative w-full aspect-[4/5] overflow-hidden bg-stone-50 select-none cursor-pointer"
-                        onClick={handleMediaClick}
-                    >
-                        <img 
-                            src={imgUrl} 
-                            alt="Post media preview" 
-                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]"
-                            loading="lazy"
-                        />
+        // 1. Image, Carousel, Video, or Song with Image
+        if (imgUrl && post.type !== 'poll') {
+            return (
+                <div 
+                    className="relative w-full aspect-[4/5] overflow-hidden bg-stone-50 select-none cursor-pointer"
+                    onClick={handleMediaClick}
+                >
+                    <img 
+                        src={imgUrl} 
+                        alt="Post media preview" 
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]"
+                        loading="lazy"
+                    />
 
-                        {/* Top-Right Badges */}
-                        {post.type === 'carousel' && post.media_urls && post.media_urls.length > 1 && (
-                            <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-sm select-none">
-                                <Layers className="w-2.5 h-2.5" />
-                                <span>1/{post.media_urls.length}</span>
-                            </div>
+                    {/* Top-Right Badges */}
+                    {post.type === 'carousel' && post.media_urls && post.media_urls.length > 1 && (
+                        <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-sm select-none">
+                            <Layers className="w-2.5 h-2.5" />
+                            <span>1/{post.media_urls.length}</span>
+                        </div>
+                    )}
+                    {post.type === 'video' && (
+                        <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white p-1.5 rounded-full shadow-sm select-none">
+                            <Play className="w-2.5 h-2.5 fill-current" />
+                        </div>
+                    )}
+                    {post.type === 'song' && (
+                        <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-sm select-none">
+                            <Music className="w-2.5 h-2.5 text-pink-400 fill-pink-300/10" />
+                            <span>Audio</span>
+                        </div>
+                    )}
+
+                    {/* Pulsing Double-Tap Heart Overlay */}
+                    <AnimatePresence>
+                        {showHeartOverlay && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.3 }}
+                                animate={{ opacity: 1, scale: 1.1 }}
+                                exit={{ opacity: 0, scale: 1.4 }}
+                                transition={{ type: "spring", damping: 15 }}
+                                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-black/5"
+                            >
+                                <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-pink-100/30">
+                                    <Heart className="w-10 h-10 text-muted-rose fill-muted-rose animate-pulse" />
+                                </div>
+                            </motion.div>
                         )}
-                        {post.type === 'video' && (
-                            <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white p-1.5 rounded-full shadow-sm select-none">
-                                <Play className="w-2.5 h-2.5 fill-current" />
-                            </div>
-                        )}
-
-                        {/* Pulsing Double-Tap Heart Overlay */}
-                        <AnimatePresence>
-                            {showHeartOverlay && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.3 }}
-                                    animate={{ opacity: 1, scale: 1.1 }}
-                                    exit={{ opacity: 0, scale: 1.4 }}
-                                    transition={{ type: "spring", damping: 15 }}
-                                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-black/5"
-                                >
-                                    <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-pink-100/30">
-                                        <Heart className="w-10 h-10 text-muted-rose fill-muted-rose animate-pulse" />
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                );
-            }
+                    </AnimatePresence>
+                </div>
+            );
         }
 
         // 2. Song

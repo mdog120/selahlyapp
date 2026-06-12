@@ -198,23 +198,23 @@ export function SocialFeed() {
                     {/* Post Detail Modal */}
                     <AnimatePresence>
                         {selectedPost && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                                <motion.div 
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute inset-0 cursor-default" 
-                                    onClick={() => {
-                                        setSelectedPost(null);
-                                        fetchPosts(); // Refresh parent feed to sync any changes made inside modal (e.g. comments, likes)
-                                    }} 
-                                />
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => {
+                                    setSelectedPost(null);
+                                    fetchPosts(); // Refresh parent feed to sync any changes made inside modal (e.g. comments, likes)
+                                }}
+                                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 cursor-default"
+                            >
                                 <motion.div 
                                     initial={{ opacity: 0, scale: 0.93, y: 30 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                                     transition={{ type: "spring", damping: 20, stiffness: 280 }}
-                                    className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-warm-paper rounded-[2rem] shadow-2xl z-10 p-1 custom-scrollbar border border-white/60"
+                                    onClick={(e) => e.stopPropagation()} // Prevent modal closure when clicking inside the card content
+                                    className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-warm-paper rounded-[2rem] shadow-2xl z-10 p-1 custom-scrollbar border border-white/60 cursor-default"
                                 >
                                     {/* Close Button overlay */}
                                     <button 
@@ -230,7 +230,7 @@ export function SocialFeed() {
                                     {/* Full Post Card view */}
                                     <PostCard post={selectedPost} />
                                 </motion.div>
-                            </div>
+                            </motion.div>
                         )}
                     </AnimatePresence>
                 </>
