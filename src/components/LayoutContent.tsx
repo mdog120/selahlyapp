@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
-import { PushNotificationManager } from "@/components/ui/PushNotificationManager";
 
 interface LayoutContentProps {
     children: React.ReactNode;
@@ -19,7 +18,6 @@ export function LayoutContent({ children }: LayoutContentProps) {
                 <main className="flex-1 w-full h-full">
                     {children}
                 </main>
-                <PushNotificationManager />
             </div>
         );
     }
@@ -31,7 +29,6 @@ export function LayoutContent({ children }: LayoutContentProps) {
                 {children}
             </main>
             <BottomNav />
-            <PushNotificationManager />
         </div>
     );
 }

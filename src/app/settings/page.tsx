@@ -18,76 +18,6 @@ function SettingsIcon({ className }: { className?: string }) {
     )
 }
 
-function NotificationDiagnostics() {
-    const [diagnostics, setDiagnostics] = useState<any>(null);
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        const isCapacitor = !!(window as any).Capacitor;
-        const isGoNative = !!(window as any).gonative;
-        const isWebView = !!(
-            (window as any).webkit?.messageHandlers ||
-            navigator.userAgent.includes("wv") ||
-            navigator.userAgent.includes("WebView") ||
-            isCapacitor ||
-            isGoNative
-        );
-
-        const swSupported = "serviceWorker" in navigator;
-        const pushSupported = "PushManager" in window;
-        const permission = (window as any).Notification?.permission || "default";
-
-        let wrapperType = "Unknown (Standard Browser)";
-        if (isCapacitor) wrapperType = "Capacitor Mobile App";
-        else if (isGoNative) wrapperType = "Median/GoNative Mobile App";
-        else if (isWebView) wrapperType = "Native WebView Wrapper App";
-
-        setDiagnostics({
-            isWebView,
-            wrapperType,
-            swSupported,
-            pushSupported,
-            permission
-        });
-    }, []);
-
-    if (!diagnostics) return null;
-
-    return (
-        <div className="mt-8 p-6 bg-pink-50/30 border border-pink-100/50 rounded-3xl">
-            <h3 className="font-serif text-sm text-warm-cocoa font-bold mb-1.5 flex items-center gap-1.5">
-                <span>౨ৎ Notification Diagnostic</span>
-            </h3>
-            <p className="text-[11px] text-warm-grey/60 mb-4 leading-relaxed">
-                If lockscreen notifications are not showing up on this device, check the environment status below to diagnose compatibility:
-            </p>
-            <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between border-b border-warm-grey/5 pb-2">
-                    <span className="text-warm-grey/60">App Environment:</span>
-                    <span className="font-semibold text-warm-cocoa">{diagnostics.wrapperType}</span>
-                </div>
-                <div className="flex justify-between border-b border-warm-grey/5 pb-2">
-                    <span className="text-warm-grey/60">Service Workers:</span>
-                    <span className={`font-semibold ${diagnostics.swSupported ? 'text-emerald-600' : 'text-rose-500'}`}>
-                        {diagnostics.swSupported ? 'Supported' : 'Not Supported'}
-                    </span>
-                </div>
-                <div className="flex justify-between border-b border-warm-grey/5 pb-2">
-                    <span className="text-warm-grey/60">Push Manager API:</span>
-                    <span className={`font-semibold ${diagnostics.pushSupported ? 'text-emerald-600' : 'text-rose-500'}`}>
-                        {diagnostics.pushSupported ? 'Supported' : 'Not Supported'}
-                    </span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-warm-grey/60">Notification Permission:</span>
-                    <span className="font-semibold text-warm-cocoa capitalize">{diagnostics.permission}</span>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 const PASTEL_COLORS = [
     { name: 'rose', value: 'bg-muted-rose text-white', label: 'Rose' },
     { name: 'blue', value: 'bg-indigo-400 text-white', label: 'Blue' },
@@ -669,8 +599,6 @@ export default function SettingsPage() {
                             )}
                         </Button>
                     </div>
-
-                    <NotificationDiagnostics />
 
                     {/* Danger Zone */}
                     <div className="mt-12 pt-8 border-t border-red-100">
