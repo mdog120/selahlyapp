@@ -39,6 +39,33 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
     const [showHeartOverlay, setShowHeartOverlay] = useState(false);
     const lastTap = useRef<number>(0);
     const supabase = createClient();
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    // Video Autoplay/Pause on Scroll Observer
+    useEffect(() => {
+        if (post.type !== 'video' || !videoRef.current) return;
+
+        const video = videoRef.current;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    video.play().catch(err => {
+                        console.log("Video preview autoplay blocked or paused:", err);
+                    });
+                } else {
+                    video.pause();
+                }
+            },
+            {
+                threshold: 0.5
+            }
+        );
+
+        observer.observe(video);
+        return () => {
+            observer.disconnect();
+        };
+    }, [post.type]);
 
     // Sync internal state with prop changes
     useEffect(() => {
@@ -115,17 +142,29 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
 
         // 1. Image, Carousel, Video, or Song with Image
         if (imgUrl && post.type !== 'poll') {
+            const isVideo = post.type === 'video';
             return (
                 <div 
                     className="relative w-full aspect-[4/5] overflow-hidden bg-stone-50 select-none cursor-pointer"
                     onClick={handleMediaClick}
                 >
-                    <img 
-                        src={imgUrl} 
-                        alt="Post media preview" 
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]"
-                        loading="lazy"
-                    />
+                    {isVideo ? (
+                        <video 
+                            ref={videoRef}
+                            src={imgUrl} 
+                            muted
+                            playsInline
+                            loop
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]"
+                        />
+                    ) : (
+                        <img 
+                            src={imgUrl} 
+                            alt="Post media preview" 
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]"
+                            loading="lazy"
+                        />
+                    )}
 
                     {/* Top-Right Badges */}
                     {post.type === 'carousel' && post.media_urls && post.media_urls.length > 1 && (

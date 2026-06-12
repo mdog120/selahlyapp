@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { Image, Send, X, Video, Layers, Music, Star, Flame, Feather, Users, Heart, Mail, Sun, Flower2, TreeDeciduous } from "lucide-react";
+import { Image, Send, X, Video, Layers, Music, Star, Flame, Feather, Users, Heart, Mail, Sun, Flower2, TreeDeciduous, Plus } from "lucide-react";
 import * as tus from 'tus-js-client';
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { StickerPicker } from "@/components/gamification/StickerPicker";
@@ -546,6 +546,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             )}
 
                                             <button
+                                                type="button"
                                                 onClick={() => removeFile(index)}
                                                 className="absolute top-1 right-1 bg-black/50 text-white p-0.5 rounded-full hover:bg-black/70"
                                             >
@@ -553,6 +554,16 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             </button>
                                         </div>
                                     ))}
+                                    {previewUrls.length < 5 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="w-32 h-32 flex-shrink-0 bg-stone-50 border border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center gap-1 text-warm-grey/40 hover:text-sage-green hover:bg-stone-100/30 transition-all active-press-shrink"
+                                        >
+                                            <Plus className="w-5 h-5" />
+                                            <span className="text-[10px] font-bold">Add More</span>
+                                        </button>
+                                    )}
                                 </div>
                             )}
 

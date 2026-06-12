@@ -206,6 +206,9 @@ export function PostCard({ post }: { post: Post }) {
     const [userVotedOptionId, setUserVotedOptionId] = useState<string | null>(null);
     const [totalVotes, setTotalVotes] = useState(0);
 
+    // Carousel active page index state
+    const [activeSlide, setActiveSlide] = useState(0);
+
     const supabase = createClient();
     const { triggerBadge } = useBadge();
 
@@ -406,14 +409,23 @@ export function PostCard({ post }: { post: Post }) {
                 // Award to the AUTHOR of the post, NOT the liker (unless they are same, but usually badge is for content creator)
                 // The badge description "Get 10 likes on a post" implies the author gets it.
                 if (post.user_id) {
-                    await supabase.rpc("award_badge", {
-                        p_user_id: post.user_id,
-                        p_badge_name: 'Star'
-                    });
+                    // Check if they already have the Star badge
+                    const { data: existingBadges } = await supabase
+                        .from('user_badges')
+                        .select('badge:badges(name)')
+                        .eq('user_id', post.user_id);
+                    const hasStar = existingBadges?.some((b: any) => b.badge?.name === 'Star');
 
-                    // If the current user is the author, trigger the animation
-                    if (currentUserId === post.user_id) {
-                        triggerBadge('Star', 'You got 10 likes on your post!', <Star className="w-12 h-12 text-yellow-400" />);
+                    if (!hasStar) {
+                        await supabase.rpc("award_badge", {
+                            p_user_id: post.user_id,
+                            p_badge_name: 'Star'
+                        });
+
+                        // If the current user is the author, trigger the animation
+                        if (currentUserId === post.user_id) {
+                            triggerBadge('Star', 'You got 10 likes on your post!', <Star className="w-12 h-12 text-yellow-400" />);
+                        }
                     }
                 }
             }
@@ -484,11 +496,20 @@ export function PostCard({ post }: { post: Post }) {
             .eq('user_id', user.id);
 
         if (commentCount && commentCount >= 5) {
-            await supabase.rpc("award_badge", {
-                p_user_id: user.id,
-                p_badge_name: 'Encourager'
-            });
-            triggerBadge('Encourager', 'You commented 5 times!', <Mail className="w-12 h-12 text-purple-400" />);
+            // Check if they already have the Encourager badge
+            const { data: existingBadges } = await supabase
+                .from('user_badges')
+                .select('badge:badges(name)')
+                .eq('user_id', user.id);
+            const hasEncourager = existingBadges?.some((b: any) => b.badge?.name === 'Encourager');
+
+            if (!hasEncourager) {
+                await supabase.rpc("award_badge", {
+                    p_user_id: user.id,
+                    p_badge_name: 'Encourager'
+                });
+                triggerBadge('Encourager', 'You commented 5 times!', <Mail className="w-12 h-12 text-purple-400" />);
+            }
         }
     };
 
@@ -570,6 +591,8 @@ export function PostCard({ post }: { post: Post }) {
                     <video
                         src={post.media_urls[0]}
                         controls
+                        autoPlay
+                        loop
                         className="w-full h-full object-contain"
                         playsInline
                     />
@@ -578,13 +601,22 @@ export function PostCard({ post }: { post: Post }) {
         }
 
         if (post.type === 'carousel' && post.media_urls && post.media_urls.length > 0) {
+            const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+                const container = e.currentTarget;
+                const index = Math.round(container.scrollLeft / container.clientWidth);
+                setActiveSlide(index);
+            };
+
             return (
                 <div className="relative mb-4 group cursor-pointer" onClick={handleDoubleTap}>
-                    <div className="flex overflow-x-auto snap-x snap-mandatory gap-0 rounded-2xl scrollbar-hide">
+                    <div 
+                        onScroll={handleScroll}
+                        className="flex overflow-x-auto snap-x snap-mandatory gap-0 rounded-2xl scrollbar-hide"
+                    >
                         {post.media_urls.map((url, idx) => (
                             <div key={idx} className="w-full flex-shrink-0 snap-center aspect-square bg-stone-100 relative">
                                 {url.includes('.mp4') || url.includes('.mov') ? (
-                                    <video src={url} controls className="w-full h-full object-cover" />
+                                    <video src={url} controls loop className="w-full h-full object-cover" />
                                 ) : (
                                     <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                 )}
@@ -592,6 +624,17 @@ export function PostCard({ post }: { post: Post }) {
                                     {idx + 1}/{post.media_urls!.length}
                                 </div>
                             </div>
+                        ))}
+                    </div>
+                    {/* Carousel slide indicators */}
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-30 pointer-events-none">
+                        {post.media_urls.map((_, idx) => (
+                            <div 
+                                key={idx}
+                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                                    activeSlide === idx ? "bg-white scale-125 shadow-sm" : "bg-white/40"
+                                }`}
+                            />
                         ))}
                     </div>
                     <AnimatePresence>

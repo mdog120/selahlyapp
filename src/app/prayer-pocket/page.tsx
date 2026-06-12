@@ -137,12 +137,20 @@ export default function PrayerPocket() {
             setNewPrayer("");
             setIsComposeOpen(false);
 
-            // Pop the badge immediately for instant feedback!
-            triggerBadge('Prayer Warrior', 'You shared a prayer request. You are so brave! 🤍', <HandHeart className="w-12 h-12 text-blue-400" />);
-
             fetchPrayers(); // Refresh in background
 
-            // Award "Prayer Warrior" Badge in DB
+            // Award "Prayer Warrior" Badge in DB & trigger client-side toast only if not earned yet
+            const { data: existingBadges } = await supabase
+                .from('user_badges')
+                .select('badge:badges(name)')
+                .eq('user_id', user.id);
+            const hasPrayerWarrior = existingBadges?.some((b: any) => b.badge?.name === 'Prayer Warrior');
+
+            if (!hasPrayerWarrior) {
+                // Pop the badge immediately for instant feedback!
+                triggerBadge('Prayer Warrior', 'You shared a prayer request. You are so brave! 🤍', <HandHeart className="w-12 h-12 text-blue-400" />);
+            }
+
             await supabase.rpc("award_badge", {
                 p_user_id: user.id,
                 p_badge_name: 'Prayer Warrior'
