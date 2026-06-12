@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Outfit } from "next/font/google"; // Elegant serif + clean sans
 import { LayoutContent } from "@/components/LayoutContent";
 import { BadgeProvider } from "@/context/BadgeContext";
+import { GlobalAlertProvider } from "@/components/ui/GlobalAlertProvider";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -49,9 +50,11 @@ export default function RootLayout({
         className={`${playfair.variable} ${outfit.variable} antialiased bg-warm-paper text-warm-grey`}
       >
         <BadgeProvider>
-          <LayoutContent>
-            {children}
-          </LayoutContent>
+          <GlobalAlertProvider>
+            <LayoutContent>
+              {children}
+            </LayoutContent>
+          </GlobalAlertProvider>
         </BadgeProvider>
       </body>
     </html>

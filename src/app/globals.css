@@ -166,3 +166,35 @@ input[type="button"] {
 .text-balance {
   text-wrap: balance;
 }
+
+/* App-like feel enhancements */
+.active-press-shrink {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.active-press-shrink:active {
+  transform: scale(0.97) !important;
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top-left-radius: 2rem;
+  border-top-right-radius: 2rem;
+  transform: translateY(0);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 16px));
+  z-index: 100;
+}
+
+/* Enable momentum scrolling on iOS */
+.scroll-momentum {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent image dragging (very web-like behavior) */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
