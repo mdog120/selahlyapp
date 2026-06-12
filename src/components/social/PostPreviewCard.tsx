@@ -40,15 +40,56 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
     const lastTap = useRef<number>(0);
     const supabase = createClient();
     const videoRef = useRef<HTMLVideoElement>(null);
+    const imgUrl = post.media_urls?.[0] || post.image_url;
+
+    const parseVideoTimeFragment = (url: string | null | undefined): { start: number; end: number | null } => {
+        if (!url) return { start: 0, end: null };
+        try {
+            const hash = url.split('#')[1];
+            if (hash && hash.startsWith('t=')) {
+                const timePart = hash.slice(2);
+                const parts = timePart.split(',');
+                const start = parseFloat(parts[0]) || 0;
+                const end = parts[1] ? parseFloat(parts[1]) : null;
+                return { start, end };
+            }
+        } catch (e) {
+            console.error("Error parsing video fragment:", e);
+        }
+        return { start: 0, end: null };
+    };
+
+    const timeFragment = parseVideoTimeFragment(imgUrl);
+
+    const handleVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+        const video = e.currentTarget;
+        if (timeFragment.start > 0) {
+            video.currentTime = timeFragment.start;
+        }
+    };
+
+    const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+        const video = e.currentTarget;
+        if (timeFragment.end !== null && video.currentTime >= timeFragment.end) {
+            video.currentTime = timeFragment.start;
+            video.play().catch(() => {});
+        } else if (video.currentTime < timeFragment.start) {
+            video.currentTime = timeFragment.start;
+        }
+    };
 
     // Video Autoplay/Pause on Scroll Observer
     useEffect(() => {
-        if (post.type !== 'video' || !videoRef.current) return;
+        if (post.type !== 'video' || !videoRef.current || !imgUrl) return;
 
         const video = videoRef.current;
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
+                    const fragment = parseVideoTimeFragment(imgUrl);
+                    if (video.currentTime < fragment.start || (fragment.end !== null && video.currentTime >= fragment.end)) {
+                        video.currentTime = fragment.start;
+                    }
                     video.play().catch(err => {
                         console.log("Video preview autoplay blocked or paused:", err);
                     });
@@ -65,7 +106,7 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
         return () => {
             observer.disconnect();
         };
-    }, [post.type]);
+    }, [post.type, imgUrl]);
 
     // Sync internal state with prop changes
     useEffect(() => {
@@ -151,10 +192,12 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
                     {isVideo ? (
                         <video 
                             ref={videoRef}
-                            src={imgUrl} 
+                            src={imgUrl || undefined} 
                             muted
                             playsInline
                             loop
+                            onLoadedMetadata={handleVideoLoadedMetadata}
+                            onTimeUpdate={handleVideoTimeUpdate}
                             className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]"
                         />
                     ) : (

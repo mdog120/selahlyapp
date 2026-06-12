@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, Upload, Loader2, Sparkles, Music } from "lucide-react";
+import { Plus, X, Upload, Loader2, Sparkles, Music, Scissors } from "lucide-react";
 import { MomentModal } from "./MomentModal";
 import { Button } from "@/components/ui/Button";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
@@ -46,6 +46,15 @@ export function MomentsBar() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [filePreview, setFilePreview] = useState<string | null>(null);
     const [creating, setCreating] = useState(false);
+
+    // Trimming states
+    const [trimStart, setTrimStart] = useState<number>(0);
+    const [trimEnd, setTrimEnd] = useState<number>(0);
+    const [videoDuration, setVideoDuration] = useState<number>(0);
+    const [isTrimming, setIsTrimming] = useState(false);
+    const [tempTrimStart, setTempTrimStart] = useState<number>(0);
+    const [tempTrimEnd, setTempTrimEnd] = useState<number>(0);
+    const trimmerVideoRef = useRef<HTMLVideoElement>(null);
 
     // Song selection state
     const [songTitle, setSongTitle] = useState("");
@@ -224,11 +233,32 @@ export function MomentsBar() {
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
             setSelectedFile(file);
-            setFilePreview(URL.createObjectURL(file));
+            const objectUrl = URL.createObjectURL(file);
+            setFilePreview(objectUrl);
+
+            if (file.type.startsWith('video/')) {
+                const duration = await new Promise<number>((resolve) => {
+                    const tempVideo = document.createElement('video');
+                    tempVideo.src = objectUrl;
+                    tempVideo.onloadedmetadata = () => {
+                        resolve(tempVideo.duration);
+                    };
+                    tempVideo.onerror = () => {
+                        resolve(0);
+                    };
+                });
+                setVideoDuration(duration);
+                setTrimStart(0);
+                setTrimEnd(duration);
+            } else {
+                setVideoDuration(0);
+                setTrimStart(0);
+                setTrimEnd(0);
+            }
         }
     };
 
@@ -249,9 +279,13 @@ export function MomentsBar() {
 
                 if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
+                let { data: { publicUrl } } = supabase.storage
                     .from('posts')
                     .getPublicUrl(fileName);
+
+                if (selectedFile.type.startsWith('video/') && trimEnd > 0) {
+                    publicUrl = `${publicUrl}#t=${trimStart.toFixed(2)},${trimEnd.toFixed(2)}`;
+                }
 
                 mediaUrl = publicUrl;
             }
@@ -445,6 +479,25 @@ export function MomentsBar() {
                                     >
                                         <X className="w-3.5 h-3.5" />
                                     </button>
+                                    {selectedFile?.type.startsWith('video/') && (
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setTempTrimStart(trimStart);
+                                                setTempTrimEnd(trimEnd || videoDuration);
+                                                setIsTrimming(true);
+                                            }}
+                                            className="absolute bottom-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors flex items-center justify-center z-10"
+                                            title="Trim video"
+                                        >
+                                            <Scissors className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    {selectedFile?.type.startsWith('video/') && (trimStart > 0 || trimEnd < videoDuration) && (
+                                        <div className="absolute bottom-2 left-2 bg-pink-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-sm z-10">
+                                            Trimmed
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <div className={`w-full h-full flex flex-col items-center justify-center p-6 transition-all duration-300 ${
@@ -609,6 +662,121 @@ export function MomentsBar() {
                                 setShowSongInput(true);
                             }}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* Video Trimmer Modal */}
+            {isTrimming && selectedFile && filePreview && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-md border border-warm-grey/10 flex flex-col gap-4 animate-fade-in-up text-left">
+                        <div className="flex justify-between items-center pb-2 border-b border-warm-grey/5">
+                            <h3 className="font-serif text-lg text-warm-cocoa flex items-center gap-2">
+                                <Scissors className="w-5 h-5 text-pink-400 animate-pulse" /> Cut Down Video
+                            </h3>
+                            <button 
+                                onClick={() => setIsTrimming(false)}
+                                className="p-1 rounded-full hover:bg-stone-100 text-warm-grey/60"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Video Preview */}
+                        <div className="relative aspect-video bg-black rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+                            <video 
+                                ref={trimmerVideoRef}
+                                src={filePreview}
+                                controls={false}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                onTimeUpdate={() => {
+                                    if (!trimmerVideoRef.current) return;
+                                    const video = trimmerVideoRef.current;
+                                    if (video.currentTime >= tempTrimEnd) {
+                                        video.currentTime = tempTrimStart;
+                                        video.play().catch(() => {});
+                                    } else if (video.currentTime < tempTrimStart) {
+                                        video.currentTime = tempTrimStart;
+                                    }
+                                }}
+                                className="w-full h-full object-contain"
+                            />
+                            <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-md text-[10px] font-mono">
+                                {tempTrimStart.toFixed(1)}s - {tempTrimEnd.toFixed(1)}s ({(tempTrimEnd - tempTrimStart).toFixed(1)}s)
+                            </div>
+                        </div>
+
+                        {/* Sliders Container */}
+                        <div className="space-y-4">
+                            {/* Start Time Slider */}
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-xs font-bold text-warm-cocoa">
+                                    <span>Start Position</span>
+                                    <span className="font-mono text-warm-grey/60">{tempTrimStart.toFixed(1)}s</span>
+                                </div>
+                                <input 
+                                    type="range"
+                                    min={0}
+                                    max={Math.max(0, tempTrimEnd - 0.2)}
+                                    step={0.05}
+                                    value={tempTrimStart}
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        setTempTrimStart(val);
+                                        if (trimmerVideoRef.current) {
+                                            trimmerVideoRef.current.currentTime = val;
+                                            trimmerVideoRef.current.pause();
+                                        }
+                                    }}
+                                    className="w-full accent-pink-400 h-1.5 bg-stone-100 rounded-lg appearance-none cursor-pointer"
+                                />
+                            </div>
+
+                            {/* End Time Slider */}
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-xs font-bold text-warm-cocoa">
+                                    <span>End Position</span>
+                                    <span className="font-mono text-warm-grey/60">{tempTrimEnd.toFixed(1)}s</span>
+                                </div>
+                                <input 
+                                    type="range"
+                                    min={tempTrimStart + 0.2}
+                                    max={videoDuration || 0}
+                                    step={0.05}
+                                    value={tempTrimEnd}
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        setTempTrimEnd(val);
+                                        if (trimmerVideoRef.current) {
+                                            trimmerVideoRef.current.currentTime = val;
+                                            trimmerVideoRef.current.pause();
+                                        }
+                                    }}
+                                    className="w-full accent-pink-400 h-1.5 bg-stone-100 rounded-lg appearance-none cursor-pointer"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer Buttons */}
+                        <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey/5">
+                            <Button variant="ghost" size="sm" onClick={() => setIsTrimming(false)}>
+                                Cancel
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                onClick={() => {
+                                    setTrimStart(tempTrimStart);
+                                    setTrimEnd(tempTrimEnd);
+                                    setIsTrimming(false);
+                                }}
+                                className="bg-pink-400 hover:bg-pink-500 text-white font-bold"
+                            >
+                                Apply Trim
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -43,6 +43,42 @@ export function MomentModal({
     currentUserId = null,
     onMomentDeleted
 }: MomentModalProps) {
+    const parseVideoTimeFragment = (url: string | null | undefined): { start: number; end: number | null } => {
+        if (!url) return { start: 0, end: null };
+        try {
+            const hash = url.split('#')[1];
+            if (hash && hash.startsWith('t=')) {
+                const timePart = hash.slice(2);
+                const parts = timePart.split(',');
+                const start = parseFloat(parts[0]) || 0;
+                const end = parts[1] ? parseFloat(parts[1]) : null;
+                return { start, end };
+            }
+        } catch (e) {
+            console.error("Error parsing video fragment:", e);
+        }
+        return { start: 0, end: null };
+    };
+
+    const handleVideoLoadedMetadata = (url: string) => (e: React.SyntheticEvent<HTMLVideoElement>) => {
+        const video = e.currentTarget;
+        const timeFragment = parseVideoTimeFragment(url);
+        if (timeFragment.start > 0) {
+            video.currentTime = timeFragment.start;
+        }
+    };
+
+    const handleVideoTimeUpdate = (url: string) => (e: React.SyntheticEvent<HTMLVideoElement>) => {
+        const video = e.currentTarget;
+        const timeFragment = parseVideoTimeFragment(url);
+        if (timeFragment.end !== null && video.currentTime >= timeFragment.end) {
+            video.currentTime = timeFragment.start;
+            video.play().catch(() => {});
+        } else if (video.currentTime < timeFragment.start) {
+            video.currentTime = timeFragment.start;
+        }
+    };
+
     const [activeIndex, setActiveIndex] = useState(0);
     const [progress, setProgress] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
@@ -532,11 +568,13 @@ export function MomentModal({
                         <>
                             {isVideo ? (
                                 <video 
-                                    src={mediaUrl} 
+                                    src={mediaUrl || undefined} 
                                     autoPlay 
                                     playsInline 
                                     muted 
                                     loop 
+                                    onLoadedMetadata={handleVideoLoadedMetadata(mediaUrl!)}
+                                    onTimeUpdate={handleVideoTimeUpdate(mediaUrl!)}
                                     className="w-full h-full object-contain" 
                                 />
                             ) : (

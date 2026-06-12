@@ -93,12 +93,14 @@ export default function ProfilePage() {
                 if (profileData.last_journal_date) {
                     const lastDate = new Date(profileData.last_journal_date);
                     const today = new Date();
-                    lastDate.setHours(0, 0, 0, 0);
-                    today.setHours(0, 0, 0, 0);
-                    const yesterday = new Date(today);
-                    yesterday.setDate(yesterday.getDate() - 1);
+                    
+                    const getLocalDayDifference = (d1: Date, d2: Date) => {
+                        const date1 = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+                        const date2 = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+                        return Math.round((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+                    };
 
-                    if (lastDate.getTime() < yesterday.getTime()) {
+                    if (getLocalDayDifference(lastDate, today) > 1) {
                         profileData.streak_count = 0;
                     }
                 }

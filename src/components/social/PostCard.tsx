@@ -52,6 +52,42 @@ type Comment = {
 };
 
 export function PostCard({ post }: { post: Post }) {
+    const parseVideoTimeFragment = (url: string | null | undefined): { start: number; end: number | null } => {
+        if (!url) return { start: 0, end: null };
+        try {
+            const hash = url.split('#')[1];
+            if (hash && hash.startsWith('t=')) {
+                const timePart = hash.slice(2);
+                const parts = timePart.split(',');
+                const start = parseFloat(parts[0]) || 0;
+                const end = parts[1] ? parseFloat(parts[1]) : null;
+                return { start, end };
+            }
+        } catch (e) {
+            console.error("Error parsing video fragment:", e);
+        }
+        return { start: 0, end: null };
+    };
+
+    const handleVideoLoadedMetadata = (url: string) => (e: React.SyntheticEvent<HTMLVideoElement>) => {
+        const video = e.currentTarget;
+        const timeFragment = parseVideoTimeFragment(url);
+        if (timeFragment.start > 0) {
+            video.currentTime = timeFragment.start;
+        }
+    };
+
+    const handleVideoTimeUpdate = (url: string) => (e: React.SyntheticEvent<HTMLVideoElement>) => {
+        const video = e.currentTarget;
+        const timeFragment = parseVideoTimeFragment(url);
+        if (timeFragment.end !== null && video.currentTime >= timeFragment.end) {
+            video.currentTime = timeFragment.start;
+            video.play().catch(() => {});
+        } else if (video.currentTime < timeFragment.start) {
+            video.currentTime = timeFragment.start;
+        }
+    };
+
     const [liked, setLiked] = useState(post.user_has_liked || false);
     const [likesCount, setLikesCount] = useState(post.likes_count || 0);
     const [animating, setAnimating] = useState(false);
@@ -593,6 +629,8 @@ export function PostCard({ post }: { post: Post }) {
                         controls
                         autoPlay
                         loop
+                        onLoadedMetadata={handleVideoLoadedMetadata(post.media_urls[0])}
+                        onTimeUpdate={handleVideoTimeUpdate(post.media_urls[0])}
                         className="w-full h-full object-contain"
                         playsInline
                     />
@@ -615,8 +653,15 @@ export function PostCard({ post }: { post: Post }) {
                     >
                         {post.media_urls.map((url, idx) => (
                             <div key={idx} className="w-full flex-shrink-0 snap-center aspect-square bg-stone-100 relative">
-                                {url.includes('.mp4') || url.includes('.mov') ? (
-                                    <video src={url} controls loop className="w-full h-full object-cover" />
+                                {url.includes('.mp4') || url.includes('.mov') || url.includes('#t=') ? (
+                                    <video 
+                                        src={url} 
+                                        controls 
+                                        loop 
+                                        onLoadedMetadata={handleVideoLoadedMetadata(url)}
+                                        onTimeUpdate={handleVideoTimeUpdate(url)}
+                                        className="w-full h-full object-cover" 
+                                    />
                                 ) : (
                                     <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                 )}

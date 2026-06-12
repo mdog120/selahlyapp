@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, Flame } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface GlowingCandleProps {
     isLit: boolean;
     streak?: number;
+    hasJournaledToday?: boolean;
+    isCelebrating?: boolean;
     onIgniteComplete?: () => void;
 }
 
@@ -20,7 +23,7 @@ interface Spark {
     color: string;
 }
 
-export function GlowingCandle({ isLit, streak = 0, onIgniteComplete }: GlowingCandleProps) {
+export function GlowingCandle({ isLit, streak = 0, hasJournaledToday = false, isCelebrating = false, onIgniteComplete }: GlowingCandleProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const [igniting, setIgniting] = useState(false);
     
@@ -310,10 +313,15 @@ export function GlowingCandle({ isLit, streak = 0, onIgniteComplete }: GlowingCa
 
             {/* Lit state feedback text */}
             <div className="flex items-center gap-1.5 bg-white/60 px-4.5 py-1.5 rounded-full border border-white/80 shadow-sm text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">
-                {isLit ? (
+                {hasJournaledToday ? (
                     <>
-                        <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-100" />
-                        Your sanctuary is glowing
+                        <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-100 animate-pulse" />
+                        Reflection completed today ౨ৎ
+                    </>
+                ) : isLit ? (
+                    <>
+                        <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-100 animate-pulse" />
+                        Keep your flame alive today! 🕯️
                     </>
                 ) : (
                     <>
@@ -322,6 +330,51 @@ export function GlowingCandle({ isLit, streak = 0, onIgniteComplete }: GlowingCa
                     </>
                 )}
             </div>
+
+            {/* Video-like Full Screen Flame Celebration Overlay */}
+            <AnimatePresence>
+                {isCelebrating && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.1, y: 100, rotate: -10 }}
+                            animate={{ scale: [1, 2.5, 3.5, 3.2], y: 0, rotate: 0 }}
+                            exit={{ scale: 6, opacity: 0, y: -200 }}
+                            transition={{ duration: 1.8, ease: "easeOut" }}
+                            className="flex flex-col items-center justify-center"
+                        >
+                            {/* A massive golden-rose flame that pulses and glows */}
+                            <div className="relative w-72 h-72 flex items-center justify-center">
+                                {/* Radial gradients */}
+                                <div className="absolute inset-0 bg-radial-gradient from-amber-400/60 via-rose-500/30 to-transparent filter blur-2xl rounded-full scale-150 animate-pulse" />
+                                <Flame className="w-56 h-56 text-orange-500 fill-orange-400 drop-shadow-[0_0_50px_rgba(251,191,36,0.9)]" />
+                                <Sparkles className="absolute top-0 right-4 w-12 h-12 text-yellow-300 animate-bounce" />
+                                <Sparkles className="absolute bottom-4 left-0 w-10 h-10 text-pink-300 animate-pulse" />
+                            </div>
+                            <motion.h2 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="font-serif text-5xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] mt-6 font-bold text-center"
+                            >
+                                Flame Restored! 🔥
+                            </motion.h2>
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.6 }}
+                                className="text-white/95 text-xl font-medium tracking-wide mt-2 drop-shadow-md text-center"
+                            >
+                                Streak continued: {streak} {streak === 1 ? "day" : "days"} of grace
+                            </motion.p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

@@ -62,24 +62,23 @@ export default function Diaries() {
             let currentStreak = profile.streak_count || 0;
 
             if (profile.last_journal_date) {
-                // Check if streak should be reset
                 const lastDate = new Date(profile.last_journal_date);
                 const today = new Date();
+                
+                const getLocalDayDifference = (d1: Date, d2: Date) => {
+                    const date1 = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+                    const date2 = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+                    return Math.round((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+                };
 
-                // Reset hours to compare dates only
-                lastDate.setHours(0, 0, 0, 0);
-                today.setHours(0, 0, 0, 0);
+                const dayDiff = getLocalDayDifference(lastDate, today);
 
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-
-                // If last journal was not today AND not yesterday, streak relies broken
-                if (lastDate.getTime() < yesterday.getTime()) {
+                // If last journal was older than yesterday, streak is broken
+                if (dayDiff > 1) {
                     currentStreak = 0;
-                    // Optimistically update local view, DB will correct on next save if logic mirrors
                 }
 
-                if (lastDate.getTime() === today.getTime()) {
+                if (dayDiff === 0) {
                     setHasJournaledToday(true);
                     setEntry("You've already reflected today. See you tomorrow! 🤍");
                 }
@@ -182,7 +181,7 @@ export default function Diaries() {
         setTimeout(() => {
             setSaved(false);
             setAnimatingStreak(false);
-        }, 2000);
+        }, 2500);
     };
 
     return (
@@ -220,7 +219,12 @@ export default function Diaries() {
                             </div>
                         ) : (
                             <div className="relative z-10 flex flex-col items-center">
-                                <GlowingCandle isLit={hasJournaledToday} streak={streak} />
+                                <GlowingCandle 
+                                    isLit={streak > 0 || hasJournaledToday} 
+                                    streak={streak} 
+                                    hasJournaledToday={hasJournaledToday}
+                                    isCelebrating={animatingStreak}
+                                />
                                 <span className="text-xs font-bold uppercase tracking-widest text-sage-green mb-4 block mt-4">Verse of the Day (KJV)</span>
                                 <p className="font-serif text-2xl md:text-3xl text-warm-grey leading-relaxed mb-6">
                                     "{verse?.text?.trim()}"
