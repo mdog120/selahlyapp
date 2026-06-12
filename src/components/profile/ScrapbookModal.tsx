@@ -9,7 +9,7 @@ import { ImagePlus, Loader2 } from "lucide-react";
 
 const SCRAPBOOK_FRAMES = [
     { name: "polaroid", label: "Polaroid 📸" },
-    { name: "lace", label: "Lace 🎀" },
+    { name: "lace", label: "Lace ౨ৎ" },
     { name: "gingham", label: "Gingham 🏁" },
     { name: "polka", label: "Polka Dot ⚪" }
 ];

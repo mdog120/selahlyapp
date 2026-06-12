@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { X, ChevronLeft, ChevronRight, Heart, MessageSquare, Trash2, Volume2, VolumeX, Send, Loader2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Heart, MessageSquare, Trash2, Volume2, VolumeX, Send, Loader2, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 
@@ -93,6 +93,7 @@ export function MomentModal({
     const [activeIndex, setActiveIndex] = useState(0);
     const [progress, setProgress] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
+    const [highlightToggle, setHighlightToggle] = useState(false);
 
     // Likes & Comments State
     const [likes, setLikes] = useState<{ user_id: string; profiles: { first_name: string; username: string } }[]>([]);
@@ -383,6 +384,39 @@ export function MomentModal({
         }
     };
 
+    const handleToggleHighlight = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!currentMoment || !currentUserId) return;
+
+        const isHighlighted = currentMoment.background_color?.includes('|highlight');
+        let newBgColor = currentMoment.background_color || "";
+
+        if (isHighlighted) {
+            newBgColor = newBgColor.replace('|highlight', '');
+        } else {
+            newBgColor = newBgColor + '|highlight';
+        }
+
+        try {
+            const { error } = await supabase
+                .from("moments")
+                .update({ background_color: newBgColor })
+                .eq("id", currentMoment.id);
+
+            if (error) throw error;
+
+            currentMoment.background_color = newBgColor;
+            setHighlightToggle(prev => !prev);
+            
+            if (onMomentDeleted) {
+                onMomentDeleted();
+            }
+        } catch (err: any) {
+            console.error("Error toggling highlight:", err);
+            alert("Failed to update highlight status: " + err.message);
+        }
+    };
+
     const handleLikeToggle = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (!currentUserId || !currentMoment) return;
@@ -637,6 +671,21 @@ export function MomentModal({
                             </div>
                         )}
 
+                        {/* Star Button for highlighting */}
+                        {currentMoment.user_id === currentUserId && (
+                            <button
+                                onClick={handleToggleHighlight}
+                                className={`p-1.5 rounded-full bg-black/40 hover:bg-yellow-500/80 text-white transition-colors border border-white/10 ${
+                                    currentMoment.background_color?.includes('|highlight') 
+                                        ? "text-yellow-400 fill-yellow-400 border-yellow-400/30" 
+                                        : "text-white"
+                                }`}
+                                title={currentMoment.background_color?.includes('|highlight') ? "Remove from Highlights" : "Add to Highlights"}
+                            >
+                                <Star className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+
                         {/* Trash Button for deletion */}
                         {currentMoment.user_id === currentUserId && (
                             <button
@@ -728,12 +777,12 @@ export function MomentModal({
                         <Heart className={`w-4 h-4 transition-transform ${userHasLiked ? "fill-red-500 text-red-500 scale-110 animate-pulse" : "text-white"}`} />
                         <span 
                             onClick={(e) => {
-                                if (likes.length > 0) {
-                                    e.stopPropagation();
+                                e.stopPropagation();
+                                if (likes.length > 0 && currentMoment.user_id === currentUserId) {
                                     setShowLikesModal(true);
                                 }
                             }}
-                            className="hover:underline font-bold"
+                            className={currentMoment.user_id === currentUserId ? "hover:underline font-bold cursor-pointer" : "font-bold cursor-default"}
                         >
                             {likes.length}
                         </span>

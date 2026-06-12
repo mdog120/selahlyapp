@@ -292,7 +292,7 @@ export default function ProfilePage() {
                         {activeMoments.length > 0 ? (
                             <div 
                                 onClick={() => setIsViewerOpen(true)}
-                                className="w-32 h-32 md:w-40 md:h-40 rounded-full p-[3px] bg-gradient-to-tr from-muted-rose via-soft-blush to-sage-green shadow-lg overflow-hidden flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200"
+                                className="w-32 h-32 md:w-40 md:h-40 rounded-full p-[4px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_20px_rgba(244,143,177,0.8)] animate-pulse flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200"
                                 title="Watch moments"
                             >
                                 <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-stone-100">
@@ -502,10 +502,10 @@ export default function ProfilePage() {
                     )
                 }
 
-                {/* Moments Bar (only for self) */}
-                {friendStatus === 'self' && (
+                {/* Moments Bar (for self or accepted friends) */}
+                {(friendStatus === 'self' || friendStatus === 'accepted') && (
                     <div className="mb-8 bg-white/60 p-4 rounded-3xl border border-white">
-                        <MomentsBar />
+                        <MomentsBar profileUserId={profile.id} isOwner={friendStatus === 'self'} />
                     </div>
                 )}
 

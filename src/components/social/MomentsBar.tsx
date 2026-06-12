@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, Upload, Loader2, Sparkles, Music, Scissors } from "lucide-react";
+import { Plus, X, Upload, Loader2, Sparkles, Music, Scissors, Star } from "lucide-react";
 import { MomentModal } from "./MomentModal";
 import { Button } from "@/components/ui/Button";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
@@ -43,13 +43,20 @@ const PASTEL_COLORS = [
 const FRAMES = [
     { name: "none", label: "No Frame" },
     { name: "polaroid", label: "Polaroid 📸" },
-    { name: "lace", label: "Lace 🎀" },
+    { name: "lace", label: "Lace ౨ৎ" },
     { name: "gingham", label: "Gingham 🏁" },
     { name: "polka", label: "Polka Dot ⚪" }
 ];
 
-export function MomentsBar() {
-    const [groupedMoments, setGroupedMoments] = useState<GroupedMoment[]>([]);
+interface MomentsBarProps {
+    profileUserId?: string;
+    isOwner?: boolean;
+}
+
+export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
+    const [myMoments, setMyMoments] = useState<Moment[]>([]);
+    const [highlightedMoments, setHighlightedMoments] = useState<Moment[]>([]);
+    const [otherGroups, setOtherGroups] = useState<GroupedMoment[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
@@ -89,7 +96,7 @@ export function MomentsBar() {
 
     useEffect(() => {
         loadCurrentUserAndMoments();
-    }, []);
+    }, [profileUserId]);
 
     const loadCurrentUserAndMoments = async () => {
         setLoading(true);
@@ -97,33 +104,80 @@ export function MomentsBar() {
             const { data: { user } } = await supabase.auth.getUser();
             setCurrentUser(user);
 
-            if (user) {
-                const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("first_name, avatar_url, username")
-                    .eq("id", user.id)
-                    .single();
+            const targetUserId = profileUserId || user?.id;
+            if (!targetUserId) {
+                setLoading(false);
+                return;
+            }
+
+            // Fetch target user profile
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("first_name, avatar_url, username")
+                .eq("id", targetUserId)
+                .single();
+            
+            if (profileUserId || user?.id === targetUserId) {
                 setCurrentUserProfile(profile);
             }
 
-            // Fetch moments from the last 24 hours
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-            const { data: momentsData, error } = await supabase
+
+            // 1. Fetch moments for the target user (both active and highlighted)
+            const { data: targetMomentsData } = await supabase
                 .from("moments")
                 .select(`
                     id, media_url, caption, background_color, created_at, user_id,
                     song_title, song_artist, song_album_art, song_preview_url, song_link,
                     profiles!moments_user_id_fkey (first_name, username, avatar_url)
                 `)
-                .gt("created_at", twentyFourHoursAgo)
+                .eq("user_id", targetUserId)
+                .or(`created_at.gt.${twentyFourHoursAgo},background_color.like.*highlight*`)
                 .order("created_at", { ascending: true });
 
-            if (error) throw error;
+            // 2. Fetch active moments for friends (ONLY if we are on own dashboard view)
+            let friendsMomentsData: any[] = [];
+            if (!profileUserId && user) {
+                const { data: friendships } = await supabase
+                    .from("friendships")
+                    .select("user_id_1, user_id_2")
+                    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                    .eq("status", "accepted");
 
-            if (momentsData) {
-                // Group by user_id
+                if (friendships && friendships.length > 0) {
+                    const friendIds = friendships.map((f: any) => 
+                        f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1
+                    );
+
+                    const { data: friendsMoments } = await supabase
+                        .from("moments")
+                        .select(`
+                            id, media_url, caption, background_color, created_at, user_id,
+                            song_title, song_artist, song_album_art, song_preview_url, song_link,
+                            profiles!moments_user_id_fkey (first_name, username, avatar_url)
+                        `)
+                        .in("user_id", friendIds)
+                        .gt("created_at", twentyFourHoursAgo)
+                        .order("created_at", { ascending: true });
+
+                    if (friendsMoments) {
+                        friendsMomentsData = friendsMoments;
+                    }
+                }
+            }
+
+            // Filter target user's moments into active and highlighted
+            const personalMoments = targetMomentsData || [];
+            const activePersonal = personalMoments.filter(m => new Date(m.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000));
+            const highlightedPersonal = personalMoments.filter(m => m.background_color?.includes('|highlight'));
+
+            setMyMoments(activePersonal);
+            setHighlightedMoments(highlightedPersonal);
+
+            // Group friends' moments
+            if (friendsMomentsData.length > 0) {
                 const groups: { [key: string]: Moment[] } = {};
-                momentsData.forEach((m: any) => {
+                friendsMomentsData.forEach((m: any) => {
                     if (!groups[m.user_id]) groups[m.user_id] = [];
                     groups[m.user_id].push(m);
                 });
@@ -138,8 +192,11 @@ export function MomentsBar() {
                     };
                 });
 
-                setGroupedMoments(formattedGroups);
+                setOtherGroups(formattedGroups);
+            } else {
+                setOtherGroups([]);
             }
+
         } catch (err) {
             console.error("Error loading moments:", err);
         } finally {
@@ -253,8 +310,12 @@ export function MomentsBar() {
         setIsViewerOpen(true);
     };
 
-    const myGroup = groupedMoments.find(g => g.user_id === currentUser?.id);
-    const otherGroups = groupedMoments.filter(g => g.user_id !== currentUser?.id);
+    const myGroup = myMoments.length > 0 ? {
+        user_id: currentUser?.id,
+        userName: currentUserProfile?.first_name || "Me",
+        userAvatar: currentUserProfile?.avatar_url || null,
+        moments: myMoments
+    } : null;
 
     if (loading && !currentUser) {
         return (
@@ -266,8 +327,131 @@ export function MomentsBar() {
         );
     }
 
+    if (!isOwner) {
+        if (highlightedMoments.length === 0) return null;
+        return (
+            <div className="w-full flex flex-col gap-4 select-none mb-6">
+                {/* Highlights row */}
+                <div className="flex flex-col gap-2 w-full px-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 flex items-center gap-1 font-sans">
+                        <Star className="w-3.5 h-3.5 fill-pink-400 text-pink-400" /> Sister Highlights
+                    </span>
+                    <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
+                        {highlightedMoments.map((moment) => {
+                            const bgColorName = moment.background_color.split('|')[0] || 'rose';
+                            const color = PASTEL_COLORS.find(c => c.name === bgColorName) || PASTEL_COLORS[0];
+                            return (
+                                <motion.div
+                                    key={moment.id}
+                                    onClick={() => {
+                                        setSelectedGroup({
+                                            user_id: moment.user_id,
+                                            userName: currentUserProfile?.first_name || "Sister",
+                                            userAvatar: currentUserProfile?.avatar_url || null,
+                                            moments: highlightedMoments
+                                        });
+                                        setIsViewerOpen(true);
+                                    }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+                                >
+                                    <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 shadow-md ring-2 ring-pink-100/50 transition-transform group-hover:scale-105">
+                                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
+                                            {moment.media_url ? (
+                                                moment.media_url.endsWith(".mp4") || moment.media_url.includes(".mov") ? (
+                                                    <span className="text-xs">🎥</span>
+                                                ) : (
+                                                    <img src={moment.media_url} alt="Highlight" className="w-full h-full object-cover" />
+                                                )
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-xs" style={{ backgroundColor: color.bg, color: color.text }}>
+                                                    🎵
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <span className="text-[9px] font-bold text-warm-grey/60 max-w-[64px] truncate text-center font-sans">
+                                        {moment.song_title || new Date(moment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    </span>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Moments Viewer Modal */}
+                <AnimatePresence>
+                    {selectedGroup && (
+                        <MomentModal 
+                            isOpen={isViewerOpen}
+                            onClose={() => {
+                                setIsViewerOpen(false);
+                                setSelectedGroup(null);
+                            }}
+                            moments={selectedGroup.moments}
+                            userName={selectedGroup.userName}
+                            userAvatar={selectedGroup.userAvatar}
+                            currentUserId={currentUser?.id}
+                            onMomentDeleted={loadCurrentUserAndMoments}
+                        />
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full flex flex-col gap-5 select-none mb-6">
+            {/* Highlights row (Visible above own share card) */}
+            {highlightedMoments.length > 0 && (
+                <div className="flex flex-col gap-2 w-full px-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 flex items-center gap-1 font-sans">
+                        <Star className="w-3.5 h-3.5 fill-pink-400 text-pink-400" /> My Highlights
+                    </span>
+                    <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
+                        {highlightedMoments.map((moment) => {
+                            const bgColorName = moment.background_color.split('|')[0] || 'rose';
+                            const color = PASTEL_COLORS.find(c => c.name === bgColorName) || PASTEL_COLORS[0];
+                            return (
+                                <motion.div
+                                    key={moment.id}
+                                    onClick={() => {
+                                        setSelectedGroup({
+                                            user_id: moment.user_id,
+                                            userName: currentUserProfile?.first_name || "Me",
+                                            userAvatar: currentUserProfile?.avatar_url || null,
+                                            moments: highlightedMoments
+                                        });
+                                        setIsViewerOpen(true);
+                                    }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+                                >
+                                    <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 shadow-md ring-2 ring-pink-100/50 transition-transform group-hover:scale-105">
+                                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
+                                            {moment.media_url ? (
+                                                moment.media_url.endsWith(".mp4") || moment.media_url.includes(".mov") ? (
+                                                    <span className="text-xs">🎥</span>
+                                                ) : (
+                                                    <img src={moment.media_url} alt="Highlight" className="w-full h-full object-cover" />
+                                                )
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-xs" style={{ backgroundColor: color.bg, color: color.text }}>
+                                                    🎵
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <span className="text-[9px] font-bold text-warm-grey/60 max-w-[64px] truncate text-center font-sans">
+                                        {moment.song_title || new Date(moment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    </span>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* My Moment Cute Centered Card */}
             <div 
                 className="w-full max-w-sm mx-auto p-6 rounded-3xl border-2 border-dashed border-[#8D7B68]/30 shadow-sm relative overflow-hidden flex flex-col items-center justify-center"
@@ -290,7 +474,11 @@ export function MomentsBar() {
                     />
 
                     {/* Bigger Circle (w-20 h-20) */}
-                    <div className={`w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr ${myGroup ? 'from-muted-rose to-sage-green animate-pulse' : 'from-warm-grey/15 to-warm-grey/30'} shadow-md transition-all group-hover:scale-[1.03] duration-200`}>
+                    <div className={`w-20 h-20 rounded-full p-[3.5px] bg-gradient-to-tr ${
+                        myGroup 
+                            ? 'from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_15px_rgba(244,143,177,0.7)] animate-pulse' 
+                            : 'from-warm-grey/15 to-warm-grey/30'
+                    } shadow-md transition-all group-hover:scale-[1.03] duration-200`}>
                         <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
                             {currentUserProfile?.avatar_url ? (
                                 <img src={currentUserProfile.avatar_url} alt="Me" className="w-full h-full object-cover" />
@@ -332,7 +520,7 @@ export function MomentsBar() {
                                 whileTap={{ scale: 0.92 }}
                                 className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer"
                             >
-                                <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-muted-rose via-soft-blush to-sage-green shadow-md transition-transform">
+                                <div className="w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-2 ring-pink-100 shadow-[0_0_10px_rgba(244,143,177,0.6)] animate-pulse shrink-0 transition-transform">
                                     <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
                                         {group.userAvatar ? (
                                             <img src={group.userAvatar} alt={group.userName} className="w-full h-full object-cover" />
@@ -343,7 +531,7 @@ export function MomentsBar() {
                                         )}
                                     </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-warm-grey/70">{group.userName}</span>
+                                <span className="text-[10px] font-bold text-warm-grey/70 font-sans">{group.userName}</span>
                             </motion.div>
                         ))}
                     </div>

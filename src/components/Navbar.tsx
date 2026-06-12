@@ -83,7 +83,7 @@ export function Navbar() {
             <div className="container relative mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
                 {/* Logo */}
                 <Link href="/home" className="font-serif text-2xl font-medium tracking-tight text-warm-grey hover:opacity-80 transition-opacity flex items-center gap-2">
-                    <BowLogo className="w-5 h-5" />
+                    <span className="text-muted-rose text-xl">౨ৎ</span>
                     Selahly
                 </Link>
 

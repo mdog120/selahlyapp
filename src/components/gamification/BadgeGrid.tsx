@@ -100,7 +100,7 @@ export function BadgeGrid({ userId }: { userId: string }) {
 
                 <div className="flex justify-between items-center mb-6 relative pt-2">
                     <h3 className="font-serif text-2xl text-warm-cocoa flex items-center gap-2">
-                        <span>🎀</span> Sticker Album
+                        <span className="text-muted-rose">౨ৎ</span> Sticker Album
                     </h3>
                     <span className="text-[10px] bg-warm-cocoa/10 text-warm-cocoa border border-warm-cocoa/20 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
                         Collected: {earnedBadges.length} / {allBadges.length}
@@ -169,8 +169,8 @@ export function BadgeGrid({ userId }: { userId: string }) {
                             className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl overflow-hidden border border-warm-grey/10 text-center"
                         >
                             {/* Top bow emoji deco */}
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2">
-                                <BowLogo size={24} />
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 text-2xl text-muted-rose">
+                                ౨ৎ
                             </div>
 
                             <button
