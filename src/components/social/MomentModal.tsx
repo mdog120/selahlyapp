@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Heart, MessageSquare, Trash2, Volume2, VolumeX, Send, Loader2, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/Button";
 
 type Moment = {
     id: string;
@@ -94,6 +95,16 @@ export function MomentModal({
     const [progress, setProgress] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [highlightToggle, setHighlightToggle] = useState(false);
+
+    // Advanced Highlight states
+    const [isHighlightModalOpen, setIsHighlightModalOpen] = useState(false);
+    const [existingAlbums, setExistingAlbums] = useState<{ name: string; coverUrl: string | null }[]>([]);
+    const [selectedAlbumName, setSelectedAlbumName] = useState<string>("");
+    const [newAlbumName, setNewAlbumName] = useState("");
+    const [coverFile, setCoverFile] = useState<File | null>(null);
+    const [coverPreview, setCoverPreview] = useState<string | null>(null);
+    const [isSavingHighlight, setIsSavingHighlight] = useState(false);
+    const coverInputRef = useRef<HTMLInputElement>(null);
 
     // Likes & Comments State
     const [likes, setLikes] = useState<{ user_id: string; profiles: { first_name: string; username: string } }[]>([]);
@@ -392,7 +403,7 @@ export function MomentModal({
         let newBgColor = currentMoment.background_color || "";
 
         if (isHighlighted) {
-            newBgColor = newBgColor.replace('|highlight', '');
+            newBgColor = newBgColor.replace(/\|highlight:[^|]*/, "").replace(/\|cover:[^|]*/, "").replace("|highlight", "");
         } else {
             newBgColor = newBgColor + '|highlight';
         }
@@ -414,6 +425,114 @@ export function MomentModal({
         } catch (err: any) {
             console.error("Error toggling highlight:", err);
             alert("Failed to update highlight status: " + err.message);
+        }
+    };
+
+    const openHighlightModal = async () => {
+        setIsHighlightModalOpen(true);
+        setSelectedAlbumName("");
+        setNewAlbumName("");
+        setCoverFile(null);
+        setCoverPreview(null);
+        
+        try {
+            const { data } = await supabase
+                .from("moments")
+                .select("background_color")
+                .eq("user_id", currentUserId)
+                .like("background_color", "%|highlight:%");
+
+            const albumsMap = new Map<string, string | null>();
+            data?.forEach((m: any) => {
+                const parts = m.background_color.split('|');
+                let highlightName = "";
+                let coverUrl: string | null = null;
+                parts.forEach((p: string) => {
+                    if (p.startsWith("highlight:")) highlightName = p.substring(10);
+                    if (p.startsWith("cover:")) coverUrl = p.substring(6);
+                });
+                if (highlightName) {
+                    if (!albumsMap.has(highlightName) || coverUrl) {
+                        albumsMap.set(highlightName, coverUrl);
+                    }
+                }
+            });
+
+            const albumsList = Array.from(albumsMap.entries()).map(([name, coverUrl]) => ({
+                name,
+                coverUrl
+            }));
+            setExistingAlbums(albumsList);
+            if (albumsList.length > 0) {
+                setSelectedAlbumName(albumsList[0].name);
+            } else {
+                setSelectedAlbumName("__new__");
+            }
+        } catch (err) {
+            console.error("Error loading existing highlights:", err);
+        }
+    };
+
+    const handleSaveHighlight = async () => {
+        if (!currentMoment || !currentUserId) return;
+        
+        let albumName = selectedAlbumName;
+        let coverUrl = "";
+        
+        if (albumName === "__new__") {
+            if (!newAlbumName.trim()) {
+                alert("Please enter a name for the new highlight group.");
+                return;
+            }
+            albumName = newAlbumName.trim();
+        } else {
+            const existing = existingAlbums.find(a => a.name === albumName);
+            coverUrl = existing?.coverUrl || "";
+        }
+        
+        setIsSavingHighlight(true);
+        try {
+            if (albumName && coverFile) {
+                const fileExt = coverFile.name.split('.').pop();
+                const fileName = `${currentUserId}/${Date.now()}_highlight_cover.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('posts')
+                    .upload(fileName, coverFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('posts')
+                    .getPublicUrl(fileName);
+
+                coverUrl = publicUrl;
+            }
+            
+            let cleanBg = currentMoment.background_color || "";
+            cleanBg = cleanBg.replace(/\|highlight:[^|]*/, "").replace(/\|cover:[^|]*/, "").replace("|highlight", "");
+            
+            const highlightSuffix = `|highlight:${albumName}${coverUrl ? `|cover:${coverUrl}` : ""}`;
+            const newBgColor = cleanBg + highlightSuffix;
+
+            const { error } = await supabase
+                .from("moments")
+                .update({ background_color: newBgColor })
+                .eq("id", currentMoment.id);
+
+            if (error) throw error;
+
+            currentMoment.background_color = newBgColor;
+            setHighlightToggle(prev => !prev);
+            setIsHighlightModalOpen(false);
+            
+            if (onMomentDeleted) {
+                onMomentDeleted();
+            }
+        } catch (err: any) {
+            console.error("Error saving highlight:", err);
+            alert("Failed to save highlight: " + err.message);
+        } finally {
+            setIsSavingHighlight(false);
         }
     };
 
@@ -674,7 +793,14 @@ export function MomentModal({
                         {/* Star Button for highlighting */}
                         {currentMoment.user_id === currentUserId && (
                             <button
-                                onClick={handleToggleHighlight}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (currentMoment.background_color?.includes('|highlight')) {
+                                        handleToggleHighlight(e);
+                                    } else {
+                                        openHighlightModal();
+                                    }
+                                }}
                                 className={`p-1.5 rounded-full bg-black/40 hover:bg-yellow-500/80 text-white transition-colors border border-white/10 ${
                                     currentMoment.background_color?.includes('|highlight') 
                                         ? "text-yellow-400 fill-yellow-400 border-yellow-400/30" 
@@ -913,6 +1039,111 @@ export function MomentModal({
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Highlight Groups Popup Modal */}
+                {isHighlightModalOpen && (
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                        <div className="bg-warm-paper rounded-3xl p-6 shadow-2xl w-full max-w-xs border border-white flex flex-col gap-4 text-warm-cocoa animate-fade-in-up">
+                            <div className="flex justify-between items-center pb-2 border-b border-warm-grey/5">
+                                <h4 className="font-serif text-sm font-bold flex items-center gap-1.5">
+                                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" /> Highlight Album ౨ৎ
+                                </h4>
+                                <button 
+                                    onClick={() => setIsHighlightModalOpen(false)}
+                                    className="p-1 rounded-full hover:bg-stone-100 text-warm-grey/60"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            
+                            <div className="space-y-3 text-left">
+                                {/* Group selection */}
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase tracking-wider text-warm-grey/65">Highlight Group</label>
+                                    <select 
+                                        value={selectedAlbumName}
+                                        onChange={(e) => setSelectedAlbumName(e.target.value)}
+                                        className="w-full bg-white border border-warm-grey/10 rounded-xl px-3 py-2 text-xs text-warm-grey outline-none focus:ring-1 focus:ring-muted-rose"
+                                    >
+                                        {existingAlbums.map(album => (
+                                            <option key={album.name} value={album.name}>Add to "{album.name}"</option>
+                                        ))}
+                                        <option value="__new__">+ Create New Highlight Group</option>
+                                    </select>
+                                </div>
+                                
+                                {/* New Group inputs */}
+                                {selectedAlbumName === "__new__" && (
+                                    <>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-bold uppercase tracking-wider text-warm-grey/65">Highlight Name</label>
+                                            <input 
+                                                type="text"
+                                                value={newAlbumName}
+                                                onChange={(e) => setNewAlbumName(e.target.value)}
+                                                placeholder="e.g. Summer Vibes ౨ৎ"
+                                                className="w-full bg-white border border-warm-grey/10 rounded-xl px-3 py-2 text-xs text-warm-grey placeholder:text-warm-grey/30 outline-none focus:ring-1 focus:ring-muted-rose"
+                                            />
+                                        </div>
+                                        
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-bold uppercase tracking-wider text-warm-grey/65">Cover Image</label>
+                                            <input 
+                                                type="file"
+                                                ref={coverInputRef}
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    if (e.target.files && e.target.files.length > 0) {
+                                                        const file = e.target.files[0];
+                                                        setCoverFile(file);
+                                                        setCoverPreview(URL.createObjectURL(file));
+                                                    }
+                                                }}
+                                            />
+                                            {coverPreview ? (
+                                                <div className="relative w-16 h-16 rounded-full overflow-hidden border border-warm-grey/10 mx-auto group cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+                                                    <img src={coverPreview} alt="Cover Preview" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                        <span className="text-[8px] text-white font-bold">Change</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => coverInputRef.current?.click()}
+                                                    className="w-full py-3 border-2 border-dashed border-warm-grey/20 rounded-xl text-xs text-warm-grey/65 hover:bg-white/40 transition-colors"
+                                                >
+                                                    Upload Cover Image
+                                                </button>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            
+                            <div className="flex gap-2 pt-2 border-t border-warm-grey/5">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="flex-1 text-xs" 
+                                    onClick={() => setIsHighlightModalOpen(false)}
+                                    disabled={isSavingHighlight}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    className="flex-1 bg-muted-rose text-white text-xs"
+                                    onClick={handleSaveHighlight}
+                                    disabled={isSavingHighlight}
+                                >
+                                    {isSavingHighlight ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 )}

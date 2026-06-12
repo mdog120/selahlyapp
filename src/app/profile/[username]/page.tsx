@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/client";
-import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, GraduationCap, Church, Trophy, Palette, Heart } from "lucide-react";
+import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, GraduationCap, Church, Trophy, Palette, Heart, Star } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatDistanceToNow } from "date-fns";
 import { useParams } from "next/navigation";
@@ -31,6 +31,28 @@ function getBadgeStyle(colorName: string | null | undefined) {
     const color = colorName || 'rose';
     return COLOR_MAP[color] || COLOR_MAP['rose'];
 }
+
+const parseMomentConfig = (bgColorField: string | null) => {
+    if (!bgColorField) return { color: 'rose', frame: 'none', highlightName: null, coverUrl: null };
+    const parts = bgColorField.split('|');
+    const color = parts[0] || 'rose';
+    const frame = parts[1] || 'none';
+    
+    let highlightName: string | null = null;
+    let coverUrl: string | null = null;
+    
+    parts.forEach(part => {
+        if (part.startsWith('highlight:')) {
+            highlightName = part.substring('highlight:'.length);
+        } else if (part.startsWith('cover:')) {
+            coverUrl = part.substring('cover:'.length);
+        } else if (part === 'highlight') {
+            highlightName = 'My Highlight';
+        }
+    });
+    
+    return { color, frame, highlightName, coverUrl };
+};
 
 type Profile = {
     id: string;
@@ -74,9 +96,64 @@ export default function ProfilePage() {
     const [recentPosts, setRecentPosts] = useState<any[]>([]);
     const [activeMoments, setActiveMoments] = useState<any[]>([]);
     const [isViewerOpen, setIsViewerOpen] = useState(false);
+    const [highlightAlbums, setHighlightAlbums] = useState<any[]>([]);
+    const [selectedAlbumMoments, setSelectedAlbumMoments] = useState<any[] | null>(null);
+    const [isAlbumViewerOpen, setIsAlbumViewerOpen] = useState(false);
 
     const { triggerBadge } = useBadge();
     const supabase = createClient();
+
+    const loadMoments = async (prof: Profile) => {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: userMoments } = await supabase
+            .from("moments")
+            .select(`
+                id, media_url, caption, background_color, created_at, user_id,
+                song_title, song_artist, song_album_art, song_preview_url, song_link
+            `)
+            .eq("user_id", prof.id)
+            .or(`created_at.gt.${twentyFourHoursAgo},background_color.like.%|highlight:%`)
+            .order("created_at", { ascending: true });
+
+        if (userMoments) {
+            const active = userMoments.filter(m => new Date(m.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)).map((m: any) => ({
+                ...m,
+                profiles: {
+                    first_name: prof.first_name,
+                    username: prof.username,
+                    avatar_url: prof.avatar_url
+                }
+            }));
+            setActiveMoments(active);
+
+            const groups: Record<string, { name: string; coverUrl: string | null; moments: any[] }> = {};
+            userMoments.forEach((m: any) => {
+                const config = parseMomentConfig(m.background_color);
+                if (config.highlightName) {
+                    if (!groups[config.highlightName]) {
+                        groups[config.highlightName] = {
+                            name: config.highlightName,
+                            coverUrl: config.coverUrl,
+                            moments: []
+                        };
+                    }
+                    const momentWithProfile = {
+                        ...m,
+                        profiles: {
+                            first_name: prof.first_name,
+                            username: prof.username,
+                            avatar_url: prof.avatar_url
+                        }
+                    };
+                    groups[config.highlightName].moments.push(momentWithProfile);
+                    if (config.coverUrl) {
+                        groups[config.highlightName].coverUrl = config.coverUrl;
+                    }
+                }
+            });
+            setHighlightAlbums(Object.values(groups));
+        }
+    };
 
     // 1. Fetch Profile & User
     useEffect(() => {
@@ -173,21 +250,8 @@ export default function ProfilePage() {
                     setRecentPosts(postsData);
                 }
 
-                // 4. Fetch Active Moments (within last 24 hours)
-                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-                const { data: userMoments } = await supabase
-                    .from("moments")
-                    .select(`
-                        id, media_url, caption, background_color, created_at, user_id,
-                        song_title, song_artist, song_album_art, song_preview_url, song_link
-                    `)
-                    .eq("user_id", profileData.id)
-                    .gt("created_at", twentyFourHoursAgo)
-                    .order("created_at", { ascending: true });
-
-                if (userMoments) {
-                    setActiveMoments(userMoments);
-                }
+                // 4. Fetch Active Moments & Highlights
+                await loadMoments(profileData);
             }
             setLoading(false);
         };
@@ -457,6 +521,42 @@ export default function ProfilePage() {
                                     <Clock className="w-3 h-3 text-warm-grey/40" /> Joined {formatDistanceToNow(new Date(profile.created_at || new Date()), { addSuffix: true })}
                                 </div>
                             </div>
+
+                            {/* Highlights Row under Stats */}
+                            {highlightAlbums.length > 0 && (
+                                <div className="mt-6 border-t border-stone-100 pt-5 w-full">
+                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 mb-3 flex items-center gap-1 font-sans">
+                                        <Star className="w-3.5 h-3.5 fill-pink-400 text-pink-400" /> Story Highlights
+                                    </h3>
+                                    <div className="flex gap-4 overflow-x-auto py-1 scrollbar-hide">
+                                        {highlightAlbums.map((album) => (
+                                            <div
+                                                key={album.name}
+                                                onClick={() => {
+                                                    setSelectedAlbumMoments(album.moments);
+                                                    setIsAlbumViewerOpen(true);
+                                                }}
+                                                className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
+                                            >
+                                                <div className="w-14 h-14 rounded-full p-[2px] bg-stone-100 border border-warm-grey/10 transition-transform group-hover:scale-105">
+                                                    <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
+                                                        {album.coverUrl ? (
+                                                            <img src={album.coverUrl} alt={album.name} className="w-full h-full object-cover animate-fade-in" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-soft-blush text-muted-rose font-serif text-lg font-bold">
+                                                                {album.name[0]}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-warm-grey/65 max-w-[64px] truncate text-center font-sans">
+                                                    {album.name}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -615,19 +715,27 @@ export default function ProfilePage() {
                             userAvatar={profile.avatar_url}
                             currentUserId={currentUser?.id}
                             onMomentDeleted={async () => {
-                                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-                                const { data: userMoments } = await supabase
-                                    .from("moments")
-                                    .select(`
-                                        id, media_url, caption, background_color, created_at, user_id,
-                                        song_title, song_artist, song_album_art, song_preview_url, song_link
-                                    `)
-                                    .eq("user_id", profile.id)
-                                    .gt("created_at", twentyFourHoursAgo)
-                                    .order("created_at", { ascending: true });
-                                if (userMoments) {
-                                    setActiveMoments(userMoments);
-                                }
+                                await loadMoments(profile);
+                            }}
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* Album Viewer Modal */}
+                <AnimatePresence>
+                    {isAlbumViewerOpen && selectedAlbumMoments && (
+                        <MomentModal 
+                            isOpen={isAlbumViewerOpen}
+                            onClose={() => {
+                                setIsAlbumViewerOpen(false);
+                                setSelectedAlbumMoments(null);
+                            }}
+                            moments={selectedAlbumMoments}
+                            userName={profile.first_name}
+                            userAvatar={profile.avatar_url}
+                            currentUserId={currentUser?.id}
+                            onMomentDeleted={async () => {
+                                await loadMoments(profile);
                             }}
                         />
                     )}

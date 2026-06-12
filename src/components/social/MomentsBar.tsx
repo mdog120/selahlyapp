@@ -61,11 +61,15 @@ interface MomentsBarProps {
 
 export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
     const [myMoments, setMyMoments] = useState<Moment[]>([]);
-    const [highlightedMoments, setHighlightedMoments] = useState<Moment[]>([]);
     const [otherGroups, setOtherGroups] = useState<GroupedMoment[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+
+    // Tagging states
+    const [friendsList, setFriendsList] = useState<{ id: string; username: string; first_name: string; avatar_url: string | null }[]>([]);
+    const [taggedSisters, setTaggedSisters] = useState<string[]>([]);
+    const [isTaggingOpen, setIsTaggingOpen] = useState(false);
 
     // Modal view states
     const [selectedGroup, setSelectedGroup] = useState<GroupedMoment | null>(null);
@@ -151,7 +155,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
 
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-            // 1. Fetch moments for the target user (both active and highlighted)
+            // 1. Fetch active moments for the target user
             const { data: targetMomentsData } = await supabase
                 .from("moments")
                 .select(`
@@ -160,7 +164,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                     profiles!moments_user_id_fkey (first_name, username, avatar_url)
                 `)
                 .eq("user_id", targetUserId)
-                .or(`created_at.gt.${twentyFourHoursAgo},background_color.like.%highlight%`)
+                .gt("created_at", twentyFourHoursAgo)
                 .order("created_at", { ascending: true });
 
             // 2. Fetch active moments for friends (ONLY if we are on own dashboard view)
@@ -194,13 +198,36 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                 }
             }
 
-            // Filter target user's moments into active and highlighted
-            const personalMoments = (targetMomentsData || []).map(formatMoment);
-            const activePersonal = personalMoments.filter(m => new Date(m.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000));
-            const highlightedPersonal = personalMoments.filter(m => m.background_color?.includes('|highlight'));
+            // 3. Fetch current user's accepted friends for tagging
+            if (user) {
+                const { data: friendshipsData } = await supabase
+                    .from("friendships")
+                    .select(`
+                        *,
+                        user1:profiles!friendships_user_id_1_fkey(id, username, first_name, last_name, avatar_url),
+                        user2:profiles!friendships_user_id_2_fkey(id, username, first_name, last_name, avatar_url)
+                    `)
+                    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                    .eq("status", "accepted");
 
-            setMyMoments(activePersonal);
-            setHighlightedMoments(highlightedPersonal);
+                if (friendshipsData) {
+                    const friendList = friendshipsData.map((f: any) => {
+                        const otherProfile = f.user_id_1 === user.id ? f.user2 : f.user1;
+                        if (!otherProfile) return null;
+                        return {
+                            id: otherProfile.id,
+                            username: otherProfile.username,
+                            first_name: otherProfile.first_name,
+                            avatar_url: otherProfile.avatar_url
+                        };
+                    }).filter(Boolean) as { id: string; username: string; first_name: string; avatar_url: string | null }[];
+                    setFriendsList(friendList);
+                }
+            }
+
+            // Filter target user's moments into active
+            const personalMoments = (targetMomentsData || []).map(formatMoment);
+            setMyMoments(personalMoments);
 
             // Group friends' moments
             if (friendsMomentsData.length > 0) {
@@ -294,11 +321,15 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                 mediaUrl = publicUrl;
             }
 
+            const captionText = taggedSisters.length > 0 
+                ? `With ${taggedSisters.map(username => `@${username}`).join(", ")}` 
+                : null;
+
             const { error: insertError } = await supabase
                 .from("moments")
                 .insert({
                     user_id: currentUser.id,
-                    caption: null,
+                    caption: captionText,
                     media_url: mediaUrl,
                     background_color: `${selectedFile ? 'default' : bgColor}|${selectedFrame}`,
                     song_title: songTitle.trim() || null,
@@ -322,6 +353,8 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
             setSongArtwork("");
             setShowSongInput(false);
             setIsCreatorOpen(false);
+            setTaggedSisters([]);
+            setIsTaggingOpen(false);
 
             // Reload moments
             await loadCurrentUserAndMoments();
@@ -356,184 +389,61 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
     }
 
     if (!isOwner) {
-        if (highlightedMoments.length === 0) return null;
-        return (
-            <div className="w-full flex flex-col gap-4 select-none mb-6">
-                {/* Highlights row */}
-                <div className="flex flex-col gap-2 w-full px-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 flex items-center gap-1 font-sans">
-                        <Star className="w-3.5 h-3.5 fill-pink-400 text-pink-400" /> Sister Highlights
-                    </span>
-                    <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
-                        {highlightedMoments.map((moment) => {
-                            const bgColorName = moment.background_color.split('|')[0] || 'rose';
-                            const color = PASTEL_COLORS.find(c => c.name === bgColorName) || PASTEL_COLORS[0];
-                            return (
-                                <motion.div
-                                    key={moment.id}
-                                    onClick={() => {
-                                        setSelectedGroup({
-                                            user_id: moment.user_id,
-                                            userName: currentUserProfile?.first_name || "Sister",
-                                            userAvatar: currentUserProfile?.avatar_url || null,
-                                            moments: highlightedMoments
-                                        });
-                                        setIsViewerOpen(true);
-                                    }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
-                                >
-                                    <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 shadow-md ring-2 ring-pink-100/50 transition-transform group-hover:scale-105">
-                                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
-                                            {moment.media_url ? (
-                                                moment.media_url.endsWith(".mp4") || moment.media_url.includes(".mov") ? (
-                                                    <span className="text-xs">🎥</span>
-                                                ) : (
-                                                    <img src={moment.media_url} alt="Highlight" className="w-full h-full object-cover" />
-                                                )
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-xs" style={{ backgroundColor: color.bg, color: color.text }}>
-                                                    🎵
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <span className="text-[9px] font-bold text-warm-grey/60 max-w-[64px] truncate text-center font-sans">
-                                        {moment.song_title || new Date(moment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                    </span>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Moments Viewer Modal */}
-                <AnimatePresence>
-                    {selectedGroup && (
-                        <MomentModal 
-                            isOpen={isViewerOpen}
-                            onClose={() => {
-                                setIsViewerOpen(false);
-                                setSelectedGroup(null);
-                            }}
-                            moments={selectedGroup.moments}
-                            userName={selectedGroup.userName}
-                            userAvatar={selectedGroup.userAvatar}
-                            currentUserId={currentUser?.id}
-                            onMomentDeleted={loadCurrentUserAndMoments}
-                        />
-                    )}
-                </AnimatePresence>
-            </div>
-        );
+        return null;
     }
 
     return (
         <div className="w-full flex flex-col gap-5 select-none mb-6">
-            {/* Highlights row (Visible above own share card) */}
-            {highlightedMoments.length > 0 && (
-                <div className="flex flex-col gap-2 w-full px-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 flex items-center gap-1 font-sans">
-                        <Star className="w-3.5 h-3.5 fill-pink-400 text-pink-400" /> My Highlights
-                    </span>
-                    <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
-                        {highlightedMoments.map((moment) => {
-                            const bgColorName = moment.background_color.split('|')[0] || 'rose';
-                            const color = PASTEL_COLORS.find(c => c.name === bgColorName) || PASTEL_COLORS[0];
-                            return (
-                                <motion.div
-                                    key={moment.id}
-                                    onClick={() => {
-                                        setSelectedGroup({
-                                            user_id: moment.user_id,
-                                            userName: currentUserProfile?.first_name || "Me",
-                                            userAvatar: currentUserProfile?.avatar_url || null,
-                                            moments: highlightedMoments
-                                        });
-                                        setIsViewerOpen(true);
-                                    }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
-                                >
-                                    <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 shadow-md ring-2 ring-pink-100/50 transition-transform group-hover:scale-105">
-                                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
-                                            {moment.media_url ? (
-                                                moment.media_url.endsWith(".mp4") || moment.media_url.includes(".mov") ? (
-                                                    <span className="text-xs">🎥</span>
-                                                ) : (
-                                                    <img src={moment.media_url} alt="Highlight" className="w-full h-full object-cover" />
-                                                )
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-xs" style={{ backgroundColor: color.bg, color: color.text }}>
-                                                    🎵
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <span className="text-[9px] font-bold text-warm-grey/60 max-w-[64px] truncate text-center font-sans">
-                                        {moment.song_title || new Date(moment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                    </span>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
             {/* My Moment Cute Centered Card */}
-            <div 
-                className="w-full max-w-sm mx-auto p-6 rounded-3xl border-2 border-dashed border-[#8D7B68]/30 shadow-sm relative overflow-hidden flex flex-col items-center justify-center"
-                style={{
-                    backgroundColor: "#FFF0F5",
-                    backgroundImage: "radial-gradient(#8D7B68 10%, transparent 11%), radial-gradient(#FFFFFF 12%, transparent 13%)",
-                    backgroundSize: "16px 16px",
-                    backgroundPosition: "0 0, 8px 8px"
-                }}
-            >
+            {!myGroup && (
                 <div 
-                    onClick={myGroup ? () => openViewer(myGroup) : () => setIsCreatorOpen(true)}
-                    className="relative cursor-pointer group flex flex-col items-center"
+                    className="w-full max-w-sm mx-auto p-6 rounded-3xl border-2 border-dashed border-[#8D7B68]/30 shadow-sm relative overflow-hidden flex flex-col items-center justify-center"
+                    style={{
+                        backgroundColor: "#FFF0F5",
+                        backgroundImage: "radial-gradient(#8D7B68 10%, transparent 11%), radial-gradient(#FFFFFF 12%, transparent 13%)",
+                        backgroundSize: "16px 16px",
+                        backgroundPosition: "0 0, 8px 8px"
+                    }}
                 >
-                    {/* Signature Bow on top */}
-                    <BowLogo 
-                        size={36} 
-                        className="absolute -top-5 z-20 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-200 text-black"
-                    />
+                    <div 
+                        onClick={() => setIsCreatorOpen(true)}
+                        className="relative cursor-pointer group flex flex-col items-center"
+                    >
+                        {/* Signature Bow on top */}
+                        <BowLogo 
+                            size={36} 
+                            className="absolute -top-5 z-20 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-200 text-black"
+                        />
 
-                    {/* Bigger Circle (w-20 h-20) */}
-                    <div className={`w-20 h-20 rounded-full p-[3.5px] bg-gradient-to-tr ${
-                        myGroup 
-                            ? 'from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_15px_rgba(244,143,177,0.7)]' 
-                            : 'from-warm-grey/15 to-warm-grey/30'
-                    } shadow-md transition-all group-hover:scale-[1.03] duration-200`}>
-                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
-                            {currentUserProfile?.avatar_url ? (
-                                <img src={currentUserProfile.avatar_url} alt="Me" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-soft-blush text-warm-grey font-serif uppercase text-2xl">
-                                    {currentUserProfile?.first_name?.[0] || "Me"}
-                                </div>
-                            )}
+                        {/* Bigger Circle (w-20 h-20) */}
+                        <div className="w-20 h-20 rounded-full p-[3.5px] bg-gradient-to-tr from-warm-grey/15 to-warm-grey/30 shadow-md transition-all group-hover:scale-[1.03] duration-200">
+                            <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
+                                {currentUserProfile?.avatar_url ? (
+                                    <img src={currentUserProfile.avatar_url} alt="Me" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-soft-blush text-warm-grey font-serif uppercase text-2xl">
+                                        {currentUserProfile?.first_name?.[0] || "Me"}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Plus badge overlay if no moment */}
-                    {!myGroup && (
+                        {/* Plus badge overlay if no moment */}
                         <div className="absolute bottom-0 right-0 w-6 h-6 bg-muted-rose text-white rounded-full flex items-center justify-center border-2 border-white shadow-sm hover:scale-105 active:scale-95 transition-all">
                             <Plus className="w-4 h-4" />
                         </div>
-                    )}
-                </div>
+                    </div>
 
-                <div 
-                    onClick={myGroup ? () => openViewer(myGroup) : () => setIsCreatorOpen(true)}
-                    className="cursor-pointer text-center mt-3.5 relative z-10 bg-white/80 backdrop-blur-md py-1.5 px-5 rounded-full border border-warm-grey/10 shadow-sm transition-all hover:bg-white hover:shadow"
-                >
-                    <span className="text-xs font-serif text-warm-cocoa font-bold">
-                        {myGroup ? "View Your Moment" : "Share Your Moment ౨ৎ"}
-                    </span>
+                    <div 
+                        onClick={() => setIsCreatorOpen(true)}
+                        className="cursor-pointer text-center mt-3.5 relative z-10 bg-white/80 backdrop-blur-md py-1.5 px-5 rounded-full border border-warm-grey/10 shadow-sm transition-all hover:bg-white hover:shadow"
+                    >
+                        <span className="text-xs font-serif text-warm-cocoa font-bold">
+                            Share Your Moment ౨ৎ
+                        </span>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Friend bubbles scrollable row */}
             {otherGroups.length > 0 && (
@@ -597,6 +507,8 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                                     setSelectedFile(null);
                                     setFilePreview(null);
                                     setSelectedFrame("none");
+                                    setTaggedSisters([]);
+                                    setIsTaggingOpen(false);
                                 }}
                                 className="p-1 rounded-full hover:bg-stone-100 text-warm-grey/60"
                             >
@@ -771,6 +683,59 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                             accept="image/*,video/*"
                             onChange={handleFileChange}
                         />
+
+                        {/* Tag Sisters Section */}
+                        <div className="space-y-1">
+                            <button
+                                type="button"
+                                onClick={() => setIsTaggingOpen(!isTaggingOpen)}
+                                className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa flex items-center gap-1 hover:text-muted-rose transition-colors"
+                            >
+                                🏷️ Tag Sisters {taggedSisters.length > 0 && `(${taggedSisters.length})`}
+                            </button>
+                            {isTaggingOpen && (
+                                <div className="mt-2 bg-white/40 border border-warm-grey/10 rounded-xl p-3 max-h-32 overflow-y-auto space-y-2 custom-scrollbar">
+                                    {friendsList.length === 0 ? (
+                                        <p className="text-[10px] text-warm-grey/50 italic">No friends to tag yet.</p>
+                                    ) : (
+                                        friendsList.map((friend) => {
+                                            const isChecked = taggedSisters.includes(friend.username);
+                                            return (
+                                                <label 
+                                                    key={friend.id} 
+                                                    className="flex items-center gap-2 cursor-pointer hover:bg-white/30 p-1.5 rounded-lg transition-colors"
+                                                >
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => {
+                                                            if (isChecked) {
+                                                                setTaggedSisters(prev => prev.filter(un => un !== friend.username));
+                                                            } else {
+                                                                setTaggedSisters(prev => [...prev, friend.username]);
+                                                            }
+                                                        }}
+                                                        className="rounded text-pink-500 focus:ring-pink-300 w-3.5 h-3.5 border-warm-grey/20"
+                                                    />
+                                                    <div className="w-5 h-5 rounded-full bg-soft-blush overflow-hidden border border-white/50 shrink-0">
+                                                        {friend.avatar_url ? (
+                                                            <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="w-full h-full flex items-center justify-center text-[9px] font-bold text-warm-grey">
+                                                                {friend.first_name?.[0]}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[11px] font-medium text-warm-grey">
+                                                        {friend.first_name} (@{friend.username})
+                                                    </span>
+                                                </label>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         <div className="flex flex-col gap-2 mt-2">
                             <div className="flex gap-2">
