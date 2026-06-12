@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Music, VolumeX, Volume2 } from "lucide-react";
+import { Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function AmbiencePlayer() {
@@ -9,26 +9,47 @@ export function AmbiencePlayer() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
 
-    // Persist audio preference across page reloads
+    // Track user preference and setup interaction listener to resume play if enabled
     useEffect(() => {
-        const savedPref = localStorage.getItem("selahly_ambient_music");
-        if (savedPref === "true") {
-            // Browsers block autoplay on fresh load, so we try playing.
-            // If blocked, it will fall back to paused state.
-            setIsPlaying(true);
+        const savedPref = localStorage.getItem("selahly_ambient_music") === "true";
+        setIsPlaying(savedPref);
+
+        // Standard browsers block autoplay until a user interaction occurs.
+        // If the user had it enabled previously, we play it on their first click/tap anywhere.
+        if (savedPref) {
+            const startOnInteraction = () => {
+                if (audioRef.current && audioRef.current.paused) {
+                    audioRef.current.play()
+                        .then(() => {
+                            setIsPlaying(true);
+                        })
+                        .catch(err => console.log("Ambient play on interaction failed:", err));
+                }
+                window.removeEventListener("click", startOnInteraction);
+                window.removeEventListener("touchstart", startOnInteraction);
+            };
+            window.addEventListener("click", startOnInteraction);
+            window.addEventListener("touchstart", startOnInteraction);
+
+            return () => {
+                window.removeEventListener("click", startOnInteraction);
+                window.removeEventListener("touchstart", startOnInteraction);
+            };
         }
     }, []);
 
+    // Handle audio play/pause states based on state changes
     useEffect(() => {
         if (!audioRef.current) return;
-        audioRef.current.volume = 0.12; // Keep it soft and ambient in the background
+        audioRef.current.volume = 0.10; // Keep it very soft and soothing in the background
 
         if (isPlaying) {
             const playPromise = audioRef.current.play();
             if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    console.log("Ambient autoplay blocked by browser policy. Waiting for user interaction.");
-                    setIsPlaying(false);
+                playPromise.catch(error => {
+                    console.log("Play failed or blocked by autoplay restrictions:", error);
+                    // Do NOT reset isPlaying or localStorage preference here,
+                    // just wait for the interaction listener or direct button tap.
                 });
             }
             localStorage.setItem("selahly_ambient_music", "true");
@@ -46,7 +67,7 @@ export function AmbiencePlayer() {
         <>
             <audio
                 ref={audioRef}
-                src="https://upload.wikimedia.org/wikipedia/commons/b/b5/Gymnopedie_No._1_%28ISRC_USUAN1100787%29.mp3"
+                src="https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/f1/0e/31/f10e319b-07f2-59c4-1784-584951243cda/mzaf_581018986493473285.plus.aac.p.m4a"
                 loop
             />
 
