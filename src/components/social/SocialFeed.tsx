@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PostCard } from "./PostCard";
 import { CreatePost } from "./CreatePost";
+import { PostPreviewCard } from "./PostPreviewCard";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 
 type Post = {
     id: string;
@@ -26,6 +29,7 @@ type Post = {
 export function SocialFeed() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const supabase = createClient();
 
     const fetchPosts = async () => {
@@ -66,13 +70,33 @@ export function SocialFeed() {
             }));
 
             setPosts(postsWithLikeState as Post[]);
+
+            // Sync the active post modal if it is open
+            if (selectedPost) {
+                const freshActivePost = postsWithLikeState.find(p => p.id === selectedPost.id);
+                if (freshActivePost) {
+                    setSelectedPost(freshActivePost as Post);
+                }
+            }
         }
         setLoading(false);
+    };
+
+    const handleLikeToggle = (postId: string, newLiked: boolean, newCount: number) => {
+        setPosts(prev => prev.map(p => 
+            p.id === postId 
+                ? { ...p, user_has_liked: newLiked, likes_count: newCount }
+                : p
+        ));
     };
 
     useEffect(() => {
         fetchPosts();
     }, []);
+
+    // Split posts into two columns for Lemon8-style staggered masonry layout
+    const leftColumnPosts = posts.filter((_, idx) => idx % 2 === 0);
+    const rightColumnPosts = posts.filter((_, idx) => idx % 2 !== 0);
 
     return (
         <div className="flex flex-col gap-6">
@@ -86,9 +110,73 @@ export function SocialFeed() {
                     <p className="text-sm text-warm-grey/60">Be the first to share something beautiful!</p>
                 </div>
             ) : (
-                posts.map(post => (
-                    <PostCard key={post.id} post={post} />
-                ))
+                <>
+                    {/* Lemon8-Style Two-Column Masonry Grid */}
+                    <div className="grid grid-cols-2 gap-3.5 items-start">
+                        {/* Left Column */}
+                        <div className="flex flex-col gap-3.5">
+                            {leftColumnPosts.map(post => (
+                                <PostPreviewCard 
+                                    key={post.id} 
+                                    post={post} 
+                                    onClick={() => setSelectedPost(post)}
+                                    onLikeToggle={(newLiked, newCount) => handleLikeToggle(post.id, newLiked, newCount)}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Right Column */}
+                        <div className="flex flex-col gap-3.5">
+                            {rightColumnPosts.map(post => (
+                                <PostPreviewCard 
+                                    key={post.id} 
+                                    post={post} 
+                                    onClick={() => setSelectedPost(post)}
+                                    onLikeToggle={(newLiked, newCount) => handleLikeToggle(post.id, newLiked, newCount)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Post Detail Modal */}
+                    <AnimatePresence>
+                        {selectedPost && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 cursor-default" 
+                                    onClick={() => {
+                                        setSelectedPost(null);
+                                        fetchPosts(); // Refresh parent feed to sync any changes made inside modal (e.g. comments, likes)
+                                    }} 
+                                />
+                                <motion.div 
+                                    initial={{ opacity: 0, scale: 0.93, y: 30 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    transition={{ type: "spring", damping: 20, stiffness: 280 }}
+                                    className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-warm-paper rounded-[2rem] shadow-2xl z-10 p-1 custom-scrollbar border border-white/60"
+                                >
+                                    {/* Close Button overlay */}
+                                    <button 
+                                        onClick={() => {
+                                            setSelectedPost(null);
+                                            fetchPosts();
+                                        }}
+                                        className="absolute top-4 right-4 z-50 bg-white/95 hover:bg-stone-50 text-warm-grey border border-warm-grey/5 p-2 rounded-full shadow-md transition-all active:scale-90"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                    
+                                    {/* Full Post Card view */}
+                                    <PostCard post={selectedPost} />
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
+                </>
             )}
         </div>
     );
