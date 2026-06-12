@@ -35,7 +35,7 @@ export function SocialFeed() {
     const justClosedRef = useRef(false);
     const supabase = createClient();
 
-    const fetchPosts = async () => {
+    const fetchPosts = async (skipSyncActivePost = false) => {
         const { data: { user } } = await supabase.auth.getUser();
 
         // Fix: Explicitly use the foreign key for the author to avoid ambiguity with post_likes
@@ -75,7 +75,7 @@ export function SocialFeed() {
             setPosts(postsWithLikeState as Post[]);
 
             // Sync the active post modal if it is open
-            if (selectedPost) {
+            if (selectedPost && !skipSyncActivePost) {
                 const freshActivePost = postsWithLikeState.find(p => p.id === selectedPost.id);
                 if (freshActivePost) {
                     setSelectedPost(freshActivePost as Post);
@@ -100,7 +100,7 @@ export function SocialFeed() {
         justClosedRef.current = true;
         setSelectedPost(null);
         setIsFeedLocked(true);
-        fetchPosts();
+        fetchPosts(true); // Skip syncing active post since we are closing it
         setTimeout(() => {
             justClosedRef.current = false;
             setIsFeedLocked(false);

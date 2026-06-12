@@ -66,6 +66,133 @@ export function MomentModal({
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const supabase = createClient();
 
+    // Mention State for story reply comment
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
+    const [isMentionOpen, setIsMentionOpen] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+    const storyCommentInputRef = useRef<HTMLInputElement>(null);
+
+    // Helper to render mentions in pink
+    const renderContentWithMentions = (text: string | null) => {
+        if (!text) return null;
+        const parts = text.split(/(@[\w.-]+)/g);
+        return parts.map((part, index) => {
+            const mentionMatch = part.match(/^@([\w.-]+)$/);
+            if (mentionMatch) {
+                const username = mentionMatch[1];
+                return (
+                    <a
+                        key={index}
+                        href={`/profile/${username}`}
+                        className="text-pink-300 hover:underline font-bold"
+                    >
+                        {part}
+                    </a>
+                );
+            }
+            return part;
+        });
+    };
+
+    // Mention Search
+    useEffect(() => {
+        if (mentionQuery === null) {
+            setMentionResults([]);
+            setIsMentionOpen(false);
+            return;
+        }
+
+        const fetchFriendsForMention = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from("friendships")
+                .select(`
+                    user_id_1,
+                    user_id_2,
+                    user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
+                    user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
+                `)
+                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                .eq("status", "accepted");
+
+            if (error) {
+                console.error("Error fetching friends for mention:", error);
+                setMentionResults([]);
+                setIsMentionOpen(false);
+                return;
+            }
+
+            if (data) {
+                const friendsList = data.map((f: any) => {
+                    return f.user_id_1 === user.id ? f.user2 : f.user1;
+                }).filter(Boolean);
+
+                const lowerQuery = mentionQuery.toLowerCase();
+                const filtered = friendsList.filter((friend: any) => {
+                    return (
+                        friend.username?.toLowerCase().includes(lowerQuery) ||
+                        friend.first_name?.toLowerCase().includes(lowerQuery)
+                    );
+                });
+
+                if (filtered.length > 0) {
+                    setMentionResults(filtered as any);
+                    setIsMentionOpen(true);
+                } else {
+                    setMentionResults([]);
+                    setIsMentionOpen(false);
+                }
+            } else {
+                setMentionResults([]);
+                setIsMentionOpen(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchFriendsForMention, 300);
+        return () => clearTimeout(timeoutId);
+    }, [mentionQuery]);
+
+    const handleCommentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const pos = e.target.selectionStart || 0;
+        setNewComment(value);
+        setCursorPosition(pos);
+
+        // Detect @ match
+        const textBeforeCursor = value.slice(0, pos);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
+
+        if (match) {
+            setMentionQuery(match[1]);
+        } else {
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+        }
+    };
+
+    const insertCommentMention = (username: string) => {
+        if (!cursorPosition) return;
+        const textBeforeCursor = newComment.slice(0, cursorPosition);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
+
+        if (match) {
+            const matchIndex = match.index! + match[0].indexOf('@');
+            const textAfterCursor = newComment.slice(cursorPosition);
+            const newText = newComment.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
+
+            setNewComment(newText);
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+            
+            setTimeout(() => {
+                storyCommentInputRef.current?.focus();
+            }, 50);
+        }
+    };
+
     useEffect(() => {
         if (!isOpen || moments.length === 0) return;
 
@@ -421,14 +548,16 @@ export function MomentModal({
                             )}
                             {currentMoment.caption && (
                                 <div className="absolute bottom-16 left-4 right-4 bg-black/50 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center">
-                                    <p className="text-white text-sm font-medium">{currentMoment.caption}</p>
+                                    <p className="text-white text-sm font-medium">{renderContentWithMentions(currentMoment.caption)}</p>
                                 </div>
                             )}
                         </>
                     ) : (
                         <div className={`w-full h-full flex flex-col items-center justify-center p-8 text-center ${getBgClass(currentMoment.background_color)}`}>
                             <p className="font-serif text-2xl md:text-3xl leading-relaxed italic max-w-xs break-words">
-                                "{currentMoment.caption || "Be still, and know..."}"
+                                <>
+                                    "{currentMoment.caption ? renderContentWithMentions(currentMoment.caption) : "Be still, and know..."}"
+                                </>
                             </p>
                         </div>
                     )}
@@ -495,7 +624,7 @@ export function MomentModal({
                                         </div>
                                         <div className="flex-1 bg-white/5 p-2 rounded-xl border border-white/5">
                                             <p className="font-bold text-white mb-0.5">@{c.profiles.username}</p>
-                                            <p className="text-white/80 leading-relaxed">{c.content}</p>
+                                            <p className="text-white/80 leading-relaxed">{renderContentWithMentions(c.content)}</p>
                                         </div>
                                     </div>
                                 ))
@@ -504,11 +633,39 @@ export function MomentModal({
 
                         {/* Input Form */}
                         {currentUserId ? (
-                            <form onSubmit={handleAddComment} className="flex gap-2 pt-2 border-t border-white/5">
+                            <form onSubmit={handleAddComment} className="relative flex gap-2 pt-2 border-t border-white/5">
+                                {/* Mention Autocomplete */}
+                                {isMentionOpen && mentionResults.length > 0 && (
+                                    <div className="absolute bottom-full mb-2 left-0 w-48 bg-stone-900 rounded-xl shadow-lg border border-white/10 overflow-hidden z-50 animate-fade-in-up">
+                                        {mentionResults.map((profile) => (
+                                            <button
+                                                type="button"
+                                                key={profile.id}
+                                                className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors"
+                                                onClick={() => insertCommentMention(profile.username)}
+                                            >
+                                                <div className="w-6 h-6 rounded-full bg-white/10 overflow-hidden">
+                                                    {profile.avatar_url ? (
+                                                        <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white/40">
+                                                            {profile.first_name?.[0]}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-white truncate">@{profile.username}</p>
+                                                    <p className="text-[10px] text-white/60 truncate">{profile.first_name}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                                 <input
+                                    ref={storyCommentInputRef}
                                     type="text"
                                     value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
+                                    onChange={handleCommentInputChange}
                                     placeholder="Add a sweet reply..."
                                     className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-white/30 outline-none focus:ring-1 focus:ring-muted-rose"
                                 />

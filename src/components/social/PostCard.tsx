@@ -1070,7 +1070,7 @@ export function PostCard({ post }: { post: Post }) {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <span className="font-bold mr-1">{comment.author?.first_name}:</span>
-                                                {comment.content}
+                                                {renderContentWithStickers(comment.content)}
                                             </div>
 
                                             {(currentUserId === comment.user_id || isOwner) && (
