@@ -536,7 +536,7 @@ export function PostCard({ post }: { post: Post }) {
                     {/* Volume Toggle Overlay */}
                     {post.song_preview_url && (
                         <button
-                            onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                            onClick={toggleMute}
                             className="absolute bottom-3 right-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white p-2 rounded-full transition-all z-20"
                         >
                             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
