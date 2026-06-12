@@ -126,6 +126,28 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                 setCurrentUserProfile(profile);
             }
 
+            const formatMoment = (m: any): Moment => {
+                const profileObj = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+                return {
+                    id: m.id,
+                    media_url: m.media_url,
+                    caption: m.caption,
+                    background_color: m.background_color,
+                    created_at: m.created_at,
+                    user_id: m.user_id,
+                    song_title: m.song_title,
+                    song_artist: m.song_artist,
+                    song_album_art: m.song_album_art,
+                    song_preview_url: m.song_preview_url,
+                    song_link: m.song_link,
+                    profiles: {
+                        first_name: profileObj?.first_name || "Sister",
+                        username: profileObj?.username || "",
+                        avatar_url: profileObj?.avatar_url || null
+                    }
+                };
+            };
+
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
             // 1. Fetch moments for the target user (both active and highlighted)
@@ -141,7 +163,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                 .order("created_at", { ascending: true });
 
             // 2. Fetch active moments for friends (ONLY if we are on own dashboard view)
-            let friendsMomentsData: any[] = [];
+            let friendsMomentsData: Moment[] = [];
             if (!profileUserId && user) {
                 const { data: friendships } = await supabase
                     .from("friendships")
@@ -166,13 +188,13 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                         .order("created_at", { ascending: true });
 
                     if (friendsMoments) {
-                        friendsMomentsData = friendsMoments;
+                        friendsMomentsData = friendsMoments.map(formatMoment);
                     }
                 }
             }
 
             // Filter target user's moments into active and highlighted
-            const personalMoments = targetMomentsData || [];
+            const personalMoments = (targetMomentsData || []).map(formatMoment);
             const activePersonal = personalMoments.filter(m => new Date(m.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000));
             const highlightedPersonal = personalMoments.filter(m => m.background_color?.includes('|highlight'));
 
@@ -182,7 +204,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
             // Group friends' moments
             if (friendsMomentsData.length > 0) {
                 const groups: { [key: string]: Moment[] } = {};
-                friendsMomentsData.forEach((m: any) => {
+                friendsMomentsData.forEach((m) => {
                     if (!groups[m.user_id]) groups[m.user_id] = [];
                     groups[m.user_id].push(m);
                 });
