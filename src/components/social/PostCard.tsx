@@ -285,7 +285,7 @@ export function PostCard({ post }: { post: Post }) {
         type: 'post' as const,
         id: post.id,
         title: post.caption || "Sister's Post",
-        image: (post.media_urls?.[0] || post.image_url) ?? undefined,
+        image: post.media_urls?.[0] ? post.media_urls[0] : (post.image_url ? post.image_url : undefined),
         content: post.caption
     };
 
