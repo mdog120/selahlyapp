@@ -6,7 +6,7 @@ import { PostCard } from "./PostCard";
 import { CreatePost } from "./CreatePost";
 import { PostPreviewCard } from "./PostPreviewCard";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Sparkles, Heart, Clock } from "lucide-react";
 
 type Post = {
     id: string;
@@ -29,6 +29,7 @@ type Post = {
 export function SocialFeed() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<'newest' | 'most_liked' | 'oldest'>('newest');
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const supabase = createClient();
 
@@ -94,13 +95,69 @@ export function SocialFeed() {
         fetchPosts();
     }, []);
 
-    // Split posts into two columns for Lemon8-style staggered masonry layout
-    const leftColumnPosts = posts.filter((_, idx) => idx % 2 === 0);
-    const rightColumnPosts = posts.filter((_, idx) => idx % 2 !== 0);
+    // Sort posts based on the active filter
+    const sortedPosts = [...posts].sort((a, b) => {
+        if (filter === 'newest') {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
+        if (filter === 'oldest') {
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        }
+        if (filter === 'most_liked') {
+            if (b.likes_count !== a.likes_count) {
+                return b.likes_count - a.likes_count;
+            }
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
+        return 0;
+    });
+
+    // Split sorted posts into two columns for Lemon8-style staggered masonry layout
+    const leftColumnPosts = sortedPosts.filter((_, idx) => idx % 2 === 0);
+    const rightColumnPosts = sortedPosts.filter((_, idx) => idx % 2 !== 0);
 
     return (
         <div className="flex flex-col gap-6">
             <CreatePost onPostCreated={fetchPosts} />
+
+            {/* Cute Lemon8-styled segment filter selector */}
+            <div className="flex justify-center -mb-2">
+                <div className="flex items-center gap-1 bg-stone-100/60 p-1 rounded-full border border-stone-200/40 shadow-inner">
+                    <button
+                        onClick={() => setFilter('newest')}
+                        className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 active-press-shrink ${
+                            filter === 'newest'
+                                ? "bg-white text-muted-rose shadow-sm border border-pink-100/30 scale-105"
+                                : "text-warm-grey/50 hover:text-warm-grey/80"
+                        }`}
+                    >
+                        <Sparkles className="w-3.5 h-3.5 text-pink-400 fill-pink-300/10" />
+                        <span>Newest</span>
+                    </button>
+                    <button
+                        onClick={() => setFilter('most_liked')}
+                        className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 active-press-shrink ${
+                            filter === 'most_liked'
+                                ? "bg-white text-muted-rose shadow-sm border border-pink-100/30 scale-105"
+                                : "text-warm-grey/50 hover:text-warm-grey/80"
+                        }`}
+                    >
+                        <Heart className="w-3.5 h-3.5 text-muted-rose fill-muted-rose/10" />
+                        <span>Most Liked</span>
+                    </button>
+                    <button
+                        onClick={() => setFilter('oldest')}
+                        className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 active-press-shrink ${
+                            filter === 'oldest'
+                                ? "bg-white text-muted-rose shadow-sm border border-pink-100/30 scale-105"
+                                : "text-warm-grey/50 hover:text-warm-grey/80"
+                        }`}
+                    >
+                        <Clock className="w-3.5 h-3.5 text-warm-grey/50" />
+                        <span>Oldest</span>
+                    </button>
+                </div>
+            </div>
 
             {loading ? (
                 <div className="text-center py-10 text-warm-grey/40">Loading community...</div>
