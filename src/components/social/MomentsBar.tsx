@@ -497,7 +497,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                     {/* Signature Bow on top */}
                     <BowLogo 
                         size={36} 
-                        className="absolute -top-5 z-20 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-200" 
+                        className="absolute -top-5 z-20 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-200 text-black"
                     />
 
                     {/* Bigger Circle (w-20 h-20) */}
@@ -530,7 +530,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                     className="cursor-pointer text-center mt-3.5 relative z-10 bg-white/80 backdrop-blur-md py-1.5 px-5 rounded-full border border-warm-grey/10 shadow-sm transition-all hover:bg-white hover:shadow"
                 >
                     <span className="text-xs font-serif text-warm-cocoa font-bold">
-                        {myGroup ? "View Your Story" : "Share Your Moment ౨ৎ"}
+                        {myGroup ? "View Your Moment" : "Share Your Moment ౨ৎ"}
                     </span>
                 </div>
             </div>
