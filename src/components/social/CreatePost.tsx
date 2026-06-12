@@ -223,6 +223,14 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
         if (e.target.files && e.target.files.length > 0) {
             const files = Array.from(e.target.files);
 
+            // Check size limit (e.g., 50MB)
+            const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+            const oversizedFiles = files.filter(f => f.size > MAX_FILE_SIZE);
+            if (oversizedFiles.length > 0) {
+                alert("Some files are too large! The maximum file size limit is 50MB.");
+                return;
+            }
+
             // Limit to 5 files for now
             if (files.length + uploadedFiles.length > 5) {
                 alert("You can only select up to 5 items.");

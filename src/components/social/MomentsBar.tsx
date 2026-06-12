@@ -236,6 +236,11 @@ export function MomentsBar() {
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
+            const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+            if (file.size > MAX_FILE_SIZE) {
+                alert("This file is too large! The maximum file size limit is 50MB.");
+                return;
+            }
             setSelectedFile(file);
             const objectUrl = URL.createObjectURL(file);
             setFilePreview(objectUrl);
