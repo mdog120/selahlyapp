@@ -114,7 +114,7 @@ export default function ProfilePage() {
                 song_title, song_artist, song_album_art, song_preview_url, song_link
             `)
             .eq("user_id", prof.id)
-            .or(`created_at.gt.${twentyFourHoursAgo},background_color.like.%|highlight:%`)
+            .or(`created_at.gt.${twentyFourHoursAgo},background_color.like.%|highlight%`)
             .order("created_at", { ascending: true });
 
         if (userMoments) {
