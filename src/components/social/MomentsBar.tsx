@@ -59,6 +59,111 @@ export function MomentsBar() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
+    // Mention State for story caption
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
+    const [isMentionOpen, setIsMentionOpen] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+    const storyInputRef = useRef<HTMLInputElement>(null);
+
+    // Mention Search
+    useEffect(() => {
+        if (mentionQuery === null) {
+            setMentionResults([]);
+            setIsMentionOpen(false);
+            return;
+        }
+
+        const fetchFriendsForMention = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from("friendships")
+                .select(`
+                    user_id_1,
+                    user_id_2,
+                    user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
+                    user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
+                `)
+                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                .eq("status", "accepted");
+
+            if (error) {
+                console.error("Error fetching friends for mention:", error);
+                setMentionResults([]);
+                setIsMentionOpen(false);
+                return;
+            }
+
+            if (data) {
+                const friendsList = data.map((f: any) => {
+                    return f.user_id_1 === user.id ? f.user2 : f.user1;
+                }).filter(Boolean);
+
+                const lowerQuery = mentionQuery.toLowerCase();
+                const filtered = friendsList.filter((friend: any) => {
+                    return (
+                        friend.username?.toLowerCase().includes(lowerQuery) ||
+                        friend.first_name?.toLowerCase().includes(lowerQuery)
+                    );
+                });
+
+                if (filtered.length > 0) {
+                    setMentionResults(filtered as any);
+                    setIsMentionOpen(true);
+                } else {
+                    setMentionResults([]);
+                    setIsMentionOpen(false);
+                }
+            } else {
+                setMentionResults([]);
+                setIsMentionOpen(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchFriendsForMention, 300);
+        return () => clearTimeout(timeoutId);
+    }, [mentionQuery]);
+
+    const handleStoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.slice(0, 100);
+        const pos = e.target.selectionStart || 0;
+        setCaption(value);
+        setCursorPosition(pos);
+
+        // Detect @ match
+        const textBeforeCursor = value.slice(0, pos);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
+
+        if (match) {
+            setMentionQuery(match[1]);
+        } else {
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+        }
+    };
+
+    const insertStoryMention = (username: string) => {
+        if (!cursorPosition) return;
+        const textBeforeCursor = caption.slice(0, cursorPosition);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
+
+        if (match) {
+            const matchIndex = match.index! + match[0].indexOf('@');
+            const textAfterCursor = caption.slice(cursorPosition);
+            const newText = caption.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
+
+            setCaption(newText.slice(0, 100));
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+
+            setTimeout(() => {
+                storyInputRef.current?.focus();
+            }, 50);
+        }
+    };
+
     useEffect(() => {
         loadCurrentUserAndMoments();
     }, []);
@@ -179,6 +284,8 @@ export function MomentsBar() {
             setSongArtwork("");
             setShowSongInput(false);
             setIsCreatorOpen(false);
+            setMentionQuery(null);
+            setIsMentionOpen(false);
 
             // Reload moments
             await loadCurrentUserAndMoments();
@@ -311,6 +418,8 @@ export function MomentsBar() {
                                     setCaption("");
                                     setSelectedFile(null);
                                     setFilePreview(null);
+                                    setMentionQuery(null);
+                                    setIsMentionOpen(false);
                                 }}
                                 className="p-1 rounded-full hover:bg-stone-100 text-warm-grey/60"
                             >
@@ -355,15 +464,43 @@ export function MomentsBar() {
                         </div>
 
                         {/* Caption input */}
-                        <div className="space-y-1">
+                        <div className="space-y-1 relative">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Caption / Thought</label>
                             <input 
+                                ref={storyInputRef}
                                 type="text"
                                 value={caption}
-                                onChange={(e) => setCaption(e.target.value.slice(0, 100))}
+                                onChange={handleStoryInputChange}
                                 placeholder="Type a cozy thought..."
                                 className="w-full px-4 py-2.5 text-xs rounded-xl bg-white/50 border border-warm-grey/5 focus:outline-none text-warm-grey placeholder:text-warm-grey/30"
                             />
+                            {/* Mention Autocomplete */}
+                            {isMentionOpen && mentionResults.length > 0 && (
+                                <div className="absolute bottom-full mb-2 left-0 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
+                                    {mentionResults.map((profile) => (
+                                        <button
+                                            type="button"
+                                            key={profile.id}
+                                            className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
+                                            onClick={() => insertStoryMention(profile.username)}
+                                        >
+                                            <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
+                                                {profile.avatar_url ? (
+                                                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
+                                                        {profile.first_name?.[0]}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
+                                                <p className="text-[10px] text-warm-grey/60 truncate">{profile.first_name}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* BG Color picker if text-only */}

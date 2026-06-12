@@ -72,38 +72,57 @@ export default function GroupChatPage() {
             return;
         }
 
-        const fetchProfiles = async () => {
-            // In a group chat, we should ideally restrict mentions to GROUP MEMBERS.
-            // But for now, global search is easier, or we filter `group.members`.
-            // Filtering group members is better UX.
-            if (group?.members) {
-                const lowerQuery = mentionQuery.toLowerCase();
-                const matches = group.members
-                    .filter((m: any) =>
-                        m.profile.username?.toLowerCase().includes(lowerQuery) ||
-                        m.profile.first_name.toLowerCase().includes(lowerQuery)
-                    )
-                    .map((m: any) => ({
-                        id: m.user_id,
-                        username: m.profile.username,
-                        first_name: m.profile.first_name,
-                        avatar_url: m.profile.avatar_url
-                    }))
-                    .slice(0, 5);
+        const fetchFriendsForMention = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-                if (matches.length > 0) {
-                    setMentionResults(matches);
+            const { data, error } = await supabase
+                .from("friendships")
+                .select(`
+                    user_id_1,
+                    user_id_2,
+                    user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
+                    user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
+                `)
+                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                .eq("status", "accepted");
+
+            if (error) {
+                console.error("Error fetching friends for mention:", error);
+                setMentionResults([]);
+                setIsMentionOpen(false);
+                return;
+            }
+
+            if (data) {
+                const friendsList = data.map((f: any) => {
+                    return f.user_id_1 === user.id ? f.user2 : f.user1;
+                }).filter(Boolean);
+
+                const lowerQuery = mentionQuery.toLowerCase();
+                const filtered = friendsList.filter((friend: any) => {
+                    return (
+                        friend.username?.toLowerCase().includes(lowerQuery) ||
+                        friend.first_name?.toLowerCase().includes(lowerQuery)
+                    );
+                });
+
+                if (filtered.length > 0) {
+                    setMentionResults(filtered as any);
                     setIsMentionOpen(true);
                 } else {
                     setMentionResults([]);
                     setIsMentionOpen(false);
                 }
+            } else {
+                setMentionResults([]);
+                setIsMentionOpen(false);
             }
         };
-        // Debounce logic is a bit manual here, but since it's local filtering it's fine to run immediately or debounce slightly
-        const timeoutId = setTimeout(fetchProfiles, 100);
+
+        const timeoutId = setTimeout(fetchFriendsForMention, 300);
         return () => clearTimeout(timeoutId);
-    }, [mentionQuery, group]);
+    }, [mentionQuery]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;

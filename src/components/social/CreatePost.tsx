@@ -38,23 +38,55 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             return;
         }
 
-        const fetchProfiles = async () => {
-            const { data } = await supabase
-                .from('profiles')
-                .select('id, username, first_name, avatar_url')
-                .ilike('username', `%${mentionQuery}%`)
-                .limit(5);
+        const fetchFriendsForMention = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-            if (data && data.length > 0) {
-                setMentionResults(data as any);
-                setIsMentionOpen(true);
+            const { data, error } = await supabase
+                .from("friendships")
+                .select(`
+                    user_id_1,
+                    user_id_2,
+                    user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
+                    user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
+                `)
+                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                .eq("status", "accepted");
+
+            if (error) {
+                console.error("Error fetching friends for mention:", error);
+                setMentionResults([]);
+                setIsMentionOpen(false);
+                return;
+            }
+
+            if (data) {
+                const friendsList = data.map((f: any) => {
+                    return f.user_id_1 === user.id ? f.user2 : f.user1;
+                }).filter(Boolean);
+
+                const lowerQuery = mentionQuery.toLowerCase();
+                const filtered = friendsList.filter((friend: any) => {
+                    return (
+                        friend.username?.toLowerCase().includes(lowerQuery) ||
+                        friend.first_name?.toLowerCase().includes(lowerQuery)
+                    );
+                });
+
+                if (filtered.length > 0) {
+                    setMentionResults(filtered as any);
+                    setIsMentionOpen(true);
+                } else {
+                    setMentionResults([]);
+                    setIsMentionOpen(false);
+                }
             } else {
                 setMentionResults([]);
                 setIsMentionOpen(false);
             }
         };
 
-        const timeoutId = setTimeout(fetchProfiles, 300);
+        const timeoutId = setTimeout(fetchFriendsForMention, 300);
         return () => clearTimeout(timeoutId);
     }, [mentionQuery]);
 
