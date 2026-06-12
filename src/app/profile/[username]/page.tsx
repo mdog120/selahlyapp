@@ -292,7 +292,7 @@ export default function ProfilePage() {
                         {activeMoments.length > 0 ? (
                             <div 
                                 onClick={() => setIsViewerOpen(true)}
-                                className="w-32 h-32 md:w-40 md:h-40 rounded-full p-[4px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_20px_rgba(244,143,177,0.8)] animate-pulse flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200"
+                                className="w-32 h-32 md:w-40 md:h-40 rounded-full p-[4px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_20px_rgba(244,143,177,0.8)] flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200"
                                 title="Watch moments"
                             >
                                 <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-stone-100">

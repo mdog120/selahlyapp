@@ -503,7 +503,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                     {/* Bigger Circle (w-20 h-20) */}
                     <div className={`w-20 h-20 rounded-full p-[3.5px] bg-gradient-to-tr ${
                         myGroup 
-                            ? 'from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_15px_rgba(244,143,177,0.7)] animate-pulse' 
+                            ? 'from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_15px_rgba(244,143,177,0.7)]' 
                             : 'from-warm-grey/15 to-warm-grey/30'
                     } shadow-md transition-all group-hover:scale-[1.03] duration-200`}>
                         <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white flex items-center justify-center">
@@ -547,7 +547,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                                 whileTap={{ scale: 0.92 }}
                                 className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer"
                             >
-                                <div className="w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-2 ring-pink-100 shadow-[0_0_10px_rgba(244,143,177,0.6)] animate-pulse shrink-0 transition-transform">
+                                <div className="w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-2 ring-pink-100 shadow-[0_0_10px_rgba(244,143,177,0.6)] shrink-0 transition-transform">
                                     <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
                                         {group.userAvatar ? (
                                             <img src={group.userAvatar} alt={group.userName} className="w-full h-full object-cover" />
