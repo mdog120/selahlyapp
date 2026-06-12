@@ -459,6 +459,46 @@ export default function ChatPage() {
         }
     };
 
+    const sendSticker = async (stickerName: string) => {
+        if (!currentUser) return;
+
+        const content = `[sticker:${stickerName}]`;
+
+        // Optimistic Update
+        const tempMsg: Message = {
+            id: `temp-${Date.now()}`,
+            content: content,
+            sender_id: currentUser.id,
+            receiver_id: otherUserId,
+            created_at: new Date().toISOString(),
+            read_at: null,
+            reactions: {}
+        };
+
+        setMessages(prev => [...prev, tempMsg]);
+
+        // Send to DB
+        const { data, error } = await supabase.from("direct_messages").insert({
+            sender_id: currentUser.id,
+            receiver_id: otherUserId,
+            content: content,
+            reactions: {}
+        }).select().single();
+
+        if (error) {
+            console.error("Error sending sticker:", error);
+            alert("Failed to send sticker");
+            setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+        } else if (data) {
+            setMessages(prev => {
+                if (prev.some(m => m.id === data.id)) {
+                    return prev.filter(m => m.id !== tempMsg.id);
+                }
+                return prev.map(m => m.id === tempMsg.id ? data : m);
+            });
+        }
+    };
+
     const handleSend = async () => {
         if (!newMessage.trim() || !currentUser) return;
 
@@ -757,7 +797,7 @@ export default function ChatPage() {
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
                 >
-                    <StickerPicker onSelect={(badge) => setNewMessage(prev => `${prev} [sticker:${badge.icon_name}]`)} />
+                    <StickerPicker onSelect={(badge) => sendSticker(badge.icon_name)} />
 
                     <div className="relative flex-1">
                         <input

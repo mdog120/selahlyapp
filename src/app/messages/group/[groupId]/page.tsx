@@ -301,6 +301,41 @@ export default function GroupChatPage() {
         handleReaction(messageId, 'bow');
     };
 
+    const sendSticker = async (stickerName: string) => {
+        if (!currentUser) return;
+        const content = `[sticker:${stickerName}]`;
+
+        // Optimistic
+        const tempMsg: Message = {
+            id: `temp-${Date.now()}`,
+            content: content,
+            sender_id: currentUser.id,
+            group_id: groupId,
+            created_at: new Date().toISOString(),
+            reactions: {},
+            read_by: [],
+            sender: {
+                first_name: currentProfile?.first_name || currentUser.user_metadata?.first_name || "Me",
+                avatar_url: currentProfile?.avatar_url || currentUser.user_metadata?.avatar_url || ""
+            }
+        };
+        setMessages(prev => [...prev, tempMsg]);
+
+        const { data, error } = await supabase.from("group_messages").insert({
+            sender_id: currentUser.id,
+            group_id: groupId,
+            content: content,
+            reactions: {}
+        }).select().single();
+
+        if (error) {
+            setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+            alert("Failed to send");
+        } else if (data) {
+            setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...m, id: data.id } : m));
+        }
+    };
+
     const handleSend = async () => {
         if (!newMessage.trim() || !currentUser) return;
         const content = newMessage;
@@ -598,7 +633,7 @@ export default function GroupChatPage() {
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
                 >
-                    <StickerPicker onSelect={(badge) => setNewMessage(prev => `${prev} [sticker:${badge.icon_name}]`)} />
+                    <StickerPicker onSelect={(badge) => sendSticker(badge.icon_name)} />
 
                     <input
                         ref={inputRef}
