@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Upload, Loader2, Sparkles, Music, Scissors, Star } from "lucide-react";
 import { MomentModal } from "./MomentModal";
+import { BowLogo } from "@/components/ui/BowLogo";
 import { Button } from "@/components/ui/Button";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
 import { motion, AnimatePresence } from "framer-motion";
@@ -494,10 +495,9 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                     className="relative cursor-pointer group flex flex-col items-center"
                 >
                     {/* Signature Bow on top */}
-                    <img 
-                        src="/images/selahly_bow.png" 
-                        alt="Signature Bow" 
-                        className="absolute -top-5 w-10 h-10 object-contain z-20 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-200" 
+                    <BowLogo 
+                        size={36} 
+                        className="absolute -top-5 z-20 drop-shadow-sm transform group-hover:scale-110 transition-transform duration-200" 
                     />
 
                     {/* Bigger Circle (w-20 h-20) */}
