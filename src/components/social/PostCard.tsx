@@ -5,11 +5,13 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Image as ImageIcon, X, Flame, Feather, Users, Mail, Sun, Flower2, Star, TreeDeciduous, CloudSun, Send, Trash2, Flag, AlertTriangle, Music, Volume2, VolumeX, MapPin, Smile, Edit2 } from "lucide-react";
 import { SongPlayer } from "@/components/ui/SongPlayer";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
+import { ShareModal } from "../messaging/ShareModal";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { useBadge } from "@/context/BadgeContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Post = {
     id: string;
@@ -53,6 +55,9 @@ export function PostCard({ post }: { post: Post }) {
     const [liked, setLiked] = useState(post.user_has_liked || false);
     const [likesCount, setLikesCount] = useState(post.likes_count || 0);
     const [animating, setAnimating] = useState(false);
+    const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const lastTap = useRef<number>(0);
 
     // Comments
     const [showComments, setShowComments] = useState(false);
@@ -254,22 +259,34 @@ export function PostCard({ post }: { post: Post }) {
         }
     };
 
-    const handleShare = async () => {
-        const shareData = {
-            title: 'Selahly Post',
-            text: post.caption,
-            url: window.location.href
-        };
-        try {
-            if (navigator.share) {
-                await navigator.share(shareData);
+    const handleShare = () => {
+        setIsShareModalOpen(true);
+    };
+
+    const handleDoubleTap = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const now = Date.now();
+        const DOUBLE_PRESS_DELAY = 300;
+        if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+            if (!liked) {
+                await handleLike();
             } else {
-                await navigator.clipboard.writeText(window.location.href);
-                alert("Link copied to clipboard! 📋");
+                setAnimating(true);
+                setTimeout(() => setAnimating(false), 1000);
             }
-        } catch (err) {
-            console.error(err);
+            setShowDoubleTapHeart(true);
+            setTimeout(() => setShowDoubleTapHeart(false), 850);
+        } else {
+            lastTap.current = now;
         }
+    };
+
+    const shareContent = {
+        type: 'post' as const,
+        id: post.id,
+        title: post.caption || "Sister's Post",
+        image: post.media_urls?.[0] || post.image_url || undefined,
+        content: post.caption
     };
 
     const handleLike = async () => {
@@ -469,7 +486,7 @@ export function PostCard({ post }: { post: Post }) {
 
         if (post.type === 'carousel' && post.media_urls && post.media_urls.length > 0) {
             return (
-                <div className="relative mb-4 group">
+                <div className="relative mb-4 group cursor-pointer" onClick={handleDoubleTap}>
                     <div className="flex overflow-x-auto snap-x snap-mandatory gap-0 rounded-2xl scrollbar-hide">
                         {post.media_urls.map((url, idx) => (
                             <div key={idx} className="w-full flex-shrink-0 snap-center aspect-square bg-stone-100 relative">
@@ -484,6 +501,21 @@ export function PostCard({ post }: { post: Post }) {
                             </div>
                         ))}
                     </div>
+                    <AnimatePresence>
+                        {showDoubleTapHeart && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.3 }}
+                                animate={{ opacity: 1, scale: 1.1 }}
+                                exit={{ opacity: 0, scale: 1.4 }}
+                                transition={{ type: "spring", damping: 15 }}
+                                className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+                            >
+                                <div className="bg-white/90 backdrop-blur-md rounded-3xl p-5 shadow-xl border border-pink-100/30 flex items-center justify-center">
+                                    <Heart className="w-14 h-14 text-muted-rose fill-muted-rose animate-pulse" />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             );
         }
@@ -491,7 +523,10 @@ export function PostCard({ post }: { post: Post }) {
         const imgUrl = post.media_urls?.[0] || post.image_url;
         if (imgUrl) {
             return (
-                <div className="aspect-square rounded-2xl bg-stone-100 mb-4 overflow-hidden relative group">
+                <div 
+                    className="aspect-square rounded-2xl bg-stone-100 mb-4 overflow-hidden relative group cursor-pointer"
+                    onClick={handleDoubleTap}
+                >
                     <img
                         src={imgUrl}
                         alt="Post content"
@@ -501,12 +536,28 @@ export function PostCard({ post }: { post: Post }) {
                     {/* Volume Toggle Overlay */}
                     {post.song_preview_url && (
                         <button
-                            onClick={toggleMute}
-                            className="absolute bottom-3 right-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white p-2 rounded-full transition-all animate-fade-in"
+                            onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                            className="absolute bottom-3 right-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white p-2 rounded-full transition-all z-20"
                         >
                             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                         </button>
                     )}
+
+                    <AnimatePresence>
+                        {showDoubleTapHeart && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.3 }}
+                                animate={{ opacity: 1, scale: 1.1 }}
+                                exit={{ opacity: 0, scale: 1.4 }}
+                                transition={{ type: "spring", damping: 15 }}
+                                className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+                            >
+                                <div className="bg-white/90 backdrop-blur-md rounded-3xl p-5 shadow-xl border border-pink-100/30 flex items-center justify-center">
+                                    <Heart className="w-14 h-14 text-muted-rose fill-muted-rose animate-pulse" />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             );
         }
@@ -602,9 +653,11 @@ export function PostCard({ post }: { post: Post }) {
                                     }`}
                                 >
                                     {hasVoted && (
-                                        <div 
-                                            className="absolute left-0 top-0 bottom-0 bg-sage-green/10 transition-all duration-500" 
-                                            style={{ width: `${percent}%` }}
+                                        <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${percent}%` }}
+                                            transition={{ type: "spring", stiffness: 80, damping: 15 }}
+                                            className="absolute left-0 top-0 bottom-0 bg-sage-green/15" 
                                         />
                                     )}
                                     <span className="relative z-10 text-warm-grey font-medium">{opt.option_text}</span>
@@ -1015,6 +1068,14 @@ export function PostCard({ post }: { post: Post }) {
                     setEditSongArtwork(song.artwork);
                 }}
             />
+
+            {isShareModalOpen && (
+                <ShareModal
+                    isOpen={isShareModalOpen}
+                    onClose={() => setIsShareModalOpen(false)}
+                    content={shareContent}
+                />
+            )}
         </div>
     );
 }

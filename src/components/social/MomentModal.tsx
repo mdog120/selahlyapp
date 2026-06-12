@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Heart, MessageSquare, Trash2, Volume2, VolumeX, Send, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
 
 type Moment = {
     id: string;
@@ -170,7 +171,7 @@ export function MomentModal({
         }
     };
 
-    if (!isOpen || moments.length === 0) return null;
+    if (moments.length === 0) return null;
 
     const handlePrev = () => {
         if (activeIndex > 0) {
@@ -307,7 +308,12 @@ export function MomentModal({
     ) : false;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in">
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md"
+        >
             {/* Click zones */}
             <div className="absolute inset-0 flex">
                 <div className="w-1/3 h-full cursor-w-resize" onClick={handlePrev} />
@@ -316,7 +322,12 @@ export function MomentModal({
             </div>
 
             {/* Modal Card */}
-            <div className="relative w-full max-w-md h-[85vh] mx-4 bg-stone-950 rounded-[2.5rem] overflow-hidden flex flex-col justify-between shadow-2xl border border-stone-900 z-10">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                transition={{ type: "spring", damping: 20, stiffness: 260 }}
+                className="relative w-full max-w-md h-[85vh] mx-4 bg-stone-950 rounded-[2.5rem] overflow-hidden flex flex-col justify-between shadow-2xl border border-stone-900 z-10">
                 {/* Progress Indicators */}
                 <div className="absolute top-4 left-4 right-4 flex gap-1 z-20">
                     {moments.map((_, idx) => (
@@ -557,7 +568,7 @@ export function MomentModal({
                 >
                     <ChevronRight className="w-6 h-6" />
                 </button>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }

@@ -6,6 +6,7 @@ import { Plus, X, Upload, Loader2, Sparkles, Music } from "lucide-react";
 import { MomentModal } from "./MomentModal";
 import { Button } from "@/components/ui/Button";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Moment = {
     id: string;
@@ -257,12 +258,13 @@ export function MomentsBar() {
 
             {/* Friend Moments Bubbles */}
             {otherGroups.map((group) => (
-                <div 
+                <motion.div 
                     key={group.user_id}
                     onClick={() => openViewer(group)}
+                    whileTap={{ scale: 0.92 }}
                     className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer"
                 >
-                    <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-muted-rose via-soft-blush to-sage-green shadow-md active:scale-95 transition-transform">
+                    <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-muted-rose via-soft-blush to-sage-green shadow-md transition-transform">
                         <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
                             {group.userAvatar ? (
                                 <img src={group.userAvatar} alt={group.userName} className="w-full h-full object-cover" />
@@ -274,24 +276,26 @@ export function MomentsBar() {
                         </div>
                     </div>
                     <span className="text-[10px] font-bold text-warm-grey/70">{group.userName}</span>
-                </div>
+                </motion.div>
             ))}
 
             {/* Moments Viewer Modal */}
-            {selectedGroup && (
-                <MomentModal 
-                    isOpen={isViewerOpen}
-                    onClose={() => {
-                        setIsViewerOpen(false);
-                        setSelectedGroup(null);
-                    }}
-                    moments={selectedGroup.moments}
-                    userName={selectedGroup.userName}
-                    userAvatar={selectedGroup.userAvatar}
-                    currentUserId={currentUser?.id}
-                    onMomentDeleted={loadCurrentUserAndMoments}
-                />
-            )}
+            <AnimatePresence>
+                {selectedGroup && (
+                    <MomentModal 
+                        isOpen={isViewerOpen}
+                        onClose={() => {
+                            setIsViewerOpen(false);
+                            setSelectedGroup(null);
+                        }}
+                        moments={selectedGroup.moments}
+                        userName={selectedGroup.userName}
+                        userAvatar={selectedGroup.userAvatar}
+                        currentUserId={currentUser?.id}
+                        onMomentDeleted={loadCurrentUserAndMoments}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Moments Creator Modal */}
             {isCreatorOpen && (
