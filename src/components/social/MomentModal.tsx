@@ -262,9 +262,9 @@ export function MomentModal({
         setShowLikesModal(false);
     }, [isOpen, moments]);
 
-    // Handle Story Autoplay Progress (Paused when drawers are open)
+    // Handle Story Autoplay Progress (Paused when drawers or modals are open)
     useEffect(() => {
-        if (!isOpen || moments.length === 0 || showCommentsDrawer || showLikesModal) return;
+        if (!isOpen || moments.length === 0 || showCommentsDrawer || showLikesModal || isHighlightModalOpen) return;
 
         setProgress(0);
         const duration = 7000; // 7 seconds per slide for more relaxed reading
@@ -282,7 +282,7 @@ export function MomentModal({
         }, intervalTime);
 
         return () => clearInterval(timer);
-    }, [isOpen, activeIndex, moments, showCommentsDrawer, showLikesModal]);
+    }, [isOpen, activeIndex, moments, showCommentsDrawer, showLikesModal, isHighlightModalOpen]);
 
     // Handle Background Music Playback
     useEffect(() => {
