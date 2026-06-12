@@ -3,6 +3,7 @@ import { Playfair_Display, Outfit } from "next/font/google"; // Elegant serif + 
 import { LayoutContent } from "@/components/LayoutContent";
 import { BadgeProvider } from "@/context/BadgeContext";
 import { GlobalAlertProvider } from "@/components/ui/GlobalAlertProvider";
+import { AmbiencePlayer } from "@/components/ui/AmbiencePlayer";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -51,6 +52,7 @@ export default function RootLayout({
       >
         <BadgeProvider>
           <GlobalAlertProvider>
+            <AmbiencePlayer />
             <LayoutContent>
               {children}
             </LayoutContent>

@@ -98,7 +98,7 @@ export function SocialFeed() {
         fetchPosts();
         setTimeout(() => {
             justClosedRef.current = false;
-        }, 350); // 350ms lock to absorb all fastclick/ghost-click events
+        }, 800); // 800ms lock to absorb all browser fastclick/ghost-click events
     };
 
     const handleOpenModal = (post: Post) => {

@@ -120,51 +120,7 @@ export function PostCard({ post }: { post: Post }) {
             fetchPollData();
         }
 
-        // Direct autoplay on mount (especially useful when opened inside the details modal)
-        if (post.song_preview_url && audioRef.current) {
-            const playPromise = audioRef.current.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.log("Autoplay blocked, falling back to muted", error);
-                    setIsMuted(true);
-                    if (audioRef.current) {
-                        audioRef.current.muted = true;
-                        audioRef.current.play().catch(e => console.error("Muted autoplay also failed", e));
-                    }
-                });
-            }
-        }
- 
-        // Audio & Intersection Observer
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsPlaying(true);
-                    if (audioRef.current) {
-                        const playPromise = audioRef.current.play();
-                        if (playPromise !== undefined) {
-                            playPromise.catch(error => {
-                                console.log("Autoplay blocked, falling back to muted", error);
-                                // If unmuted autoplay fails, mute and try again
-                                setIsMuted(true);
-                                if (audioRef.current) {
-                                    audioRef.current.muted = true;
-                                    audioRef.current.play().catch(e => console.error("Muted autoplay also failed", e));
-                                }
-                            });
-                        }
-                    }
-                } else {
-                    setIsPlaying(false);
-                    if (audioRef.current) {
-                        audioRef.current.pause();
-                    }
-                }
-            },
-            { threshold: 0.6 } // Play when 60% visible
-        );
 
-        if (cardRef.current) observer.observe(cardRef.current);
 
         // Header Cycling Interval
         const interval = setInterval(() => {
@@ -181,7 +137,6 @@ export function PostCard({ post }: { post: Post }) {
 
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-            observer.disconnect();
             clearInterval(interval);
             if (audioRef.current) audioRef.current.pause();
         };
