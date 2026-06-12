@@ -14,6 +14,9 @@ import { SongPlayer } from "@/components/ui/SongPlayer";
 import { BadgeGrid } from "@/components/gamification/BadgeGrid";
 import { useBadge } from "@/context/BadgeContext";
 import { HeartHandshake } from "lucide-react";
+import { MomentsBar } from "@/components/social/MomentsBar";
+import { MomentModal } from "@/components/social/MomentModal";
+import { AnimatePresence } from "framer-motion";
 
 const COLOR_MAP: Record<string, string> = {
     'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
@@ -69,6 +72,8 @@ export default function ProfilePage() {
     const [requests, setRequests] = useState<any[]>([]);
     const [friends, setFriends] = useState<any[]>([]);
     const [recentPosts, setRecentPosts] = useState<any[]>([]);
+    const [activeMoments, setActiveMoments] = useState<any[]>([]);
+    const [isViewerOpen, setIsViewerOpen] = useState(false);
 
     const { triggerBadge } = useBadge();
     const supabase = createClient();
@@ -166,6 +171,22 @@ export default function ProfilePage() {
 
                 if (postsData) {
                     setRecentPosts(postsData);
+                }
+
+                // 4. Fetch Active Moments (within last 24 hours)
+                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                const { data: userMoments } = await supabase
+                    .from("moments")
+                    .select(`
+                        id, media_url, caption, background_color, created_at, user_id,
+                        song_title, song_artist, song_album_art, song_preview_url, song_link
+                    `)
+                    .eq("user_id", profileData.id)
+                    .gt("created_at", twentyFourHoursAgo)
+                    .order("created_at", { ascending: true });
+
+                if (userMoments) {
+                    setActiveMoments(userMoments);
                 }
             }
             setLoading(false);
@@ -268,15 +289,33 @@ export default function ProfilePage() {
                 {/* Profile Card */}
                 <div className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-8 shadow-sm animate-fade-in-up mb-8">
                     <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
-                        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-stone-100 border-4 border-white shadow-lg overflow-hidden flex-shrink-0 mx-auto md:mx-0">
-                            {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover object-center" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif">
-                                    {(profile.first_name?.[0] || "")}
+                        {activeMoments.length > 0 ? (
+                            <div 
+                                onClick={() => setIsViewerOpen(true)}
+                                className="w-32 h-32 md:w-40 md:h-40 rounded-full p-[3px] bg-gradient-to-tr from-muted-rose via-soft-blush to-sage-green shadow-lg overflow-hidden flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200"
+                                title="Watch moments"
+                            >
+                                <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-stone-100">
+                                    {profile.avatar_url ? (
+                                        <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover object-center" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif animate-pulse">
+                                            {(profile.first_name?.[0] || "")}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-stone-100 border-4 border-white shadow-lg overflow-hidden flex-shrink-0 mx-auto md:mx-0">
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover object-center" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif">
+                                        {(profile.first_name?.[0] || "")}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <div className="flex-1 text-center md:text-left">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -463,6 +502,13 @@ export default function ProfilePage() {
                     )
                 }
 
+                {/* Moments Bar (only for self) */}
+                {friendStatus === 'self' && (
+                    <div className="mb-8 bg-white/60 p-4 rounded-3xl border border-white">
+                        <MomentsBar />
+                    </div>
+                )}
+
                 {/* Sticky Board */}
                 <div className="mb-12">
                     <StickyBoard
@@ -557,6 +603,35 @@ export default function ProfilePage() {
                         isOwner={currentUser?.id === profile.id}
                     />
                 </div>
+
+                {/* Moments Viewer Modal */}
+                <AnimatePresence>
+                    {isViewerOpen && activeMoments.length > 0 && (
+                        <MomentModal 
+                            isOpen={isViewerOpen}
+                            onClose={() => setIsViewerOpen(false)}
+                            moments={activeMoments}
+                            userName={profile.first_name}
+                            userAvatar={profile.avatar_url}
+                            currentUserId={currentUser?.id}
+                            onMomentDeleted={async () => {
+                                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                                const { data: userMoments } = await supabase
+                                    .from("moments")
+                                    .select(`
+                                        id, media_url, caption, background_color, created_at, user_id,
+                                        song_title, song_artist, song_album_art, song_preview_url, song_link
+                                    `)
+                                    .eq("user_id", profile.id)
+                                    .gt("created_at", twentyFourHoursAgo)
+                                    .order("created_at", { ascending: true });
+                                if (userMoments) {
+                                    setActiveMoments(userMoments);
+                                }
+                            }}
+                        />
+                    )}
+                </AnimatePresence>
             </main >
         </div >
     );
