@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PostCard } from "./PostCard";
 import { CreatePost } from "./CreatePost";
@@ -31,6 +31,7 @@ export function SocialFeed() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'newest' | 'most_liked' | 'oldest'>('newest');
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+    const justClosedRef = useRef(false);
     const supabase = createClient();
 
     const fetchPosts = async () => {
@@ -89,6 +90,20 @@ export function SocialFeed() {
                 ? { ...p, user_has_liked: newLiked, likes_count: newCount }
                 : p
         ));
+    };
+
+    const handleCloseModal = () => {
+        justClosedRef.current = true;
+        setSelectedPost(null);
+        fetchPosts();
+        setTimeout(() => {
+            justClosedRef.current = false;
+        }, 350); // 350ms lock to absorb all fastclick/ghost-click events
+    };
+
+    const handleOpenModal = (post: Post) => {
+        if (justClosedRef.current) return;
+        setSelectedPost(post);
     };
 
     useEffect(() => {
@@ -176,7 +191,7 @@ export function SocialFeed() {
                                 <PostPreviewCard 
                                     key={post.id} 
                                     post={post} 
-                                    onClick={() => setSelectedPost(post)}
+                                    onClick={() => handleOpenModal(post)}
                                     onLikeToggle={(newLiked, newCount) => handleLikeToggle(post.id, newLiked, newCount)}
                                 />
                             ))}
@@ -188,7 +203,7 @@ export function SocialFeed() {
                                 <PostPreviewCard 
                                     key={post.id} 
                                     post={post} 
-                                    onClick={() => setSelectedPost(post)}
+                                    onClick={() => handleOpenModal(post)}
                                     onLikeToggle={(newLiked, newCount) => handleLikeToggle(post.id, newLiked, newCount)}
                                 />
                             ))}
@@ -202,10 +217,7 @@ export function SocialFeed() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                onClick={() => {
-                                    setSelectedPost(null);
-                                    fetchPosts(); // Refresh parent feed to sync any changes made inside modal (e.g. comments, likes)
-                                }}
+                                onClick={handleCloseModal}
                                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 cursor-default"
                             >
                                 <motion.div 
@@ -218,10 +230,7 @@ export function SocialFeed() {
                                 >
                                     {/* Close Button overlay */}
                                     <button 
-                                        onClick={() => {
-                                            setSelectedPost(null);
-                                            fetchPosts();
-                                        }}
+                                        onClick={handleCloseModal}
                                         className="absolute top-4 right-4 z-50 bg-white/95 hover:bg-stone-50 text-warm-grey border border-warm-grey/5 p-2 rounded-full shadow-md transition-all active:scale-90"
                                     >
                                         <X className="w-4 h-4" />
