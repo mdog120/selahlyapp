@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { SocialFeed } from "@/components/social/SocialFeed";
 import { Greeting } from "@/components/home/Greeting";
 import { DailyVerseCard } from "@/components/home/DailyVerseCard";
-import { PrayerRequestList } from "@/components/home/PrayerRequestList";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
 import { InstagramEmbed } from "@/components/social/InstagramEmbed";
 import { HomeOnboarding } from "@/components/home/HomeOnboarding";
@@ -100,8 +99,7 @@ export default async function UserHome(props: {
                             <DailyVerseCard />
                         </div>
 
-                        {/* Prayer Pocket (Requests) */}
-                        <PrayerRequestList />
+
 
                         {/* Instagram Embed (New Position) */}
                         <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40">
