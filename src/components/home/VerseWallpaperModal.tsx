@@ -410,14 +410,21 @@ export function VerseWallpaperModal({ isOpen, onClose, verseText, verseReference
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-warm-grey/5 shrink-0">
-                    <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 border-t border-warm-grey/5 shrink-0">
+                    <Button 
+                        variant="ghost" 
+                        onClick={onClose} 
+                        disabled={saving}
+                        className="w-full sm:w-auto order-3 sm:order-1"
+                    >
+                        Cancel
+                    </Button>
                     
                     <Button
                         variant="secondary"
                         onClick={handleDownload}
                         disabled={saving}
-                        className="bg-stone-100 hover:bg-stone-200 text-warm-grey flex items-center gap-1.5"
+                        className="bg-stone-100 hover:bg-stone-200 text-warm-grey flex items-center justify-center gap-1.5 w-full sm:w-auto order-2"
                     >
                         <Download className="w-4 h-4" /> Download
                     </Button>
@@ -425,7 +432,7 @@ export function VerseWallpaperModal({ isOpen, onClose, verseText, verseReference
                     <Button
                         onClick={handlePostToLilyPad}
                         disabled={saving}
-                        className="bg-muted-rose text-white hover:bg-muted-rose/90 flex items-center gap-1.5"
+                        className="bg-muted-rose text-white hover:bg-muted-rose/90 flex items-center justify-center gap-1.5 w-full sm:w-auto order-1 sm:order-3"
                     >
                         {saving ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

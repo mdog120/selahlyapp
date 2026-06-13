@@ -37,13 +37,13 @@ export function SisterSpotlight() {
                 }
 
                 // Filter out the current user
-                const otherProfiles = user 
+                let otherProfiles = user 
                     ? profiles.filter((p) => p.id !== user.id)
                     : profiles;
 
                 if (otherProfiles.length === 0) {
-                    setLoading(false);
-                    return;
+                    // Fallback to all profiles (including self) if testing in single-user database
+                    otherProfiles = profiles;
                 }
 
                 // Deterministically hash by date (YYYY-MM-DD)
