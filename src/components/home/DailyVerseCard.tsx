@@ -66,14 +66,20 @@ export function DailyVerseCard() {
                 
                 <div className="flex gap-3 w-full mt-auto">
                     <a href="/diaries" className="flex-1">
-                        <Button variant="outline" className="w-full text-xs font-bold py-2 rounded-xl border-warm-grey/10 hover:bg-stone-50 h-9 flex items-center justify-center gap-1 font-sans text-warm-grey">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="w-full text-xs font-bold border-warm-grey/10 text-warm-grey hover:bg-stone-50 h-9 flex items-center justify-center gap-1 font-sans"
+                        >
                             <span>Journal</span>
                             <span className="text-[10px]">✏️</span>
                         </Button>
                     </a>
                     <Button 
+                        variant="outline"
+                        size="sm"
                         onClick={() => setIsWallpaperModalOpen(true)}
-                        className="flex-1 text-xs font-bold bg-muted-rose text-white hover:bg-muted-rose/90 rounded-xl h-9 shadow-sm shadow-muted-rose/15 flex items-center justify-center gap-1 font-sans border-none"
+                        className="flex-1 text-xs font-bold border-muted-rose/20 text-muted-rose hover:bg-muted-rose hover:text-white h-9 flex items-center justify-center gap-1 font-sans"
                     >
                         <span>Wallpaper</span>
                         <span className="text-[10px]">✨</span>
