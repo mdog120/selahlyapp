@@ -762,6 +762,7 @@ export default function ProfilePage() {
                 <div className="mt-12 border-t border-warm-grey/10 pt-12">
                     <ScrapbookGrid
                         userId={profile.id}
+                        username={profile.username}
                         isOwner={currentUser?.id === profile.id}
                     />
                 </div>

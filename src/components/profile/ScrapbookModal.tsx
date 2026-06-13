@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
@@ -16,18 +16,66 @@ const SCRAPBOOK_FRAMES = [
 
 interface ScrapbookModalProps {
     isOpen: boolean;
+    editingEntry?: any | null;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalProps) {
+export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess }: ScrapbookModalProps) {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [caption, setCaption] = useState("");
     const [selectedFrame, setSelectedFrame] = useState("polaroid");
     const [uploading, setUploading] = useState(false);
+    const [friends, setFriends] = useState<any[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const loadFriends = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data } = await supabase
+                    .from("friendships")
+                    .select(`
+                        user_id_1, user_id_2,
+                        user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
+                        user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
+                    `)
+                    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                    .eq("status", "accepted");
+
+                if (data) {
+                    const friendList = data.map((f: any) => {
+                        const otherProfile = f.user_id_1 === user.id ? f.user2 : f.user1;
+                        return otherProfile;
+                    }).filter(Boolean);
+                    setFriends(friendList);
+                }
+            } catch (err) {
+                console.error("Error loading friends in ScrapbookModal:", err);
+            }
+        };
+        loadFriends();
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (editingEntry) {
+            setCaption(editingEntry.caption || "");
+            setSelectedFrame(editingEntry.styles?.frame || "polaroid");
+            setPreview(editingEntry.image_url);
+            setFile(null);
+        } else {
+            setCaption("");
+            setSelectedFrame("polaroid");
+            setPreview(null);
+            setFile(null);
+        }
+    }, [isOpen, editingEntry]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -38,34 +86,54 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
     };
 
     const handleUpload = async () => {
-        if (!file || !caption) return;
+        if (!caption) return;
+        if (!editingEntry && !file) return;
         setUploading(true);
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Not authenticated");
 
-            // 1. Upload Image
-            const fileName = `${user.id}/${Date.now()}-${file.name}`;
-            const { error: uploadError } = await supabase.storage
-                .from("scrapbook")
-                .upload(fileName, file);
+            let publicUrl = editingEntry ? editingEntry.image_url : "";
 
-            if (uploadError) throw uploadError;
+            // 1. Upload new image if chosen
+            if (file) {
+                const fileName = `${user.id}/${Date.now()}-${file.name}`;
+                const { error: uploadError } = await supabase.storage
+                    .from("scrapbook")
+                    .upload(fileName, file);
 
-            const { data: { publicUrl } } = supabase.storage
-                .from("scrapbook")
-                .getPublicUrl(fileName);
+                if (uploadError) throw uploadError;
 
-            // 2. Insert Entry
-            const { error: dbError } = await supabase.from("scrapbook_entries").insert({
-                user_id: user.id,
-                image_url: publicUrl,
-                caption: caption,
-                styles: { filter: "polaroid", frame: selectedFrame }
-            });
+                const { data: { publicUrl: newUrl } } = supabase.storage
+                    .from("scrapbook")
+                    .getPublicUrl(fileName);
+                
+                publicUrl = newUrl;
+            }
 
-            if (dbError) throw dbError;
+            // 2. Insert or Update Entry
+            if (editingEntry) {
+                const { error: dbError } = await supabase
+                    .from("scrapbook_entries")
+                    .update({
+                        image_url: publicUrl,
+                        caption: caption,
+                        styles: { filter: "polaroid", frame: selectedFrame }
+                    })
+                    .eq("id", editingEntry.id);
+
+                if (dbError) throw dbError;
+            } else {
+                const { error: dbError } = await supabase.from("scrapbook_entries").insert({
+                    user_id: user.id,
+                    image_url: publicUrl,
+                    caption: caption,
+                    styles: { filter: "polaroid", frame: selectedFrame }
+                });
+
+                if (dbError) throw dbError;
+            }
 
             // Reset & Close
             setFile(null);
@@ -75,8 +143,8 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
             onSuccess();
 
         } catch (error) {
-            console.error("Scrapbook upload failed:", error);
-            alert("Failed to upload memory. Please try again.");
+            console.error("Scrapbook save failed:", error);
+            alert("Failed to save memory. Please try again.");
         } finally {
             setUploading(false);
         }
@@ -86,7 +154,7 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-md bg-warm-paper">
                 <DialogHeader>
-                    <DialogTitle>New Memory 📸</DialogTitle>
+                    <DialogTitle>{editingEntry ? "Edit Memory ✏️" : "New Memory 📸"}</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
@@ -141,6 +209,38 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
                         <p className="text-[10px] text-warm-grey/40 text-right">{caption.length}/40</p>
                     </div>
 
+                    {/* Tag Helper */}
+                    {friends.length > 0 && (
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-bold text-warm-grey/50 uppercase tracking-widest">Tag Sisters 🏷️</label>
+                            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                                {friends.map(f => (
+                                    <button
+                                        key={f.id}
+                                        type="button"
+                                        onClick={() => {
+                                            if (!caption.includes(`@${f.username}`)) {
+                                                const separator = caption.trim() === "" ? "" : " ";
+                                                const newText = `${caption.trim()}${separator}@${f.username} `;
+                                                if (newText.length <= 40) {
+                                                    setCaption(newText);
+                                                }
+                                            }
+                                        }}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white hover:bg-muted-rose/10 hover:text-muted-rose text-[9px] font-bold text-warm-grey/70 border border-warm-grey/10 transition-colors"
+                                    >
+                                        {f.avatar_url ? (
+                                            <img src={f.avatar_url} alt={f.username} className="w-3.5 h-3.5 rounded-full object-cover" />
+                                        ) : (
+                                            <span className="w-3.5 h-3.5 rounded-full bg-stone-100 flex items-center justify-center text-[7px] font-sans font-bold">{f.username[0].toUpperCase()}</span>
+                                        )}
+                                        @{f.username}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-warm-grey uppercase tracking-widest">Select Frame</label>
                         <div className="flex flex-wrap gap-2">
@@ -165,7 +265,7 @@ export function ScrapbookModal({ isOpen, onClose, onSuccess }: ScrapbookModalPro
                         <Button variant="ghost" onClick={onClose} disabled={uploading}>Cancel</Button>
                         <Button
                             onClick={handleUpload}
-                            disabled={!file || !caption || uploading}
+                            disabled={(!editingEntry && !file) || !caption || uploading}
                             className="bg-muted-rose text-white hover:bg-muted-rose/90"
                         >
                             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Memory"}

@@ -2,43 +2,57 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ScrapbookModal } from "./ScrapbookModal";
 
 type ScrapbookEntry = {
     id: string;
+    user_id: string;
     image_url: string;
     caption: string;
     created_at: string;
     styles: any;
+    profiles?: {
+        username: string;
+        avatar_url: string | null;
+        first_name: string;
+    } | null;
 };
 
 interface ScrapbookGridProps {
     userId: string;
+    username: string;
     isOwner: boolean;
 }
 
-export function ScrapbookGrid({ userId, isOwner }: ScrapbookGridProps) {
+export function ScrapbookGrid({ userId, username, isOwner }: ScrapbookGridProps) {
     const [entries, setEntries] = useState<ScrapbookEntry[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [editingEntry, setEditingEntry] = useState<ScrapbookEntry | null>(null);
     const supabase = createClient();
 
     const fetchEntries = async () => {
         const { data } = await supabase
             .from("scrapbook_entries")
-            .select("*")
-            .eq("user_id", userId)
+            .select("*, profiles!scrapbook_entries_user_id_fkey(username, avatar_url, first_name)")
+            .or(`user_id.eq.${userId},caption.ilike.%@${username}%`)
             .order("created_at", { ascending: false });
 
-        if (data) setEntries(data);
+        if (data) setEntries(data as any);
         setLoading(false);
     };
 
     useEffect(() => {
+        const getCurrentUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) setCurrentUserId(user.id);
+        };
+        getCurrentUser();
         fetchEntries();
-    }, [userId]);
+    }, [userId, username]);
 
     const handleDelete = async (id: string, imageUrl: string) => {
         if (!confirm("Remove this memory?")) return;
@@ -103,11 +117,33 @@ export function ScrapbookGrid({ userId, isOwner }: ScrapbookGridProps) {
                                 </p>
                             </div>
 
-                            {/* Delete Button (Owner Only) */}
-                            {isOwner && (
+                            {/* Creator tag badge */}
+                            {entry.profiles && entry.user_id !== userId && (
+                                <div className="absolute top-2 left-2 bg-white/95 px-2 py-0.5 rounded-full shadow-sm text-[9px] font-bold text-warm-grey/85 border border-warm-grey/5 flex items-center gap-1 z-10">
+                                    <span className="text-muted-rose">✨</span> @{entry.profiles.username}
+                                </div>
+                            )}
+
+                            {/* Edit Button (Creator Only) */}
+                            {currentUserId === entry.user_id && (
+                                <button
+                                    onClick={() => {
+                                        setEditingEntry(entry);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="absolute top-2 right-10 bg-white/80 p-2 rounded-full text-warm-grey opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
+                                    title="Edit Memory"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                            )}
+
+                            {/* Delete Button (Creator Only) */}
+                            {currentUserId === entry.user_id && (
                                 <button
                                     onClick={() => handleDelete(entry.id, entry.image_url)}
                                     className="absolute top-2 right-2 bg-white/80 p-2 rounded-full text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
+                                    title="Delete Memory"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -119,10 +155,15 @@ export function ScrapbookGrid({ userId, isOwner }: ScrapbookGridProps) {
 
             <ScrapbookModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                editingEntry={editingEntry}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingEntry(null);
+                }}
                 onSuccess={() => {
                     fetchEntries();
                     setIsModalOpen(false);
+                    setEditingEntry(null);
                 }}
             />
         </div>
