@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ImagePlus, Loader2 } from "lucide-react";
@@ -153,9 +153,9 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-md bg-warm-paper flex flex-col max-h-full overflow-hidden">
-                <DialogHeader className="shrink-0 pb-2 border-b border-warm-grey/5">
+                <div className="shrink-0 pb-2 border-b border-warm-grey/5 text-center mb-4">
                     <DialogTitle>{editingEntry ? "Edit Memory ✏️" : "New Memory 📸"}</DialogTitle>
-                </DialogHeader>
+                </div>
 
                 <div className="flex-1 overflow-y-auto py-4 space-y-4 sm:space-y-6 pr-1 custom-scrollbar">
                     {/* Image Preview / Upload Area */}
