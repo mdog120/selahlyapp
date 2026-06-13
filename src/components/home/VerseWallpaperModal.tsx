@@ -248,8 +248,8 @@ export function VerseWallpaperModal({ isOpen, onClose, verseText, verseReference
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-2xl bg-warm-paper flex flex-col max-h-[85vh] max-h-[85dvh] min-h-0 overflow-hidden">
+        <Dialog open={isOpen} onOpenChange={onClose} className="sm:max-w-2xl bg-warm-paper">
+            <DialogContent className="flex flex-col min-h-0 overflow-hidden">
                 <div className="shrink-0 pb-2 border-b border-warm-grey/5 text-center mb-2 flex items-center justify-center gap-1.5">
                     <Sparkles className="w-5 h-5 text-muted-rose" />
                     <DialogTitle className="font-serif">Aesthetic Wallpaper Creator</DialogTitle>
