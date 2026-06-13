@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, CreditCard, Heart, ShieldCheck, Loader2 } from "lucide-react";
+import { X, CreditCard, Heart, ShieldCheck, Loader2, Copy, Check, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Button } from "./Button";
-import { loadStripe } from "@stripe/stripe-js";
 import { 
     Elements, 
     CardElement, 
@@ -17,7 +16,10 @@ import {
 let stripePromise: any = null;
 const getStripe = () => {
     if (!stripePromise && typeof window !== "undefined" && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-        stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+        // Dynamically import loadStripe to prevent loading the Stripe JS file on app mount/import
+        stripePromise = import("@stripe/stripe-js").then((mod) => 
+            mod.loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+        );
     }
     return stripePromise;
 };
@@ -46,6 +48,23 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
     const [loadingSecret, setLoadingSecret] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [retrievedAmount, setRetrievedAmount] = useState<number | null>(null);
+    const [isWebView, setIsWebView] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const ZELLE_NUMBER = "682-812-0796";
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const isIOSWebView = /iPhone|iPad|iPod/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent);
+            const isAndroidWebView = /Android/.test(navigator.userAgent) && /Version\/\d/.test(navigator.userAgent);
+            setIsWebView(isIOSWebView || isAndroidWebView);
+        }
+    }, []);
+
+    const handleCopyZelle = () => {
+        navigator.clipboard.writeText(ZELLE_NUMBER);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const presetAmounts = ["5", "10", "25", "50", "100"];
     const finalAmount = amount === "custom" ? customAmount : amount;
@@ -191,7 +210,7 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
                 </div>
 
                 {/* Warning message if Stripe Publishable Key is missing */}
-                {!hasStripeKey && step !== "success" && (
+                {!hasStripeKey && step !== "success" && !isWebView && (
                     <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-xs text-red-600 leading-relaxed text-left z-10">
                         <span className="font-bold">Stripe configuration required:</span> Please add <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> and <code>STRIPE_SECRET_KEY</code> to your <code>.env.local</code> file to enable donations.
                     </div>
@@ -203,117 +222,170 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
                     </div>
                 )}
 
-                {/* Step 1: Select Amount */}
-                {step === "amount" && (
-                    <div className="flex flex-col gap-5 z-10">
+                {isWebView ? (
+                    <div className="flex flex-col gap-5 z-10 animate-fade-in">
                         <div className="text-center md:text-left">
                             <p className="text-sm text-warm-grey/80 leading-relaxed">
-                                Selahly is a digital sanctuary for sisterhood. Your contributions help cover server costs and maintain an ad-free experience.
+                                Selahly is a digital sanctuary for sisterhood. To support us inside the app, please use Zelle. This helps cover server costs and maintain an ad-free experience.
                             </p>
                         </div>
 
-                        {/* Preset options */}
-                        <div className="grid grid-cols-3 gap-3">
-                            {presetAmounts.map((amt) => (
-                                <button
-                                    key={amt}
-                                    onClick={() => handleAmountSelect(amt)}
-                                    className={`py-3.5 rounded-2xl border text-sm font-bold transition-all shadow-sm ${
-                                        amount === amt
-                                            ? "bg-warm-cocoa border-warm-cocoa text-white scale-[1.02]"
-                                            : "bg-white border-warm-grey/10 hover:border-warm-cocoa/40 text-warm-cocoa hover:bg-stone-50"
-                                    }`}
-                                >
-                                    ${amt}
-                                </button>
-                            ))}
-                            <button
-                                onClick={() => handleAmountSelect("custom")}
-                                className={`py-3.5 rounded-2xl border text-sm font-bold transition-all shadow-sm ${
-                                    amount === "custom"
-                                        ? "bg-warm-cocoa border-warm-cocoa text-white scale-[1.02]"
-                                        : "bg-white border-warm-grey/10 hover:border-warm-cocoa/40 text-warm-cocoa hover:bg-stone-50"
-                                }`}
-                            >
-                                Custom
-                            </button>
-                        </div>
+                        <div className="p-6 bg-white border border-warm-grey/10 rounded-3xl shadow-sm relative overflow-hidden group text-center">
+                            <h4 className="text-lg font-serif text-warm-cocoa mb-1 font-semibold text-center">Support via Zelle</h4>
+                            <p className="text-xs text-warm-grey/60 mb-4 text-center">Send your gift directly using the number below.</p>
 
-                        {/* Custom Input */}
-                        {amount === "custom" && (
-                            <div className="relative animate-fade-in">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-grey/40 font-bold text-sm">$</span>
-                                <input
-                                    type="number"
-                                    min="0.50"
-                                    step="0.01"
-                                    value={customAmount}
-                                    onChange={(e) => setCustomAmount(e.target.value)}
-                                    placeholder="Enter donation amount"
-                                    className="w-full pl-8 pr-4 py-3.5 bg-white rounded-2xl border border-warm-grey/10 outline-none text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 transition-all font-semibold"
-                                />
+                            <div className="flex items-center gap-3 bg-stone-50 p-3.5 rounded-xl border border-stone-100 relative justify-center">
+                                <div className="font-mono text-lg text-warm-grey tracking-wider font-bold">
+                                    {ZELLE_NUMBER}
+                                </div>
+                                <button
+                                    onClick={handleCopyZelle}
+                                    className="p-2 hover:bg-white rounded-lg transition-colors text-warm-grey/60 hover:text-muted-rose active:scale-95 cursor-pointer"
+                                    title="Copy number"
+                                >
+                                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                </button>
                             </div>
-                        )}
+                            {copied && (
+                                <p className="text-[10px] text-muted-rose mt-1.5 text-center animate-fade-in">
+                                    Copied to clipboard!
+                                </p>
+                            )}
+
+                            <div className="mt-5">
+                                <a
+                                    href={`https://enroll.zellepay.com/qr-codes?data=${ZELLE_NUMBER}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full bg-warm-cocoa text-white py-3 px-6 rounded-xl font-sans text-xs font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    Open Zelle App <ArrowRight className="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+                        </div>
 
                         <Button 
                             className="w-full mt-2 bg-gradient-to-r from-muted-rose to-rose-400 text-white rounded-2xl py-6 font-serif tracking-widest hover:scale-[1.01] transition-transform shadow-lg shadow-muted-rose/25"
-                            onClick={handleNextToPayment}
-                            disabled={loadingSecret || !hasStripeKey}
-                        >
-                            {loadingSecret ? (
-                                <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-4 h-4 animate-spin" /> INITIALIZING...</span>
-                            ) : "CONTINUE TO PAYMENT"}
-                        </Button>
-                    </div>
-                )}
-
-                {/* Step 2: Stripe Payment Form */}
-                {step === "payment" && clientSecret && getStripe() && (
-                    <div className="flex flex-col gap-4 z-10 animate-fade-in">
-                        <div className="flex items-center justify-between pb-3 border-b border-warm-grey/5">
-                            <span className="text-xs font-bold text-warm-cocoa uppercase tracking-wider">Donation Total</span>
-                            <span className="font-serif text-xl font-bold text-warm-grey">${parseFloat(finalAmount).toFixed(2)}</span>
-                        </div>
-
-                        <Elements stripe={getStripe()} options={{ clientSecret }}>
-                            <StripeCheckoutForm 
-                                amount={finalAmount}
-                                clientSecret={clientSecret}
-                                onSuccess={() => {
-                                    setStep("success");
-                                    triggerConfetti();
-                                }}
-                            />
-                        </Elements>
-
-                        <button
-                            onClick={() => setStep("amount")}
-                            className="text-[10px] text-warm-grey/40 hover:text-warm-grey underline font-bold uppercase tracking-wider text-center"
-                        >
-                            Back to Amount
-                        </button>
-                    </div>
-                )}
-
-                {/* Step 3: Success Screen */}
-                {step === "success" && (
-                    <div className="flex flex-col items-center text-center gap-6 z-10 py-6 animate-fade-in">
-                        <div className="w-20 h-20 rounded-full bg-sage-green/10 border-2 border-sage-green/20 flex items-center justify-center text-sage-green animate-bounce-slow shadow-sm">
-                            <Heart className="w-10 h-10 fill-current animate-pulse text-muted-rose" />
-                        </div>
-                        <div className="space-y-2">
-                            <h2 className="font-serif text-2xl text-warm-cocoa font-medium">Thank You, Sister!</h2>
-                            <p className="text-sm text-warm-grey/70 max-w-xs leading-relaxed">
-                                Your donation of <strong>${retrievedAmount !== null ? retrievedAmount.toFixed(2) : parseFloat(finalAmount).toFixed(2)}</strong> has been processed successfully. Thank you for sowing into this digital sanctuary!
-                            </p>
-                        </div>
-                        <Button 
-                            className="bg-warm-cocoa hover:bg-warm-cocoa/90 text-white rounded-2xl px-12 py-5 text-xs font-serif tracking-wider shadow-lg shadow-warm-cocoa/10 transition-transform active:scale-95 mt-2"
                             onClick={onClose}
                         >
                             CLOSE WINDOW
                         </Button>
                     </div>
+                ) : (
+                    <>
+                        {/* Step 1: Select Amount */}
+                        {step === "amount" && (
+                            <div className="flex flex-col gap-5 z-10">
+                                <div className="text-center md:text-left">
+                                    <p className="text-sm text-warm-grey/80 leading-relaxed">
+                                        Selahly is a digital sanctuary for sisterhood. Your contributions help cover server costs and maintain an ad-free experience.
+                                    </p>
+                                </div>
+
+                                {/* Preset options */}
+                                <div className="grid grid-cols-3 gap-3">
+                                    {presetAmounts.map((amt) => (
+                                        <button
+                                            key={amt}
+                                            onClick={() => handleAmountSelect(amt)}
+                                            className={`py-3.5 rounded-2xl border text-sm font-bold transition-all shadow-sm ${
+                                                amount === amt
+                                                    ? "bg-warm-cocoa border-warm-cocoa text-white scale-[1.02]"
+                                                    : "bg-white border-warm-grey/10 hover:border-warm-cocoa/40 text-warm-cocoa hover:bg-stone-50"
+                                            }`}
+                                        >
+                                            ${amt}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => handleAmountSelect("custom")}
+                                        className={`py-3.5 rounded-2xl border text-sm font-bold transition-all shadow-sm ${
+                                            amount === "custom"
+                                                ? "bg-warm-cocoa border-warm-cocoa text-white scale-[1.02]"
+                                                : "bg-white border-warm-grey/10 hover:border-warm-cocoa/40 text-warm-cocoa hover:bg-stone-50"
+                                        }`}
+                                    >
+                                        Custom
+                                    </button>
+                                </div>
+
+                                {/* Custom Input */}
+                                {amount === "custom" && (
+                                    <div className="relative animate-fade-in">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-grey/40 font-bold text-sm">$</span>
+                                        <input
+                                            type="number"
+                                            min="0.50"
+                                            step="0.01"
+                                            value={customAmount}
+                                            onChange={(e) => setCustomAmount(e.target.value)}
+                                            placeholder="Enter donation amount"
+                                            className="w-full pl-8 pr-4 py-3.5 bg-white rounded-2xl border border-warm-grey/10 outline-none text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 transition-all font-semibold"
+                                        />
+                                    </div>
+                                )}
+
+                                <Button 
+                                    className="w-full mt-2 bg-gradient-to-r from-muted-rose to-rose-400 text-white rounded-2xl py-6 font-serif tracking-widest hover:scale-[1.01] transition-transform shadow-lg shadow-muted-rose/25"
+                                    onClick={handleNextToPayment}
+                                    disabled={loadingSecret || !hasStripeKey}
+                                >
+                                    {loadingSecret ? (
+                                        <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-4 h-4 animate-spin" /> INITIALIZING...</span>
+                                    ) : "CONTINUE TO PAYMENT"}
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Step 2: Stripe Payment Form */}
+                        {step === "payment" && clientSecret && getStripe() && (
+                            <div className="flex flex-col gap-4 z-10 animate-fade-in">
+                                <div className="flex items-center justify-between pb-3 border-b border-warm-grey/5">
+                                    <span className="text-xs font-bold text-warm-cocoa uppercase tracking-wider">Donation Total</span>
+                                    <span className="font-serif text-xl font-bold text-warm-grey">${parseFloat(finalAmount).toFixed(2)}</span>
+                                </div>
+
+                                <Elements stripe={getStripe()} options={{ clientSecret }}>
+                                    <StripeCheckoutForm 
+                                        amount={finalAmount}
+                                        clientSecret={clientSecret}
+                                        onSuccess={() => {
+                                            setStep("success");
+                                            triggerConfetti();
+                                        }}
+                                    />
+                                </Elements>
+
+                                <button
+                                    onClick={() => setStep("amount")}
+                                    className="text-[10px] text-warm-grey/40 hover:text-warm-grey underline font-bold uppercase tracking-wider text-center"
+                                >
+                                    Back to Amount
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Step 3: Success Screen */}
+                        {step === "success" && (
+                            <div className="flex flex-col items-center text-center gap-6 z-10 py-6 animate-fade-in">
+                                <div className="w-20 h-20 rounded-full bg-sage-green/10 border-2 border-sage-green/20 flex items-center justify-center text-sage-green animate-bounce-slow shadow-sm">
+                                    <Heart className="w-10 h-10 fill-current animate-pulse text-muted-rose" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h2 className="font-serif text-2xl text-warm-cocoa font-medium">Thank You, Sister!</h2>
+                                    <p className="text-sm text-warm-grey/70 max-w-xs leading-relaxed">
+                                        Your donation of <strong>${retrievedAmount !== null ? retrievedAmount.toFixed(2) : parseFloat(finalAmount).toFixed(2)}</strong> has been processed successfully. Thank you for sowing into this digital sanctuary!
+                                    </p>
+                                </div>
+                                <Button 
+                                    className="bg-warm-cocoa hover:bg-warm-cocoa/90 text-white rounded-2xl px-12 py-5 text-xs font-serif tracking-wider shadow-lg shadow-warm-cocoa/10 transition-transform active:scale-95 mt-2"
+                                    onClick={onClose}
+                                >
+                                    CLOSE WINDOW
+                                </Button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
