@@ -311,11 +311,26 @@ export function MomentModal({
         }
     }, [isMuted]);
 
-    // Fetch likes and comments for the current moment
+    // Fetch likes and comments for the current moment, and record view
     const currentMoment = moments[activeIndex];
     useEffect(() => {
         if (!isOpen || !currentMoment) return;
         fetchLikesAndComments();
+
+        const recordMomentView = async () => {
+            if (!currentUserId || !currentMoment.id) return;
+            try {
+                await supabase
+                    .from("moment_views")
+                    .insert({
+                        moment_id: currentMoment.id,
+                        user_id: currentUserId
+                    });
+            } catch (err) {
+                // Ignore silent unique key violations or database errors
+            }
+        };
+        recordMomentView();
     }, [isOpen, activeIndex, currentMoment?.id]);
 
     const stopAudio = () => {
@@ -378,7 +393,38 @@ export function MomentModal({
 
     const handleDeleteMoment = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!confirm("Remove this moment from your story?")) return;
+        if (!currentMoment) return;
+
+        const isHighlighted = currentMoment.background_color?.includes('|highlight');
+        if (isHighlighted) {
+            const archive = confirm("Would you like to archive this moment? (Click OK to Archive it so it stays in your Highlighted Moments, or Cancel to delete it permanently)");
+            if (archive) {
+                // Archive logic: append |archived if not already present
+                if (!currentMoment.background_color?.includes('|archived')) {
+                    const newBgColor = (currentMoment.background_color || "") + '|archived';
+                    try {
+                        const { error } = await supabase
+                            .from("moments")
+                            .update({ background_color: newBgColor })
+                            .eq("id", currentMoment.id);
+
+                        if (error) throw error;
+
+                        currentMoment.background_color = newBgColor;
+                        if (onMomentDeleted) onMomentDeleted();
+                        handleNext();
+                    } catch (err: any) {
+                        console.error("Error archiving moment:", err);
+                        alert("Failed to archive moment: " + err.message);
+                    }
+                }
+                return;
+            } else {
+                if (!confirm("Are you sure you want to delete this moment permanently?")) return;
+            }
+        } else {
+            if (!confirm("Remove this moment from your story?")) return;
+        }
 
         try {
             const { error } = await supabase
@@ -818,7 +864,7 @@ export function MomentModal({
                             <button
                                 onClick={handleDeleteMoment}
                                 className="p-1.5 rounded-full bg-black/40 hover:bg-red-500/80 text-white transition-colors border border-white/10"
-                                title="Delete Moment"
+                                title={currentMoment.background_color?.includes('|highlight') ? "Archive or Delete Moment" : "Delete Moment"}
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>

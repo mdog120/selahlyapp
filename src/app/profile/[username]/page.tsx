@@ -101,6 +101,7 @@ export default function ProfilePage() {
     const [isAlbumViewerOpen, setIsAlbumViewerOpen] = useState(false);
     const [favVerseText, setFavVerseText] = useState<string | null>(null);
     const [loadingVerse, setLoadingVerse] = useState(false);
+    const [viewedMomentIds, setViewedMomentIds] = useState<Set<string>>(new Set());
 
     const { triggerBadge } = useBadge();
     const supabase = createClient();
@@ -118,7 +119,7 @@ export default function ProfilePage() {
             .order("created_at", { ascending: true });
 
         if (userMoments) {
-            const active = userMoments.filter(m => new Date(m.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)).map((m: any) => ({
+            const active = userMoments.filter(m => new Date(m.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000) && !m.background_color?.includes('|archived')).map((m: any) => ({
                 ...m,
                 profiles: {
                     first_name: prof.first_name,
@@ -127,6 +128,22 @@ export default function ProfilePage() {
                 }
             }));
             setActiveMoments(active);
+
+            // Fetch views for current user on these moments
+            const viewedSet = new Set<string>();
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (authUser && userMoments.length > 0) {
+                const momentIds = userMoments.map((m: any) => m.id);
+                const { data: viewsData } = await supabase
+                    .from("moment_views")
+                    .select("moment_id")
+                    .eq("user_id", authUser.id)
+                    .in("moment_id", momentIds);
+                if (viewsData) {
+                    viewsData.forEach((v: any) => viewedSet.add(v.moment_id));
+                }
+            }
+            setViewedMomentIds(viewedSet);
 
             const groups: Record<string, { name: string; coverUrl: string | null; moments: any[] }> = {};
             userMoments.forEach((m: any) => {
@@ -367,6 +384,8 @@ export default function ProfilePage() {
         </div>
     );
 
+    const hasSeenAllActive = activeMoments.length > 0 && activeMoments.every(m => viewedMomentIds.has(m.id));
+
     return (
         <div className="min-h-screen bg-warm-paper font-sans">
             <Navbar />
@@ -383,7 +402,11 @@ export default function ProfilePage() {
                         {activeMoments.length > 0 ? (
                             <div 
                                 onClick={() => setIsViewerOpen(true)}
-                                className="w-32 h-32 md:w-40 md:h-40 rounded-full p-[4px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_20px_rgba(244,143,177,0.8)] flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200"
+                                className={`w-32 h-32 md:w-40 md:h-40 rounded-full p-[4px] bg-gradient-to-tr ${
+                                    hasSeenAllActive
+                                        ? "from-[#D4C3B3] via-[#EBE3DB] to-[#D4C3B3] ring-4 ring-[#F5EFEB] shadow-[0_0_20px_rgba(212,195,179,0.7)]"
+                                        : "from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_20px_rgba(244,143,177,0.8)]"
+                                } flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200`}
                                 title="Watch moments"
                             >
                                 <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-stone-100">
@@ -565,7 +588,7 @@ export default function ProfilePage() {
                             {highlightAlbums.length > 0 && (
                                 <div className="mt-6 border-t border-stone-100 pt-5 w-full">
                                     <h3 className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 mb-3 flex items-center gap-1 font-sans">
-                                        <Star className="w-3.5 h-3.5 fill-pink-400 text-pink-400" /> Story Highlights
+                                        <Star className="w-3.5 h-3.5 fill-pink-400 text-pink-400" /> Highlighted Moments
                                     </h3>
                                     <div className="flex gap-4 overflow-x-auto py-1 scrollbar-hide">
                                         {highlightAlbums.map((album) => (
@@ -748,7 +771,10 @@ export default function ProfilePage() {
                     {isViewerOpen && activeMoments.length > 0 && (
                         <MomentModal 
                             isOpen={isViewerOpen}
-                            onClose={() => setIsViewerOpen(false)}
+                            onClose={() => {
+                                setIsViewerOpen(false);
+                                loadMoments(profile);
+                            }}
                             moments={activeMoments}
                             userName={profile.first_name}
                             userAvatar={profile.avatar_url}

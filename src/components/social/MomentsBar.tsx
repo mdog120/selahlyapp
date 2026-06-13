@@ -61,6 +61,7 @@ interface MomentsBarProps {
 
 export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
     const [myMoments, setMyMoments] = useState<Moment[]>([]);
+    const [viewedMomentIds, setViewedMomentIds] = useState<Set<string>>(new Set());
     const [otherGroups, setOtherGroups] = useState<GroupedMoment[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
@@ -193,7 +194,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                         .order("created_at", { ascending: true });
 
                     if (friendsMoments) {
-                        friendsMomentsData = friendsMoments.map(formatMoment);
+                        friendsMomentsData = friendsMoments.map(formatMoment).filter(m => !m.background_color?.includes('|archived'));
                     }
                 }
             }
@@ -225,8 +226,30 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                 }
             }
 
+            // Fetch views for the logged-in user on these active moments
+            const momentIds = [
+                ...(targetMomentsData || []).map(m => m.id),
+                ...friendsMomentsData.map(m => m.id)
+            ];
+            const viewedSet = new Set<string>();
+            if (user && momentIds.length > 0) {
+                try {
+                    const { data: viewsData } = await supabase
+                        .from("moment_views")
+                        .select("moment_id")
+                        .eq("user_id", user.id)
+                        .in("moment_id", momentIds);
+                    if (viewsData) {
+                        viewsData.forEach((v: any) => viewedSet.add(v.moment_id));
+                    }
+                } catch (e) {
+                    console.error("Error fetching moment views:", e);
+                }
+            }
+            setViewedMomentIds(viewedSet);
+
             // Filter target user's moments into active
-            const personalMoments = (targetMomentsData || []).map(formatMoment);
+            const personalMoments = (targetMomentsData || []).map(formatMoment).filter(m => !m.background_color?.includes('|archived'));
             setMyMoments(personalMoments);
 
             // Group friends' moments
@@ -450,27 +473,34 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                 <div className="flex flex-col gap-1.5 px-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 mb-1">Sister Updates</span>
                     <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
-                        {otherGroups.map((group) => (
-                            <motion.div 
-                                key={group.user_id}
-                                onClick={() => openViewer(group)}
-                                whileTap={{ scale: 0.92 }}
-                                className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer"
-                            >
-                                <div className="w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-pink-400 via-pink-300 to-pink-400 ring-2 ring-pink-100 shadow-[0_0_10px_rgba(244,143,177,0.6)] shrink-0 transition-transform">
-                                    <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
-                                        {group.userAvatar ? (
-                                            <img src={group.userAvatar} alt={group.userName} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-sage-green/20 text-warm-grey font-serif uppercase text-lg">
-                                                {group.userName[0]}
-                                            </div>
-                                        )}
+                        {otherGroups.map((group) => {
+                            const hasSeenGroup = group.moments.every(m => viewedMomentIds.has(m.id));
+                            return (
+                                <motion.div 
+                                    key={group.user_id}
+                                    onClick={() => openViewer(group)}
+                                    whileTap={{ scale: 0.92 }}
+                                    className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer"
+                                >
+                                    <div className={`w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr ${
+                                        hasSeenGroup 
+                                            ? "from-[#D4C3B3] via-[#EBE3DB] to-[#D4C3B3] ring-2 ring-[#F5EFEB] shadow-[0_0_10px_rgba(212,195,179,0.5)]" 
+                                            : "from-pink-400 via-pink-300 to-pink-400 ring-2 ring-pink-100 shadow-[0_0_10px_rgba(244,143,177,0.6)]"
+                                    } shrink-0 transition-transform`}>
+                                        <div className="w-full h-full rounded-full border border-white overflow-hidden bg-white">
+                                            {group.userAvatar ? (
+                                                <img src={group.userAvatar} alt={group.userName} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-sage-green/20 text-warm-grey font-serif uppercase text-lg">
+                                                    {group.userName[0]}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                                <span className="text-[10px] font-bold text-warm-grey/70 font-sans">{group.userName}</span>
-                            </motion.div>
-                        ))}
+                                    <span className="text-[10px] font-bold text-warm-grey/70 font-sans">{group.userName}</span>
+                                </motion.div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -483,6 +513,7 @@ export function MomentsBar({ profileUserId, isOwner = true }: MomentsBarProps) {
                         onClose={() => {
                             setIsViewerOpen(false);
                             setSelectedGroup(null);
+                            loadCurrentUserAndMoments();
                         }}
                         moments={selectedGroup.moments}
                         userName={selectedGroup.userName}
