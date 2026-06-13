@@ -77,6 +77,11 @@ export default async function UserHome(props: {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Main Feed - The Lily Pad */}
                     <div className="lg:col-span-8 flex flex-col gap-6">
+                        {/* Mobile Daily Verse & Sister Spotlight (visible on mobile/tablet, hidden on desktop) */}
+                        <div className="block lg:hidden space-y-6">
+                            <DailyVerseCard />
+                            <SisterSpotlight />
+                        </div>
 
                         {/* Selah Sister Feature */}
                         <SelahSisterCard />
@@ -95,13 +100,17 @@ export default async function UserHome(props: {
                     <div className="lg:col-span-4 flex flex-col gap-6">
 
                         {/* Grace & Glow (Daily Verse) */}
-                        <DailyVerseCard />
+                        <div className="hidden lg:block">
+                            <DailyVerseCard />
+                        </div>
 
                         {/* Prayer Pocket (Requests) */}
                         <PrayerRequestList />
 
                         {/* Sister Spotlight */}
-                        <SisterSpotlight />
+                        <div className="hidden lg:block">
+                            <SisterSpotlight />
+                        </div>
 
                         {/* Velvet Vault (Discussions) */}
                         <div className="glass-card p-6 rounded-3xl border border-white/60 bg-gradient-to-b from-purple-50/30 to-transparent flex flex-col items-center text-center">

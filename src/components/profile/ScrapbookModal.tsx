@@ -174,53 +174,25 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                             selectedFrame === 'gingham' ? 'border-gingham' :
                             selectedFrame === 'polka' ? 'border-polka' : 'border-polaroid'
                         }`}
-                        onClick={() => {
-                            if (!preview || !activeSticker) {
+                        onClick={(e) => {
+                            if (activeSticker && preview) {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                                const rotate = Math.floor(Math.random() * 50) - 25;
+                                setStickers([...stickers, { emoji: activeSticker, x, y, rotate }]);
+                            } else if (!preview || !activeSticker) {
                                 fileInputRef.current?.click();
                             }
                         }}
                     >
                         <div className="w-full h-full flex flex-col justify-between">
-                            <div 
-                                onClick={(e) => {
-                                    if (activeSticker && preview) {
-                                        e.stopPropagation();
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const x = ((e.clientX - rect.left) / rect.width) * 100;
-                                        const y = ((e.clientY - rect.top) / rect.height) * 100;
-                                        const rotate = Math.floor(Math.random() * 50) - 25;
-                                        setStickers([...stickers, { emoji: activeSticker, x, y, rotate }]);
-                                    }
-                                }}
-                                className="flex-1 bg-stone-100 overflow-hidden relative rounded filter sepia-[.2] contrast-110 brightness-110"
-                            >
+                            <div className="flex-1 bg-stone-100 overflow-hidden relative rounded filter sepia-[.2] contrast-110 brightness-110">
                                 {preview ? (
                                     <>
                                         <img src={preview} alt="Preview" className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
-                                        
-                                        {/* Placed Stickers Preview */}
-                                        {stickers.map((st, sIdx) => (
-                                            <button
-                                                key={sIdx}
-                                                type="button"
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    setStickers(stickers.filter((_, idx) => idx !== sIdx));
-                                                }}
-                                                style={{
-                                                    position: 'absolute',
-                                                    left: `${st.x}%`,
-                                                    top: `${st.y}%`,
-                                                    transform: `translate(-50%, -50%) rotate(${st.rotate}deg)`,
-                                                    zIndex: 20
-                                                }}
-                                                className="text-2xl hover:scale-110 transition-transform cursor-pointer select-none active:scale-95"
-                                                title="Click to remove"
-                                            >
-                                                {st.emoji}
-                                            </button>
-                                        ))}
                                     </>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-center text-warm-grey/40 group-hover:text-muted-rose transition-colors p-4">
@@ -235,6 +207,30 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                                 </p>
                             </div>
                         </div>
+
+                        {/* Placed Stickers Preview */}
+                        {preview && stickers.map((st, sIdx) => (
+                            <button
+                                key={sIdx}
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setStickers(stickers.filter((_, idx) => idx !== sIdx));
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    left: `${st.x}%`,
+                                    top: `${st.y}%`,
+                                    transform: `translate(-50%, -50%) rotate(${st.rotate}deg)`,
+                                    zIndex: 20
+                                }}
+                                className="text-2xl hover:scale-110 transition-transform cursor-pointer select-none active:scale-95 drop-shadow-sticker"
+                                title="Click to remove"
+                            >
+                                {st.emoji}
+                            </button>
+                        ))}
+
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -302,14 +298,23 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                             )}
                         </div>
                         <p className="text-[10px] text-warm-grey/50 italic mb-1">
-                            Select a sticker, then click anywhere on your photo above to place it. Click placed stickers to remove.
+                            Tapping a sticker places it in the center. You can also tap anywhere on your photo above to place more. Click placed stickers to remove.
                         </p>
                         <div className="flex gap-3 items-center">
                             {["౨ৎ", "🌸", "✨", "⭐", "☕"].map((emoji) => (
                                 <button
                                     key={emoji}
                                     type="button"
-                                    onClick={() => setActiveSticker(activeSticker === emoji ? null : emoji)}
+                                    onClick={() => {
+                                        const newEmoji = activeSticker === emoji ? null : emoji;
+                                        setActiveSticker(newEmoji);
+                                        if (newEmoji && preview) {
+                                            const rx = 50 + (Math.random() * 8 - 4);
+                                            const ry = 50 + (Math.random() * 8 - 4);
+                                            const rotate = Math.floor(Math.random() * 50) - 25;
+                                            setStickers(prev => [...prev, { emoji: emoji, x: rx, y: ry, rotate }]);
+                                        }
+                                    }}
                                     className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border transition-all ${
                                         activeSticker === emoji
                                             ? "bg-muted-rose/10 border-muted-rose scale-110 shadow-sm"
