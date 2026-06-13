@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ScrapbookModal } from "./ScrapbookModal";
+import Link from "next/link";
 
 type ScrapbookEntry = {
     id: string;
@@ -33,6 +34,27 @@ export function ScrapbookGrid({ userId, username, isOwner }: ScrapbookGridProps)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [editingEntry, setEditingEntry] = useState<ScrapbookEntry | null>(null);
     const supabase = createClient();
+
+    const renderCaptionWithTags = (text: string) => {
+        if (!text) return null;
+        const parts = text.split(/(@[\w.-]+)/g);
+        return parts.map((part, index) => {
+            const mentionMatch = part.match(/^@([\w.-]+)$/);
+            if (mentionMatch) {
+                const targetUsername = mentionMatch[1];
+                return (
+                    <Link
+                        key={index}
+                        href={`/profile/${targetUsername}`}
+                        className="text-muted-rose hover:underline font-bold"
+                    >
+                        {part}
+                    </Link>
+                );
+            }
+            return part;
+        });
+    };
 
     const fetchEntries = async () => {
         const { data } = await supabase
@@ -113,15 +135,18 @@ export function ScrapbookGrid({ userId, username, isOwner }: ScrapbookGridProps)
                                     <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
                                 </div>
                                 <p className="font-handwriting text-center text-warm-grey text-lg leading-tight px-2 min-h-6">
-                                    {entry.caption}
+                                    {renderCaptionWithTags(entry.caption)}
                                 </p>
                             </div>
 
                             {/* Creator tag badge */}
                             {entry.profiles && entry.user_id !== userId && (
-                                <div className="absolute top-2 left-2 bg-white/95 px-2 py-0.5 rounded-full shadow-sm text-[9px] font-bold text-warm-grey/85 border border-warm-grey/5 flex items-center gap-1 z-10">
-                                    <span className="text-muted-rose">✨</span> @{entry.profiles.username}
-                                </div>
+                                <Link
+                                    href={`/profile/${entry.profiles.username}`}
+                                    className="absolute top-2 left-2 bg-white/95 px-2 py-0.5 rounded-full shadow-sm text-[9px] font-bold text-muted-rose hover:text-muted-rose/80 border border-warm-grey/5 flex items-center gap-1 z-10 transition-colors"
+                                >
+                                    <span>✨</span> @{entry.profiles.username}
+                                </Link>
                             )}
 
                             {/* Edit Button (Creator Only) */}

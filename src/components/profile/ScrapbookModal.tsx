@@ -227,7 +227,7 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                                                 }
                                             }
                                         }}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white hover:bg-muted-rose/10 hover:text-muted-rose text-[9px] font-bold text-warm-grey/70 border border-warm-grey/10 transition-colors"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted-rose/5 hover:bg-muted-rose/10 text-[9px] font-bold text-muted-rose border border-muted-rose/15 transition-colors"
                                     >
                                         {f.avatar_url ? (
                                             <img src={f.avatar_url} alt={f.username} className="w-3.5 h-3.5 rounded-full object-cover" />
