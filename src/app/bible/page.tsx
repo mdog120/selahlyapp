@@ -6,9 +6,10 @@ import { BibleReader } from "../../components/bible/BibleReader";
 import { CommunityHighlights } from "@/components/bible/CommunityHighlights";
 import { YourNotes } from "@/components/bible/YourNotes";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, ArrowRight, Book, Home } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { QuietTimeAudio } from "@/components/ui/QuietTimeAudio";
 import { ReadingTimer } from "@/components/bible/ReadingTimer";
+import confetti from "canvas-confetti";
 
 const BOOKS = [
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -40,7 +41,95 @@ function BiblePageContent() {
     const [book, setBook] = useState(initialBook);
     const [chapter, setChapter] = useState(initialChapter);
     const [loading, setLoading] = useState(false);
+
+    // Timer States
+    const [duration, setDuration] = useState(15 * 60); // default 15 mins (900 seconds)
+    const [timeLeft, setTimeLeft] = useState(15 * 60);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [isTimerCompleted, setIsTimerCompleted] = useState(false);
+    const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+
+    // Sync timeLeft when duration changes (only if not running & not completed)
+    useEffect(() => {
+        if (!isTimerRunning && !isTimerCompleted) {
+            setTimeLeft(duration);
+        }
+    }, [duration, isTimerRunning, isTimerCompleted]);
+
+    // Synthesized chime audio sweep
+    const playQuietTimeChime = () => {
+        try {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const playNote = (freq: number, start: number, durationSec: number) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(freq, start);
+                gain.gain.setValueAtTime(0, start);
+                gain.gain.linearRampToValueAtTime(0.2, start + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.0001, start + durationSec);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(start);
+                osc.stop(start + durationSec);
+            };
+            const now = ctx.currentTime;
+            playNote(523.25, now, 1.5);       // C5
+            playNote(659.25, now + 0.25, 1.5); // E5
+            playNote(783.99, now + 0.5, 1.5);  // G5
+            playNote(1046.50, now + 0.8, 2.0); // C6
+        } catch (e) {
+            console.error("Failed to play synthesized chime:", e);
+        }
+    };
+
+    // Confetti explosion trigger
+    const triggerConfettiExplosion = () => {
+        const end = Date.now() + 2 * 1000;
+        const frame = () => {
+            confetti({
+                particleCount: 4,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0, y: 0.8 },
+                colors: ["#D4A5A5", "#E3E9E2", "#8D7B68", "#FCEADE"]
+            });
+            confetti({
+                particleCount: 4,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1, y: 0.8 },
+                colors: ["#D4A5A5", "#E3E9E2", "#8D7B68", "#FCEADE"]
+            });
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        };
+        frame();
+    };
+
+    // Countdown interval useEffect
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+        if (isTimerRunning && timeLeft > 0) {
+            interval = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        setIsTimerRunning(false);
+                        setIsTimerCompleted(true);
+                        setIsTimerModalOpen(true);
+                        playQuietTimeChime();
+                        triggerConfettiExplosion();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isTimerRunning, timeLeft]);
 
     // Sync state with URL if params change externally
     useEffect(() => {
@@ -63,24 +152,46 @@ function BiblePageContent() {
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, [isTimerRunning]);
 
+    // Warning alert on leaving the page (for SPA transitions)
+    useEffect(() => {
+        if (!isTimerRunning) return;
+
+        const handleAnchorClick = (e: MouseEvent) => {
+            let target = e.target as HTMLElement | null;
+            while (target && target.tagName !== 'A') {
+                target = target.parentElement;
+            }
+
+            if (target && target instanceof HTMLAnchorElement) {
+                const href = target.getAttribute('href');
+                if (href) {
+                    try {
+                        const url = new URL(href, window.location.href);
+                        if (url.pathname !== '/bible') {
+                            const confirmExit = confirm("Are you sure you want to end your quiet reading time early? ౨ৎ");
+                            if (!confirmExit) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        }
+                    } catch (err) {
+                        // Ignore relative/malformed URL errors
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('click', handleAnchorClick, true);
+        return () => {
+            document.removeEventListener('click', handleAnchorClick, true);
+        };
+    }, [isTimerRunning]);
+
     const handleNavigate = (newBook: string, newChapter: number) => {
-        if (isTimerRunning) {
-            const confirmExit = confirm("Are you sure you want to change chapters? This will reset your active reading timer. ౨ৎ");
-            if (!confirmExit) return;
-            setIsTimerRunning(false);
-        }
+        // No exit confirmation check when changing chapters/books! It keeps ticking in the background.
         setBook(newBook);
         setChapter(newChapter);
         router.push(`/bible?book=${encodeURIComponent(newBook)}&chapter=${newChapter}`);
-    };
-
-    const handleHomeClick = () => {
-        if (isTimerRunning) {
-            const confirmExit = confirm("Are you sure you want to end your quiet reading time early? ౨ৎ");
-            if (!confirmExit) return;
-            setIsTimerRunning(false);
-        }
-        router.push("/home");
     };
 
     const nextChapter = () => {
@@ -93,12 +204,26 @@ function BiblePageContent() {
         }
     };
 
+    const formatTime = (secs: number) => {
+        const m = Math.floor(secs / 60).toString().padStart(2, "0");
+        const s = (secs % 60).toString().padStart(2, "0");
+        return `${m}:${s}`;
+    };
+
     return (
         <div className="min-h-screen bg-warm-paper font-serif transition-colors duration-500 max-w-full overflow-x-hidden">
             <div className="container mx-auto px-4 py-8 max-w-6xl">
                 <div className="flex items-center justify-between mb-8 bg-white/50 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-warm-grey/10 sticky top-4 z-40 shadow-sm max-w-full">
-                    <Button variant="ghost" size="sm" onClick={handleHomeClick} className="text-warm-grey/50 hover:text-warm-cocoa px-2 sm:px-3">
-                        <Home className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Home</span>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setIsTimerModalOpen(true)} 
+                        className={`px-2 sm:px-3 flex items-center gap-1.5 transition-all duration-300 ${isTimerRunning ? 'text-muted-rose animate-pulse font-mono font-bold' : 'text-warm-grey/50 hover:text-warm-cocoa font-sans'}`}
+                    >
+                        <Clock className={`w-4 h-4 ${isTimerRunning ? 'text-muted-rose' : 'text-warm-grey/50'}`} />
+                        <span className="text-xs">
+                            {isTimerRunning || timeLeft < duration ? formatTime(timeLeft) : "Set Timer"}
+                        </span>
                     </Button>
 
                     <div className="flex items-center gap-1 sm:gap-2 min-w-0">
@@ -141,18 +266,26 @@ function BiblePageContent() {
 
                     {/* Sidebar: Widgets */}
                     <div className="lg:col-span-4 space-y-6">
-                        <ReadingTimer
-                            currentBook={book}
-                            currentChapter={chapter}
-                            isRunning={isTimerRunning}
-                            setIsRunning={setIsTimerRunning}
-                        />
                         <CommunityHighlights />
                         <YourNotes />
                     </div>
                 </div>
             </div>
             <QuietTimeAudio />
+            <ReadingTimer
+                isOpen={isTimerModalOpen}
+                onClose={() => setIsTimerModalOpen(false)}
+                currentBook={book}
+                currentChapter={chapter}
+                duration={duration}
+                setDuration={setDuration}
+                timeLeft={timeLeft}
+                setTimeLeft={setTimeLeft}
+                isRunning={isTimerRunning}
+                setIsRunning={setIsTimerRunning}
+                isCompleted={isTimerCompleted}
+                setIsCompleted={setIsTimerCompleted}
+            />
         </div>
     );
 }
