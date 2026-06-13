@@ -135,22 +135,26 @@ export function ScrapbookGrid({ userId, username, isOwner }: ScrapbookGridProps)
                                     <img src={entry.image_url} alt={entry.caption} className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
                                     {entry.styles?.stickers && Array.isArray(entry.styles.stickers) && entry.styles.stickers.map((sticker: any, sIdx: number) => (
-                                        <motion.div
+                                        <div
                                             key={sIdx}
-                                            initial={{ scale: 0, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            transition={{ type: "spring", stiffness: 200, damping: 12, delay: sIdx * 0.1 }}
                                             style={{
                                                 position: 'absolute',
                                                 left: `${sticker.x}%`,
                                                 top: `${sticker.y}%`,
                                                 transform: `translate(-50%, -50%) rotate(${sticker.rotate || 0}deg)`,
                                                 pointerEvents: 'none',
+                                                zIndex: 15,
                                             }}
-                                            className="text-2xl select-none z-10"
                                         >
-                                            {sticker.emoji}
-                                        </motion.div>
+                                            <motion.div
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                transition={{ type: "spring", stiffness: 200, damping: 12, delay: sIdx * 0.1 }}
+                                                className="text-2xl select-none"
+                                            >
+                                                {sticker.emoji}
+                                            </motion.div>
+                                        </div>
                                     ))}
                                 </div>
                                 <p className="font-handwriting text-center text-warm-grey text-lg leading-tight px-2 min-h-6">
