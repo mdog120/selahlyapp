@@ -3,7 +3,7 @@
 import { useStoryAuras } from "@/context/StoryAuraContext";
 
 interface StoryAvatarProps {
-    userId: string;
+    userId?: string | null;
     username: string;
     avatarUrl?: string | null;
     firstName?: string;
@@ -20,7 +20,7 @@ export function StoryAvatar({
     sizeClass = "w-10 h-10"
 }: StoryAvatarProps) {
     const { auraStates } = useStoryAuras();
-    const state = auraStates[userId] || "none";
+    const state = userId ? (auraStates[userId] || "none") : "none";
 
     const initials = `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
 
