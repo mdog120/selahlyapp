@@ -5,10 +5,10 @@ import { Volume2, VolumeX, Play, Pause, Compass, Music, CloudRain, Flame, Disc }
 import { motion, AnimatePresence } from "framer-motion";
 
 const SOUNDSCAPES = [
-    { id: "rain", name: "Soft Rain 🌧️", url: "https://www.soundjay.com/nature/sounds/rain-07.mp3", icon: CloudRain },
-    { id: "fire", name: "Crackling Fire 🪵", url: "https://www.soundjay.com/nature/sounds/fire-1.mp3", icon: Flame },
-    { id: "nature", name: "Forest Birds 🕊️", url: "https://www.soundjay.com/nature/sounds/river-1.mp3", icon: Compass },
-    { id: "musicbox", name: "Music Box ౨ৎ", url: "https://www.soundjay.com/misc/sounds/music-box-1.mp3", icon: Music }
+    { id: "rain", name: "Soft Rain 🌧️", url: "/audio/rain.mp3", icon: CloudRain },
+    { id: "fire", name: "Crackling Fire 🪵", url: "/audio/fire.mp3", icon: Flame },
+    { id: "nature", name: "Forest Birds 🕊️", url: "/audio/birds.mp3", icon: Compass },
+    { id: "musicbox", name: "Music Box ౨ৎ", url: "/audio/musicbox.mp3", icon: Music }
 ] as const;
 
 export function QuietTimeAudio() {

@@ -6,7 +6,7 @@ import { BibleReader } from "../../components/bible/BibleReader";
 import { CommunityHighlights } from "@/components/bible/CommunityHighlights";
 import { YourNotes } from "@/components/bible/YourNotes";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, ArrowRight, Book } from "lucide-react";
+import { ArrowLeft, ArrowRight, Book, Home } from "lucide-react";
 import { QuietTimeAudio } from "@/components/ui/QuietTimeAudio";
 
 const BOOKS = [
@@ -65,36 +65,35 @@ function BiblePageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-warm-paper font-serif transition-colors duration-500">
+        <div className="min-h-screen bg-warm-paper font-serif transition-colors duration-500 max-w-full overflow-x-hidden">
             <div className="container mx-auto px-4 py-8 max-w-6xl">
-                {/* Navigation Header */}
-                <div className="flex items-center justify-between mb-8 bg-white/50 p-4 rounded-2xl backdrop-blur-sm border border-warm-grey/10 sticky top-4 z-40 shadow-sm">
-                    <Button variant="ghost" size="sm" onClick={() => router.push("/home")} className="text-warm-grey/50 hover:text-warm-cocoa">
-                        <ArrowLeft className="w-4 h-4 mr-1" /> Home
+                <div className="flex items-center justify-between mb-8 bg-white/50 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-warm-grey/10 sticky top-4 z-40 shadow-sm max-w-full">
+                    <Button variant="ghost" size="sm" onClick={() => router.push("/home")} className="text-warm-grey/50 hover:text-warm-cocoa px-2 sm:px-3">
+                        <Home className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Home</span>
                     </Button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 min-w-0">
                         <select
                             value={book}
                             onChange={(e) => handleNavigate(e.target.value, 1)}
-                            className="bg-transparent font-serif font-bold text-warm-cocoa border-none outline-none cursor-pointer hover:bg-white/50 rounded-lg p-1"
+                            className="bg-transparent font-serif font-bold text-warm-cocoa border-none outline-none cursor-pointer hover:bg-white/50 rounded-lg p-1 w-[90px] sm:w-auto truncate"
                         >
                             {BOOKS.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
-                        <span className="text-warm-grey/40">Ch.</span>
+                        <span className="text-warm-grey/40 text-sm sm:text-base">Ch.</span>
                         <input
                             type="number"
                             value={chapter}
                             onChange={(e) => handleNavigate(book, parseInt(e.target.value) || 1)}
-                            className="w-16 bg-transparent font-serif font-bold text-warm-cocoa border-none outline-none p-1"
+                            className="w-10 sm:w-16 bg-transparent font-serif font-bold text-warm-cocoa border-none outline-none p-1 text-center"
                         />
                     </div>
 
-                    <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" disabled={chapter <= 1} onClick={prevChapter}>
+                    <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" disabled={chapter <= 1} onClick={prevChapter} className="p-1 sm:p-2">
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={nextChapter}>
+                        <Button variant="ghost" size="sm" onClick={nextChapter} className="p-1 sm:p-2">
                             <ArrowRight className="w-4 h-4" />
                         </Button>
                     </div>

@@ -134,7 +134,7 @@ export function SongSearchModal({ isOpen, onClose, onSelect }: SongSearchModalPr
         try {
             // Searching specifically in the music entity with strict Christian filtering
             const term = `${query} Christian`;
-            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=30`);
+            const res = await fetch(`/api/music-search?term=${encodeURIComponent(term)}`);
             const data = await res.json();
 
             // Client-side double check to ensure genre matches

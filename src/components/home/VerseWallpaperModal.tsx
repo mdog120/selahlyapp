@@ -190,6 +190,16 @@ export function VerseWallpaperModal({ isOpen, onClose, verseText, verseReference
 
     const handleDownload = () => {
         if (!previewUrl) return;
+
+        // Detect if user is on iOS (iPhone, iPad, iPod)
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (isIOS) {
+            alert("To save this wallpaper on iOS, please tap and hold (long press) the wallpaper image below and select 'Save to Photos'!");
+            return;
+        }
+
         const link = document.createElement("a");
         link.download = `Selahly_${verseReference.replace(/[: ]/g, "_")}_Wallpaper.png`;
         link.href = previewUrl;
