@@ -22,31 +22,63 @@ export function DailyVerseCard() {
     if (!verse) return null; // Hydration gap prevention
 
     return (
-        <div className="group relative overflow-hidden glass-card p-6 rounded-3xl border border-white/60">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-warm-cocoa">
-                    <BookOpen className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-widest">Grace & Glow</span>
-                </div>
-                <a href="/diaries" className="text-[10px] text-warm-grey/40 hover:text-warm-grey underline">Open Journal</a>
+        <div 
+            className="group relative overflow-hidden p-6 rounded-3xl border border-pink-100/40 shadow-sm transition-all duration-300 hover:shadow-md"
+            style={{
+                backgroundColor: "#fefaf6",
+                backgroundImage: "linear-gradient(90deg, rgba(212,165,165,0.06) 50%, transparent 50%), linear-gradient(rgba(212,165,165,0.06) 50%, transparent 50%)",
+                backgroundSize: "20px 20px"
+            }}
+        >
+            {/* Top Washi Tape accent */}
+            <div className="absolute top-2 right-6 w-14 h-4 bg-pink-100/60 border-x border-pink-200/30 rotate-2 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center justify-center text-[8px] text-muted-rose font-bold select-none z-10">
+                ౨ৎ SELAH
             </div>
-            <h3 className="font-serif text-xl mb-2">Verse of the Day</h3>
-            <p className="font-serif italic text-warm-grey/80 mb-4 h-16 line-clamp-3">
-                "{verse.text}"
-            </p>
-            <p className="text-xs text-right text-warm-grey/40 mb-4">— {verse.reference}</p>
-            <div className="flex gap-2 w-full">
-                <a href="/diaries" className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full text-xs font-semibold py-4 h-9">Journal ✏️</Button>
-                </a>
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setIsWallpaperModalOpen(true)}
-                    className="flex-1 text-xs font-semibold border-muted-rose/20 text-muted-rose hover:bg-muted-rose hover:text-white py-4 h-9"
+
+            {/* Inner Content Card */}
+            <div className="bg-white/95 border border-white/80 rounded-2xl p-5 shadow-[0_4px_12px_rgba(141,123,104,0.03)] relative z-10 flex flex-col h-full">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-1.5 text-muted-rose">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest font-sans">Grace & Glow</span>
+                    </div>
+                    <a href="/diaries" className="text-[10px] text-warm-grey/40 hover:text-warm-cocoa font-bold font-sans transition-colors">Open Journal ✏️</a>
+                </div>
+
+                <h3 className="font-serif text-lg text-warm-cocoa font-bold mb-2">Verse of the Day</h3>
+                
+                {/* Verse Text on a lined paper background style */}
+                <div 
+                    className="p-4 rounded-xl mb-4 border border-stone-100"
+                    style={{
+                        backgroundColor: "#fdfdfd",
+                        backgroundImage: "linear-gradient(rgba(212,165,165,0.08) 1px, transparent 1px)",
+                        backgroundSize: "100% 1.35rem",
+                        lineHeight: "1.35rem"
+                    }}
                 >
-                    Wallpaper ✨
-                </Button>
+                    <p className="font-serif italic text-warm-grey/85 text-[15px] leading-relaxed line-clamp-3">
+                        "{verse.text}"
+                    </p>
+                </div>
+                
+                <p className="text-[10px] text-right font-sans font-bold text-warm-grey/40 mb-5">— {verse.reference}</p>
+                
+                <div className="flex gap-3 w-full mt-auto">
+                    <a href="/diaries" className="flex-1">
+                        <Button variant="outline" className="w-full text-xs font-bold py-2 rounded-xl border-warm-grey/10 hover:bg-stone-50 h-9 flex items-center justify-center gap-1 font-sans text-warm-grey">
+                            <span>Journal</span>
+                            <span className="text-[10px]">✏️</span>
+                        </Button>
+                    </a>
+                    <Button 
+                        onClick={() => setIsWallpaperModalOpen(true)}
+                        className="flex-1 text-xs font-bold bg-muted-rose text-white hover:bg-muted-rose/90 rounded-xl h-9 shadow-sm shadow-muted-rose/15 flex items-center justify-center gap-1 font-sans border-none"
+                    >
+                        <span>Wallpaper</span>
+                        <span className="text-[10px]">✨</span>
+                    </Button>
+                </div>
             </div>
 
             <VerseWallpaperModal
