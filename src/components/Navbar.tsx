@@ -92,7 +92,7 @@ export function Navbar() {
                 {/* Right Actions */}
                 <div className="flex items-center gap-2 md:gap-4">
                     {/* Bible Widget */}
-                    <Link href="/bible" className="hidden md:flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors" title="Read Bible">
+                    <Link href="/bible" className="flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors" title="Read Bible">
                         <Book className="w-5 h-5" />
                     </Link>
 
@@ -170,29 +170,7 @@ export function Navbar() {
                                     <span className="text-lg">📌</span> Gratitude Wall
                                 </Link>
 
-                                <Link
-                                    href="/bible"
-                                    className="md:hidden flex items-center gap-3 p-2 rounded-xl hover:bg-stone-50 text-warm-grey/80 hover:text-warm-cocoa transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    <span className="text-lg">📖</span> Read Bible
-                                </Link>
 
-                                <Link
-                                    href="/vibe-board"
-                                    className="md:hidden flex items-center gap-3 p-2 rounded-xl hover:bg-teal-50 text-warm-grey/80 hover:text-teal-700 transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    <span className="text-lg">🎵</span> Vibes Board
-                                </Link>
-
-                                <Link
-                                    href="/search"
-                                    className="md:hidden flex items-center gap-3 p-2 rounded-xl hover:bg-soft-blush/20 text-warm-grey/80 hover:text-warm-grey transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    <Search className="w-4 h-4" /> Search
-                                </Link>
 
                                 <button
                                     onClick={() => {
