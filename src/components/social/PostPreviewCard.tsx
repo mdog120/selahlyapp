@@ -20,11 +20,13 @@ type Post = {
     song_artist?: string;
     song_album_art?: string;
     author: {
+        id?: string;
         username: string;
         first_name: string;
         last_name: string;
         avatar_url: string;
     };
+    user_id?: string;
     user_has_liked?: boolean;
 };
 
