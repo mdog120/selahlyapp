@@ -257,19 +257,19 @@ img {
 }
 
 /* Time of Day Themes */
-body.theme-sunrise {
+html.theme-sunrise, body.theme-sunrise {
   --warm-paper: #FFF5EC; /* Peach sunrise */
 }
 
-body.theme-midday {
+html.theme-midday, body.theme-midday {
   --warm-paper: #FDFBF7; /* Default warm paper */
 }
 
-body.theme-sunset {
+html.theme-sunset, body.theme-sunset {
   --warm-paper: #FFF0EB; /* Soft honey-gold / rose sunset */
 }
 
-body.theme-night {
+html.theme-night, body.theme-night {
   --warm-paper: #191222; /* Velvet midnight purple */
   --warm-grey: #D8D1C5;  /* Light warm grey text */
   --soft-black: #E6E0EC; /* Off-white text */

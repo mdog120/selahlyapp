@@ -97,7 +97,7 @@ export function Navbar() {
                     </Link>
 
                     {/* Search Link */}
-                    <Link href="/search" className="hidden md:flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors">
+                    <Link href="/search" className="flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/50 text-warm-grey/70 transition-colors">
                         <Search className="w-5 h-5" />
                     </Link>
 

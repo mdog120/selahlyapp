@@ -29,6 +29,8 @@ export function LayoutContent({ children }: LayoutContentProps) {
 
             document.body.classList.remove("theme-sunrise", "theme-midday", "theme-sunset", "theme-night");
             document.body.classList.add(theme);
+            document.documentElement.classList.remove("theme-sunrise", "theme-midday", "theme-sunset", "theme-night");
+            document.documentElement.classList.add(theme);
         };
 
         updateTheme();
