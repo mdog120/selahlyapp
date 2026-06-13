@@ -163,6 +163,14 @@ export function Navbar() {
                                 </Link>
 
                                 <Link
+                                    href="/gratitude"
+                                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-amber-50 text-warm-grey/80 hover:text-amber-800 transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <span className="text-lg">📌</span> Gratitude Wall
+                                </Link>
+
+                                <Link
                                     href="/bible"
                                     className="md:hidden flex items-center gap-3 p-2 rounded-xl hover:bg-stone-50 text-warm-grey/80 hover:text-warm-cocoa transition-colors"
                                     onClick={() => setIsMenuOpen(false)}

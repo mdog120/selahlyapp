@@ -11,7 +11,18 @@ import { BadgeUnlockModal } from "@/components/gamification/BadgeUnlockModal";
 import { GlowingCandle } from "@/components/diaries/GlowingCandle";
 import { VerseWallpaperModal } from "@/components/home/VerseWallpaperModal";
 import { QuietTimeAudio } from "@/components/ui/QuietTimeAudio";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+const REFLECTION_PROMPTS = [
+    "Where did you see God's quiet kindness today?",
+    "What is a promise you are holding onto in this season?",
+    "Write a prayer of release for things you cannot control.",
+    "What was the most peaceful moment of your day today?",
+    "How has a sister in faith encouraged you recently?",
+    "What is a verse or word that has been anchoring your thoughts?",
+    "What area of your heart is God inviting you to surrender today?",
+    "List three small blessings from today that made you smile."
+];
 
 type Verse = {
     reference: string;
@@ -61,6 +72,28 @@ export default function Diaries() {
     const [selectedSeal, setSelectedSeal] = useState<'bow' | 'cross' | 'branch' | 'heart'>('bow');
     const [selectedSealColor, setSelectedSealColor] = useState<'gold' | 'rose' | 'sage' | 'lavender'>('gold');
     const [diaryFont, setDiaryFont] = useState<'sans' | 'serif' | 'handwriting'>('serif');
+    const [activePrompt, setActivePrompt] = useState<string | null>(null);
+
+    const handleDrawPrompt = () => {
+        const remainingPrompts = activePrompt 
+            ? REFLECTION_PROMPTS.filter(p => p !== activePrompt)
+            : REFLECTION_PROMPTS;
+        const randomPrompt = remainingPrompts[Math.floor(Math.random() * remainingPrompts.length)];
+        setActivePrompt(randomPrompt);
+    };
+
+    const handleInsertPrompt = () => {
+        if (!activePrompt) return;
+        const prefix = `Prompt: ${activePrompt}\n\n`;
+        setEntry(prev => {
+            if (prev.startsWith("Prompt:")) {
+                const parts = prev.split("\n\n");
+                parts[0] = `Prompt: ${activePrompt}`;
+                return parts.join("\n\n");
+            }
+            return prefix + prev;
+        });
+    };
 
     // Badge State
     const [showBadgeModal, setShowBadgeModal] = useState(false);
@@ -299,13 +332,68 @@ export default function Diaries() {
 
                     {/* Right: Journaling Area */}
                     <div className="glass-card p-6 rounded-3xl border border-white/60 flex flex-col h-[520px]">
-                        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-warm-grey/5">
-                            <PenLine className="w-5 h-5 text-warm-grey/60" />
-                            <h2 className="font-serif text-xl text-warm-grey">Daily Reflection</h2>
-                            <span className="ml-auto text-xs text-warm-grey/40 font-sans">
-                                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                            </span>
+                        <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-warm-grey/5">
+                            <div className="flex items-center gap-3">
+                                <PenLine className="w-5 h-5 text-warm-grey/60" />
+                                <h2 className="font-serif text-xl text-warm-grey">Daily Reflection</h2>
+                            </div>
+                            {!hasJournaledToday ? (
+                                <button
+                                    type="button"
+                                    onClick={handleDrawPrompt}
+                                    className="text-[10px] bg-soft-blush/30 hover:bg-soft-blush/60 text-muted-rose border border-muted-rose/10 font-bold font-sans px-2.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                                >
+                                    <span>౨ৎ</span> Draw a Prompt
+                                </button>
+                            ) : (
+                                <span className="text-xs text-warm-grey/40 font-sans">
+                                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                </span>
+                            )}
                         </div>
+
+                        <AnimatePresence>
+                            {activePrompt && (
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="mb-4 p-4 bg-soft-blush/20 border border-muted-rose/20 rounded-2xl relative overflow-hidden flex flex-col gap-2.5 text-left"
+                                >
+                                    <div className="absolute top-0 right-0 w-8 h-8 bg-muted-rose/5 rounded-bl-full pointer-events-none" />
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-rose font-sans flex items-center gap-1">
+                                            <span>౨ৎ</span> Quiet-Time Prompt
+                                        </span>
+                                        <button 
+                                            onClick={() => setActivePrompt(null)}
+                                            className="text-warm-grey/40 hover:text-warm-grey text-[10px] font-bold font-sans"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <p className="font-serif italic text-xs text-warm-cocoa leading-relaxed">
+                                        "{activePrompt}"
+                                    </p>
+                                    <div className="flex gap-2 mt-1">
+                                        <button
+                                            type="button"
+                                            onClick={handleInsertPrompt}
+                                            className="px-2.5 py-1 bg-white hover:bg-stone-50 border border-warm-grey/10 rounded-lg text-[10px] font-medium text-warm-cocoa font-sans transition-all active:scale-95 cursor-pointer"
+                                        >
+                                            Insert into Diary
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDrawPrompt}
+                                            className="px-2.5 py-1 bg-warm-cocoa/5 hover:bg-warm-cocoa/10 border border-warm-cocoa/10 rounded-lg text-[10px] font-medium text-warm-cocoa font-sans transition-all active:scale-95 cursor-pointer"
+                                        >
+                                            Draw Another
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         <textarea
                             value={entry}

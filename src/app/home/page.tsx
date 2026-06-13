@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SocialFeed } from "@/components/social/SocialFeed";
 import { Greeting } from "@/components/home/Greeting";
@@ -97,6 +98,24 @@ export default async function UserHome(props: {
                         {/* Grace & Glow (Daily Verse) */}
                         <div className="hidden lg:block">
                             <DailyVerseCard />
+                        </div>
+
+                        {/* Gratitude Bulletin Board Card */}
+                        <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40 flex flex-col gap-4 text-center md:text-left relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-soft-blush/10 rounded-bl-full pointer-events-none" />
+                            <div className="flex items-center gap-2 justify-center md:justify-start">
+                                <span className="text-base text-muted-rose">౨ৎ</span>
+                                <h3 className="font-serif text-lg text-warm-cocoa font-bold">Gratitude Wall</h3>
+                            </div>
+                            <p className="text-xs text-warm-grey/70 leading-relaxed">
+                                Share and pin a note of thanksgiving to our community board.
+                            </p>
+                            <Link 
+                                href="/gratitude"
+                                className="w-full bg-warm-cocoa text-white py-2.5 px-4 rounded-2xl font-serif text-xs font-medium tracking-wide shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-95 transition-all text-center flex items-center justify-center gap-1 cursor-pointer font-bold"
+                            >
+                                Visit Bulletin Board 📌
+                            </Link>
                         </div>
 
 
