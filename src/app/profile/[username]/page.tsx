@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/client";
-import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, GraduationCap, Church, Trophy, Palette, Heart, Star } from "lucide-react";
+import { UserPlus, MessageCircle, Check, Clock, Shield, MoreHorizontal, X, Music, GraduationCap, Church, Trophy, Palette, Heart, Star, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatDistanceToNow } from "date-fns";
 import { useParams } from "next/navigation";
@@ -18,6 +18,7 @@ import { HeartHandshake } from "lucide-react";
 import { MomentsBar } from "@/components/social/MomentsBar";
 import { MomentModal } from "@/components/social/MomentModal";
 import { AnimatePresence } from "framer-motion";
+import { SongSearchModal } from "@/components/ui/SongSearchModal";
 
 const COLOR_MAP: Record<string, string> = {
     'rose': 'bg-muted-rose/10 text-muted-rose border-muted-rose/20',
@@ -105,6 +106,20 @@ export default function ProfilePage() {
     const [viewedMomentIds, setViewedMomentIds] = useState<Set<string>>(new Set());
     const [isAnthemPlaying, setIsAnthemPlaying] = useState(false);
     const [isProfileWallpaperOpen, setIsProfileWallpaperOpen] = useState(false);
+
+    // Selahly Notes Thought Bubble States
+    const [activeNote, setActiveNote] = useState<any | null>(null);
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+    const [isNoteReplyModalOpen, setIsNoteReplyModalOpen] = useState(false);
+    const [noteContent, setNoteContent] = useState("");
+    const [replyContent, setReplyContent] = useState("");
+    const [songTitle, setSongTitle] = useState("");
+    const [songArtist, setSongArtist] = useState("");
+    const [songLink, setSongLink] = useState("");
+    const [songPreview, setSongPreview] = useState("");
+    const [songArtwork, setSongArtwork] = useState("");
+    const [showSongInput, setShowSongInput] = useState(false);
+    const [isSongModalOpen, setIsSongModalOpen] = useState(false);
 
     const { triggerBadge } = useBadge();
     const supabase = createClient();
@@ -274,6 +289,18 @@ export default function ProfilePage() {
 
                 // 4. Fetch Active Moments & Highlights
                 await loadMoments(profileData);
+
+                // 5. Fetch Active Note for this profile
+                const { data: noteData } = await supabase
+                    .from('notes')
+                    .select('*')
+                    .eq('user_id', profileData.id)
+                    .gt('expires_at', new Date().toISOString())
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                
+                setActiveNote(noteData || null);
             }
             setLoading(false);
         };
@@ -402,37 +429,79 @@ export default function ProfilePage() {
                 {/* Profile Card */}
                 <div className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-8 shadow-sm animate-fade-in-up mb-8">
                     <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
-                        {activeMoments.length > 0 ? (
-                            <div 
-                                onClick={() => setIsViewerOpen(true)}
-                                className={`w-32 h-32 md:w-40 md:h-40 rounded-full p-[4px] bg-gradient-to-tr ${
-                                    hasSeenAllActive
-                                        ? "from-[#D4C3B3] via-[#EBE3DB] to-[#D4C3B3] ring-4 ring-[#F5EFEB] shadow-[0_0_20px_rgba(212,195,179,0.7)]"
-                                        : "from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_20px_rgba(244,143,177,0.8)]"
-                                } flex-shrink-0 mx-auto md:mx-0 cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200`}
-                                title="Watch moments"
-                            >
-                                <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-stone-100">
+                        {/* Avatar Wrapper with Thought Bubble */}
+                        <div className="relative flex-shrink-0 mx-auto md:mx-0">
+                            {/* Active Note Thought Bubble */}
+                            {activeNote ? (
+                                <div 
+                                    onClick={() => {
+                                        if (friendStatus === 'self') {
+                                            handleOpenNoteModal();
+                                        } else {
+                                            setIsNoteReplyModalOpen(true);
+                                        }
+                                    }}
+                                    className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white border border-warm-grey/10 rounded-2xl p-2.5 shadow-md text-[10px] leading-tight text-center max-w-[130px] min-w-[80px] z-20 cursor-pointer hover:scale-105 transition-transform"
+                                >
+                                    <div className="line-clamp-2 text-warm-grey/90 font-medium">
+                                        {activeNote.song_title && (
+                                            <span className="block text-[8px] text-warm-cocoa font-bold truncate max-w-full mb-0.5">
+                                                🎵 {activeNote.song_title}
+                                            </span>
+                                        )}
+                                        {activeNote.content}
+                                    </div>
+                                    {/* Speech bubble tail */}
+                                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
+                                        <div className="w-2 h-2 bg-white border-b border-r border-warm-grey/10 rotate-45"></div>
+                                    </div>
+                                </div>
+                            ) : (
+                                friendStatus === 'self' && (
+                                    <div 
+                                        onClick={handleOpenNoteModal}
+                                        className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white/90 hover:bg-white border border-dashed border-warm-grey/20 hover:border-warm-grey/40 rounded-full px-3 py-1 shadow-sm text-[9px] text-warm-grey/50 hover:text-warm-grey font-medium z-20 cursor-pointer hover:scale-105 transition-transform flex items-center gap-1"
+                                        title="Add a Selahly note"
+                                    >
+                                        <span>💭 Note</span>
+                                        <span className="font-bold text-xs">+</span>
+                                    </div>
+                                )
+                            )}
+
+                            {/* Avatar Circle Container */}
+                            {activeMoments.length > 0 ? (
+                                <div 
+                                    onClick={() => setIsViewerOpen(true)}
+                                    className={`w-32 h-32 md:w-40 md:h-40 rounded-full p-[4px] bg-gradient-to-tr ${
+                                        hasSeenAllActive
+                                            ? "from-[#D4C3B3] via-[#EBE3DB] to-[#D4C3B3] ring-4 ring-[#F5EFEB] shadow-[0_0_20px_rgba(212,195,179,0.7)]"
+                                            : "from-pink-400 via-pink-300 to-pink-400 ring-4 ring-pink-100 shadow-[0_0_20px_rgba(244,143,177,0.8)]"
+                                    } cursor-pointer active:scale-95 hover:scale-[1.02] transition-all duration-200`}
+                                    title="Watch moments"
+                                >
+                                    <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-stone-100">
+                                        {profile.avatar_url ? (
+                                            <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover object-center" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif animate-pulse">
+                                                {(profile.first_name?.[0] || "")}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-stone-100 border-4 border-white shadow-lg overflow-hidden">
                                     {profile.avatar_url ? (
                                         <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover object-center" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif animate-pulse">
+                                        <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif">
                                             {(profile.first_name?.[0] || "")}
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-stone-100 border-4 border-white shadow-lg overflow-hidden flex-shrink-0 mx-auto md:mx-0">
-                                {profile.avatar_url ? (
-                                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover object-center" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-warm-grey/20 text-5xl font-serif">
-                                        {(profile.first_name?.[0] || "")}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                            )}
+                        </div>
 
                         <div className="flex-1 text-center md:text-left">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -847,6 +916,166 @@ export default function ProfilePage() {
                         />
                     )}
                 </AnimatePresence>
+
+                {/* Note Creation / Editing Modal */}
+                {isNoteModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4" onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsNoteModalOpen(false);
+                    }}>
+                        <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-serif text-lg text-warm-cocoa">
+                                    {activeNote ? "Update Your Note" : "New Selahly Note"}
+                                </h3>
+                                {activeNote && (
+                                    <button 
+                                        onClick={handleDeleteNote}
+                                        className="text-xs text-red-400 hover:underline"
+                                    >
+                                        Delete Note
+                                    </button>
+                                )}
+                            </div>
+                            <textarea
+                                value={noteContent}
+                                onChange={(e) => setNoteContent(e.target.value.slice(0, 60))}
+                                placeholder="Share a quick thought... (expires in 24h)"
+                                className="w-full bg-gray-50 border-none rounded-xl p-4 text-sm focus:ring-1 focus:ring-warm-cocoa/20 mb-2 h-28 resize-none"
+                                maxLength={60}
+                            />
+                            <div className="text-right text-[10px] text-warm-grey/40 mb-4">
+                                {noteContent.length}/60 characters
+                            </div>
+
+                            {/* Song Selection */}
+                            <div className="mb-4">
+                                {!showSongInput ? (
+                                    <button
+                                        onClick={() => setIsSongModalOpen(true)}
+                                        className="text-xs text-warm-grey/60 flex items-center gap-2 hover:text-warm-cocoa transition-colors"
+                                    >
+                                        <Music className="w-3.5 h-3.5" /> Add Song
+                                    </button>
+                                ) : (
+                                    <div className="bg-stone-50 p-3 rounded-xl border border-warm-grey/5 relative">
+                                        <div className="flex items-center gap-3">
+                                            {songArtwork ? (
+                                                <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                                    <img src={songArtwork} alt="Cover" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
+                                                    <Music className="w-5 h-5 text-warm-grey/40" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0 text-left">
+                                                <div className="font-bold text-warm-cocoa truncate text-xs">{songTitle}</div>
+                                                <div className="text-[10px] text-warm-grey/60 truncate">{songArtist}</div>
+                                            </div>
+                                            <button onClick={() => {
+                                                setShowSongInput(false);
+                                                setSongTitle("");
+                                                setSongArtist("");
+                                                setSongLink("");
+                                                setSongPreview("");
+                                                setSongArtwork("");
+                                            }} className="p-1 text-warm-grey/40 hover:text-red-400">
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <SongSearchModal
+                                isOpen={isSongModalOpen}
+                                onClose={() => setIsSongModalOpen(false)}
+                                onSelect={(song) => {
+                                    setSongTitle(song.title);
+                                    setSongArtist(song.artist);
+                                    setSongLink(song.link);
+                                    setSongPreview(song.previewUrl);
+                                    setSongArtwork(song.artwork);
+                                    setShowSongInput(true);
+                                }}
+                            />
+
+                            <div className="flex justify-end gap-2 mt-4">
+                                <Button variant="ghost" size="sm" onClick={() => setIsNoteModalOpen(false)}>Cancel</Button>
+                                <Button size="sm" onClick={handleSaveNote} disabled={!noteContent.trim() && !songTitle}>
+                                    {activeNote ? "Update" : "Share"}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Note Reply Modal */}
+                {isNoteReplyModalOpen && activeNote && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4" onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsNoteReplyModalOpen(false);
+                    }}>
+                        <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-stone-100 overflow-hidden border border-warm-grey/10">
+                                    {profile.avatar_url ? (
+                                        <img src={profile.avatar_url} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-xs text-warm-grey/40 font-bold">
+                                            {profile.first_name?.[0]}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <h3 className="font-serif text-lg leading-none text-warm-cocoa">{profile.first_name}</h3>
+                                    <p className="text-[10px] text-warm-grey/60">@{profile.username}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-soft-blush/10 border border-soft-blush/20 rounded-2xl p-4 text-center mb-6 relative">
+                                <p className="text-warm-grey/90 italic font-medium leading-relaxed">"{activeNote.content}"</p>
+                                {activeNote.song_title && (
+                                    <div className="mt-4 pt-4 border-t border-soft-blush/20">
+                                        <div className="flex items-center gap-3 bg-white/60 p-2 rounded-xl">
+                                            {activeNote.song_album_art ? (
+                                                <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                                    <img src={activeNote.song_album_art} alt="Cover" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center shrink-0">
+                                                    <Music className="w-5 h-5 text-warm-grey/40" />
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 min-w-0 text-left">
+                                                <p className="font-bold text-warm-grey text-xs truncate">{activeNote.song_title}</p>
+                                                <p className="text-[10px] text-warm-grey/60 truncate">{activeNote.song_artist}</p>
+                                            </div>
+
+                                            {activeNote.song_preview_url && (
+                                                <SongPlayer previewUrl={activeNote.song_preview_url} />
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-bold text-warm-grey/60 mb-2 block uppercase tracking-wider font-sans">Reply directly</label>
+                                <textarea
+                                    value={replyContent}
+                                    onChange={(e) => setReplyContent(e.target.value)}
+                                    placeholder={`Message ${profile.first_name}...`}
+                                    className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm focus:ring-1 focus:ring-warm-cocoa/20 mb-3 h-20 resize-none"
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => setIsNoteReplyModalOpen(false)}>Close</Button>
+                                    <Button size="sm" onClick={handleSendReply} disabled={!replyContent.trim()}>Send</Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main >
         </div >
     );
