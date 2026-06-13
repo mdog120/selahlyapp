@@ -5,6 +5,7 @@ import { Play, Pause, RotateCcw, Clock, Check, Sparkles, BookOpen, X } from "luc
 import { createClient } from "@/lib/supabase/client";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/Button";
+import { BowLogo } from "@/components/ui/BowLogo";
 
 interface ReadingTimerProps {
     isOpen: boolean;
@@ -115,10 +116,21 @@ export function ReadingTimer({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-            <div className="relative w-full max-w-md bg-warm-paper rounded-[2.5rem] border border-white/80 shadow-2xl p-6 md:p-8 flex flex-col gap-5 overflow-hidden animate-scale-up">
-                
+            <div 
+                className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 shadow-2xl p-6 md:p-8 flex flex-col gap-5 overflow-hidden animate-scale-up"
+                style={{
+                    backgroundImage: "linear-gradient(90deg, rgba(212,165,165,0.03) 50%, transparent 50%), linear-gradient(rgba(212,165,165,0.03) 50%, transparent 50%)",
+                    backgroundSize: "24px 24px",
+                    backgroundColor: "#fcfaf6"
+                }}
+            >
                 {/* Decorative bow background */}
                 <div className="absolute top-0 right-0 w-28 h-28 bg-muted-rose/5 rounded-bl-full pointer-events-none" />
+
+                {/* Faded giant bow watermark in background */}
+                <div className="absolute -bottom-10 -left-10 text-muted-rose/5 -rotate-12 pointer-events-none z-0 select-none">
+                    <BowLogo size="160px" />
+                </div>
 
                 {/* Close Button */}
                 <button 
@@ -180,9 +192,14 @@ export function ReadingTimer({
                 ) : (
                     /* Active Timer Mode */
                     <div className="flex flex-col items-center gap-5 mt-4 z-10">
-                        <div className="flex items-center gap-2 text-warm-cocoa">
-                            <Clock className="w-5 h-5 text-muted-rose" />
-                            <h3 className="font-serif text-lg font-bold">Selah Timer</h3>
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="p-3.5 rounded-full bg-white/90 shadow-sm border border-[#FCEADE]/30 animate-bounce-slow mb-1">
+                                <BowLogo className="text-3xl text-muted-rose" />
+                            </div>
+                            <div className="flex items-center gap-2 text-warm-cocoa">
+                                <Clock className="w-4 h-4 text-muted-rose" />
+                                <h3 className="font-serif text-lg font-bold">Selah Timer</h3>
+                            </div>
                         </div>
 
                         {/* Circular Timer Visualizer */}
