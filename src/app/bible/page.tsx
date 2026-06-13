@@ -8,6 +8,7 @@ import { YourNotes } from "@/components/bible/YourNotes";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, ArrowRight, Book, Home } from "lucide-react";
 import { QuietTimeAudio } from "@/components/ui/QuietTimeAudio";
+import { ReadingTimer } from "@/components/bible/ReadingTimer";
 
 const BOOKS = [
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -39,6 +40,7 @@ function BiblePageContent() {
     const [book, setBook] = useState(initialBook);
     const [chapter, setChapter] = useState(initialChapter);
     const [loading, setLoading] = useState(false);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
 
     // Sync state with URL if params change externally
     useEffect(() => {
@@ -48,10 +50,37 @@ function BiblePageContent() {
         if (c) setChapter(parseInt(c));
     }, [searchParams]);
 
+    // Warning alert on close/refresh if timer is running
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isTimerRunning) {
+                e.preventDefault();
+                e.returnValue = "Are you sure you want to end your quiet reading time early? ౨ৎ";
+                return e.returnValue;
+            }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [isTimerRunning]);
+
     const handleNavigate = (newBook: string, newChapter: number) => {
+        if (isTimerRunning) {
+            const confirmExit = confirm("Are you sure you want to change chapters? This will reset your active reading timer. ౨ৎ");
+            if (!confirmExit) return;
+            setIsTimerRunning(false);
+        }
         setBook(newBook);
         setChapter(newChapter);
         router.push(`/bible?book=${encodeURIComponent(newBook)}&chapter=${newChapter}`);
+    };
+
+    const handleHomeClick = () => {
+        if (isTimerRunning) {
+            const confirmExit = confirm("Are you sure you want to end your quiet reading time early? ౨ৎ");
+            if (!confirmExit) return;
+            setIsTimerRunning(false);
+        }
+        router.push("/home");
     };
 
     const nextChapter = () => {
@@ -68,7 +97,7 @@ function BiblePageContent() {
         <div className="min-h-screen bg-warm-paper font-serif transition-colors duration-500 max-w-full overflow-x-hidden">
             <div className="container mx-auto px-4 py-8 max-w-6xl">
                 <div className="flex items-center justify-between mb-8 bg-white/50 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-warm-grey/10 sticky top-4 z-40 shadow-sm max-w-full">
-                    <Button variant="ghost" size="sm" onClick={() => router.push("/home")} className="text-warm-grey/50 hover:text-warm-cocoa px-2 sm:px-3">
+                    <Button variant="ghost" size="sm" onClick={handleHomeClick} className="text-warm-grey/50 hover:text-warm-cocoa px-2 sm:px-3">
                         <Home className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Home</span>
                     </Button>
 
@@ -112,6 +141,12 @@ function BiblePageContent() {
 
                     {/* Sidebar: Widgets */}
                     <div className="lg:col-span-4 space-y-6">
+                        <ReadingTimer
+                            currentBook={book}
+                            currentChapter={chapter}
+                            isRunning={isTimerRunning}
+                            setIsRunning={setIsTimerRunning}
+                        />
                         <CommunityHighlights />
                         <YourNotes />
                     </div>
