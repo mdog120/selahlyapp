@@ -903,7 +903,7 @@ export default function ProfilePage() {
                     {/* Friends List */}
                     <div className="md:col-span-1">
                         <div className="bg-white/60 p-6 rounded-3xl border border-white h-full">
-                            <h3 className="font-serif text-lg text-warm-cocoa mb-4">Friends ({canViewFriends ? friends.length : 0})</h3>
+                            <h3 className="font-serif text-lg text-warm-cocoa mb-4">Friends ({canViewFriends ? friends.length : "?"})</h3>
                             {canViewFriends ? (
                                 friends.length > 0 ? (
                                     <div className="space-y-3">
