@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         const stripe = new Stripe(stripeSecret);
 
         const body = await request.json();
-        const { amount } = body;
+        const { amount, allowRedirects } = body;
 
         if (!amount || isNaN(Number(amount))) {
             return NextResponse.json(
@@ -34,14 +34,24 @@ export async function POST(request: Request) {
             );
         }
 
-        const paymentIntent = await stripe.paymentIntents.create({
+        const paymentIntentOptions: Stripe.PaymentIntentCreateParams = {
             amount: amountInCents,
             currency: "usd",
-            automatic_payment_methods: {
-                enabled: true,
-            },
             description: "Donation to Selahly Digital Sanctuary",
-        });
+        };
+
+        if (allowRedirects === false) {
+            paymentIntentOptions.automatic_payment_methods = {
+                enabled: true,
+                allow_redirects: "never",
+            };
+        } else {
+            paymentIntentOptions.automatic_payment_methods = {
+                enabled: true,
+            };
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
 
         return NextResponse.json({
             clientSecret: paymentIntent.client_secret,

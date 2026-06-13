@@ -22,6 +22,17 @@ const getStripe = () => {
     return stripePromise;
 };
 
+const checkIsPWAOrApp = () => {
+    if (typeof window === "undefined") return false;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+        (window.navigator as any).standalone;
+    const isWebView = /iPhone|iPad|iPod/.test(navigator.userAgent) && 
+        !/Safari/.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return isStandalone || isWebView || isIOS;
+};
+
 interface DonateModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -101,12 +112,19 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
         setLoadingSecret(true);
         setErrorMsg(null);
         try {
+            const isHttp = typeof window !== "undefined" && 
+                (window.location.protocol === "http:" || window.location.protocol === "https:");
+            const isPWAOrApp = checkIsPWAOrApp();
+
             const res = await fetch("/api/donate", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ amount: amt }),
+                body: JSON.stringify({ 
+                    amount: amt, 
+                    allowRedirects: isHttp && !isPWAOrApp 
+                }),
             });
 
             const data = await res.json();
@@ -387,15 +405,24 @@ function StripeCheckoutForm({ amount, clientSecret, onSuccess }: StripeCheckoutF
         }
 
         try {
-            const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+            const isHttp = typeof window !== "undefined" && 
+                (window.location.protocol === "http:" || window.location.protocol === "https:");
+            const isPWAOrApp = checkIsPWAOrApp();
+
+            const confirmParams: any = {
                 payment_method: {
                     card: cardElement,
                     billing_details: {
                         name: cardName.trim(),
                     },
                 },
-                return_url: `${window.location.origin}${window.location.pathname}?redirect_status=succeeded`,
-            });
+            };
+
+            if (isHttp && !isPWAOrApp) {
+                confirmParams.return_url = `${window.location.origin}${window.location.pathname}?redirect_status=succeeded`;
+            }
+
+            const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, confirmParams);
 
             if (error) {
                 console.error("Card confirmation error:", error);
