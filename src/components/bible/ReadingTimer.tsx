@@ -44,7 +44,11 @@ export function ReadingTimer({
     if (!isOpen) return null;
 
     const handleStartPause = () => {
-        setIsRunning(!isRunning);
+        const nextRunning = !isRunning;
+        setIsRunning(nextRunning);
+        if (nextRunning) {
+            onClose();
+        }
     };
 
     const handleReset = () => {
