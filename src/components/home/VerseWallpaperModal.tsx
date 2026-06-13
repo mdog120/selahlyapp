@@ -29,8 +29,8 @@ const GRADIENTS = [
 ];
 
 const PATTERNS = [
-    { name: "Gingham Checkered 🏁", type: "gingham", bg: "#FFF0EB", stripe: "rgba(212, 165, 165, 0.25)", font: "#7C524F" },
-    { name: "Cute Polka Dot ⚪", type: "polka", bg: "#FDFBF7", dot: "rgba(124, 82, 79, 0.08)", font: "#4A3E3D" }
+    { name: "Gingham Checkered 🏁", type: "gingham", bg: "#FFF0EB", stripe: "rgba(212, 165, 165, 0.25)", dot: "", font: "#7C524F" },
+    { name: "Cute Polka Dot ⚪", type: "polka", bg: "#FDFBF7", stripe: "", dot: "rgba(124, 82, 79, 0.08)", font: "#4A3E3D" }
 ];
 
 export function VerseWallpaperModal({ isOpen, onClose, verseText, verseReference }: VerseWallpaperModalProps) {
