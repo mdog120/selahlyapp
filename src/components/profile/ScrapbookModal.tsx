@@ -152,15 +152,15 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-md bg-warm-paper">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-md bg-warm-paper flex flex-col max-h-full overflow-hidden">
+                <DialogHeader className="shrink-0 pb-2 border-b border-warm-grey/5">
                     <DialogTitle>{editingEntry ? "Edit Memory ✏️" : "New Memory 📸"}</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-6 py-4">
+                <div className="flex-1 overflow-y-auto py-4 space-y-4 sm:space-y-6 pr-1 custom-scrollbar">
                     {/* Image Preview / Upload Area */}
                     <div
-                        className={`aspect-square mx-auto w-64 relative cursor-pointer group transition-transform hover:scale-[1.02] ${
+                        className={`aspect-square mx-auto w-48 sm:w-64 relative cursor-pointer group transition-transform hover:scale-[1.02] ${
                             selectedFrame === 'polaroid' ? 'border-polaroid' :
                             selectedFrame === 'lace' ? 'border-lace' :
                             selectedFrame === 'gingham' ? 'border-gingham' :
@@ -260,17 +260,17 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                             ))}
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button variant="ghost" onClick={onClose} disabled={uploading}>Cancel</Button>
-                        <Button
-                            onClick={handleUpload}
-                            disabled={(!editingEntry && !file) || !caption || uploading}
-                            className="bg-muted-rose text-white hover:bg-muted-rose/90"
-                        >
-                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Memory"}
-                        </Button>
-                    </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-warm-grey/5 shrink-0">
+                    <Button variant="ghost" onClick={onClose} disabled={uploading}>Cancel</Button>
+                    <Button
+                        onClick={handleUpload}
+                        disabled={(!editingEntry && !file) || !caption || uploading}
+                        className="bg-muted-rose text-white hover:bg-muted-rose/90"
+                    >
+                        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Memory"}
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>

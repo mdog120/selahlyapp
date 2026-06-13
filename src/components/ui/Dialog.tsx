@@ -7,7 +7,7 @@ export function Dialog({ open, onOpenChange, children }: { open: boolean, onOpen
     if (!open) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => onOpenChange(false)}>
-            <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] max-h-[85dvh] overflow-hidden" onClick={e => e.stopPropagation()}>
                 {children}
             </div>
         </div>
@@ -15,7 +15,7 @@ export function Dialog({ open, onOpenChange, children }: { open: boolean, onOpen
 }
 
 export function DialogContent({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <div className={`p-6 ${className}`}>{children}</div>;
+    return <div className={`p-4 sm:p-6 ${className}`}>{children}</div>;
 }
 
 export function DialogHeader({ children }: { children: React.ReactNode }) {
