@@ -4,7 +4,6 @@ import { LayoutContent } from "@/components/LayoutContent";
 import { BadgeProvider } from "@/context/BadgeContext";
 import { GlobalAlertProvider } from "@/components/ui/GlobalAlertProvider";
 import { StoryAuraProvider } from "@/context/StoryAuraContext";
-import Script from "next/script";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -53,9 +52,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <Script src="https://js.stripe.com/v3/" strategy="beforeInteractive" />
-      </head>
       <body
         className={`${playfair.variable} ${outfit.variable} ${caveat.variable} antialiased bg-warm-paper text-warm-grey`}
       >
