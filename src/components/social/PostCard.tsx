@@ -12,6 +12,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { useBadge } from "@/context/BadgeContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { StoryAvatar } from "./StoryAvatar";
 
 type Post = {
     id: string;
@@ -976,16 +977,14 @@ export function PostCard({ post }: { post: Post }) {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <Link href={`/profile/${post.author?.username || ""}`} className="group flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-soft-blush flex items-center justify-center text-sm font-serif overflow-hidden group-hover:ring-2 ring-sage-green transition-all">
-                            {post.author?.avatar_url ? (
-                                <img src={post.author.avatar_url} alt={post.author.username} className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-warm-grey uppercase text-xs">
-                                    {(post.author?.first_name?.[0] || "")}
-                                    {(post.author?.last_name?.[0] || "")}
-                                </span>
-                            )}
-                        </div>
+                        <StoryAvatar
+                            userId={post.user_id}
+                            username={post.author?.username || ""}
+                            avatarUrl={post.author?.avatar_url}
+                            firstName={post.author?.first_name}
+                            lastName={post.author?.last_name}
+                            sizeClass="w-10 h-10"
+                        />
                         <div>
                             <p className="font-medium text-warm-grey text-sm group-hover:text-sage-green transition-colors">
                                 {formattedName}

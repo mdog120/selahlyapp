@@ -26,6 +26,7 @@ export function VaultFeed() {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
     const supabase = createClient();
 
@@ -50,10 +51,12 @@ export function VaultFeed() {
         fetchThreads();
     }, []);
 
-    const filteredThreads = threads.filter(t =>
-        (t.title?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (t.category?.toLowerCase() || "").includes(searchQuery.toLowerCase())
-    );
+    const filteredThreads = threads.filter(t => {
+        const matchesSearch = (t.title?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+            (t.category?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+        const matchesCategory = !selectedCategory || t.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     return (
         <div className="flex flex-col gap-8">
@@ -73,6 +76,33 @@ export function VaultFeed() {
                     />
                 </div>
                 <AskQuestion onQuestionAsked={fetchThreads} />
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hide -mt-4 mb-2">
+                <button
+                    onClick={() => setSelectedCategory(null)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
+                        !selectedCategory
+                            ? "bg-deep-velvet text-white shadow-sm"
+                            : "bg-white/60 text-warm-grey/60 border border-white hover:bg-stone-50"
+                    }`}
+                >
+                    All Topics
+                </button>
+                {["Faith", "Relationships", "Mental Health", "Culture", "Bible Study", "Other"].map(cat => (
+                    <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
+                            selectedCategory === cat
+                                ? "bg-deep-velvet text-white shadow-sm"
+                                : "bg-white/60 text-warm-grey/60 border border-white hover:bg-stone-50"
+                        }`}
+                    >
+                        {cat}
+                    </button>
+                ))}
             </div>
 
             {/* List */}

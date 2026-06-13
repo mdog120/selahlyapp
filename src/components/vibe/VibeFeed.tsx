@@ -14,6 +14,7 @@ type Vibe = {
     description: string;
     created_at: string;
     author: {
+        id: string;
         username: string;
         first_name: string;
         last_name: string;
@@ -34,7 +35,7 @@ export function VibeFeed() {
             .from("vibes")
             .select(`
                 *,
-                author:profiles!vibes_user_id_fkey (username, first_name, last_name, avatar_url)
+                author:profiles!vibes_user_id_fkey (id, username, first_name, last_name, avatar_url)
             `)
             .order("created_at", { ascending: false });
 

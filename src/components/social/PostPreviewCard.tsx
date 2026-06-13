@@ -4,6 +4,7 @@ import { Heart, Music, Layers, Play, BarChart2, MapPin } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { StoryAvatar } from "./StoryAvatar";
 
 type Post = {
     id: string;
@@ -357,13 +358,14 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
                 {/* Card Footer (Author & Like count) */}
                 <div className="flex items-center justify-between mt-auto pt-2 border-t border-stone-50 min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <div className="w-4.5 h-4.5 rounded-full bg-soft-blush flex-shrink-0 flex items-center justify-center text-[7px] text-warm-grey font-bold overflow-hidden border border-stone-100/60">
-                            {post.author?.avatar_url ? (
-                                <img src={post.author.avatar_url} alt={post.author.first_name} className="w-full h-full object-cover" />
-                            ) : (
-                                <span>{getInitials(post.author?.first_name, post.author?.last_name)}</span>
-                            )}
-                        </div>
+                        <StoryAvatar
+                            userId={post.user_id}
+                            username={post.author?.username || ""}
+                            avatarUrl={post.author?.avatar_url}
+                            firstName={post.author?.first_name}
+                            lastName={post.author?.last_name}
+                            sizeClass="w-4.5 h-4.5"
+                        />
                         <span className="text-[9px] font-bold text-warm-grey/60 truncate max-w-[65px]">
                             {formattedName}
                         </span>

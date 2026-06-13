@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShareModal } from "../messaging/ShareModal";
 import { createClient } from "@/lib/supabase/client";
+import { StoryAvatar } from "../social/StoryAvatar";
 
 type Thread = {
     id: string;
@@ -173,13 +174,14 @@ export function QuestionCard({ thread }: { thread: Thread }) {
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                     >
-                        <div className="w-6 h-6 rounded-full bg-soft-blush flex items-center justify-center text-[10px] text-warm-grey font-medium overflow-hidden">
-                            {thread.author?.avatar_url ? (
-                                <img src={thread.author.avatar_url} alt={thread.author.username} className="w-full h-full object-cover" />
-                            ) : (
-                                <span>{(thread.author?.first_name?.[0] || "")}{(thread.author?.last_name?.[0] || "")}</span>
-                            )}
-                        </div>
+                        <StoryAvatar
+                            userId={thread.user_id}
+                            username={thread.author?.username || ""}
+                            avatarUrl={thread.author?.avatar_url}
+                            firstName={thread.author?.first_name}
+                            lastName={thread.author?.last_name}
+                            sizeClass="w-6 h-6"
+                        />
                         <span className="text-xs text-warm-grey/60 font-medium">
                             Asked by <span className="text-warm-grey">{formattedName}</span>
                         </span>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Youtube, Mic, Music, Users, ExternalLink, Play, Share2, ShoppingBag } from "lucide-react";
 import { ShareModal } from "../messaging/ShareModal";
 import { formatDistanceToNow } from "date-fns";
+import { StoryAvatar } from "../social/StoryAvatar";
 
 type Vibe = {
     id: string;
@@ -13,6 +14,7 @@ type Vibe = {
     description: string;
     created_at: string;
     author: {
+        id: string;
         username: string;
         first_name: string;
         last_name: string;
@@ -76,13 +78,14 @@ export function VibeCard({ vibe }: { vibe: Vibe }) {
 
                     <div className="mt-auto pt-4 flex items-center justify-between border-t border-warm-grey/5">
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-soft-blush flex items-center justify-center text-[8px] text-warm-grey font-medium overflow-hidden">
-                                {vibe.author?.avatar_url ? (
-                                    <img src={vibe.author.avatar_url} alt={vibe.author.username} className="w-full h-full object-cover" />
-                                ) : (
-                                    <span>{getInitials(vibe.author?.first_name, vibe.author?.last_name)}</span>
-                                )}
-                            </div>
+                            <StoryAvatar
+                                userId={vibe.author?.id}
+                                username={vibe.author?.username || ""}
+                                avatarUrl={vibe.author?.avatar_url}
+                                firstName={vibe.author?.first_name}
+                                lastName={vibe.author?.last_name}
+                                sizeClass="w-6 h-6"
+                            />
                             <span className="text-[10px] text-warm-grey/40">Shared by {formattedName}</span>
                         </div>
 
