@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Outfit } from "next/font/google"; // Elegant serif + clean sans
+import { Playfair_Display, Outfit, Caveat } from "next/font/google"; // Elegant serif + clean sans + cozy handwriting
 import { LayoutContent } from "@/components/LayoutContent";
 import { BadgeProvider } from "@/context/BadgeContext";
 import { GlobalAlertProvider } from "@/components/ui/GlobalAlertProvider";
@@ -13,6 +13,11 @@ const playfair = Playfair_Display({
 
 const outfit = Outfit({
   variable: "--font-outfit",
+  subsets: ["latin"],
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
   subsets: ["latin"],
 });
 
@@ -48,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${playfair.variable} ${outfit.variable} antialiased bg-warm-paper text-warm-grey`}
+        className={`${playfair.variable} ${outfit.variable} ${caveat.variable} antialiased bg-warm-paper text-warm-grey`}
       >
         <BadgeProvider>
           <GlobalAlertProvider>

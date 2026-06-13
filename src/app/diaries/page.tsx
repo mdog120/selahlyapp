@@ -10,6 +10,8 @@ import { getDailyVerse } from "@/lib/dailyVerse";
 import { BadgeUnlockModal } from "@/components/gamification/BadgeUnlockModal";
 import { GlowingCandle } from "@/components/diaries/GlowingCandle";
 import { VerseWallpaperModal } from "@/components/home/VerseWallpaperModal";
+import { QuietTimeAudio } from "@/components/ui/QuietTimeAudio";
+import { motion } from "framer-motion";
 
 type Verse = {
     reference: string;
@@ -21,6 +23,26 @@ type HistoryEntry = {
     content: string;
     verse_reference: string;
     created_at: string;
+};
+
+const parseEntryContent = (rawContent: string) => {
+    const match = rawContent.match(/\n\n\[SelahlySeal:(.*)\]$/);
+    if (match) {
+        try {
+            const sealData = JSON.parse(match[1]);
+            const content = rawContent.replace(/\n\n\[SelahlySeal:(.*)\]$/, "");
+            return { content, seal: sealData };
+        } catch (e) {
+            console.error("Failed to parse seal data", e);
+        }
+    }
+    return { content: rawContent, seal: null };
+};
+
+const getFontClass = (font: string) => {
+    if (font === 'sans') return 'font-sans';
+    if (font === 'handwriting') return 'font-handwriting';
+    return 'font-serif';
 };
 
 export default function Diaries() {
@@ -35,6 +57,11 @@ export default function Diaries() {
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [isDiariesWallpaperOpen, setIsDiariesWallpaperOpen] = useState(false);
 
+    // Cozy Upgrades State
+    const [selectedSeal, setSelectedSeal] = useState<'bow' | 'cross' | 'branch' | 'heart'>('bow');
+    const [selectedSealColor, setSelectedSealColor] = useState<'gold' | 'rose' | 'sage' | 'lavender'>('gold');
+    const [diaryFont, setDiaryFont] = useState<'sans' | 'serif' | 'handwriting'>('serif');
+
     // Badge State
     const [showBadgeModal, setShowBadgeModal] = useState(false);
     const [justEarnedBadge, setJustEarnedBadge] = useState<{ name: string, description: string } | null>(null);
@@ -46,7 +73,18 @@ export default function Diaries() {
         const v = getDailyVerse();
         setVerse(v);
         loadUserData();
+
+        // Load font preference from localStorage
+        const storedFont = localStorage.getItem("selahly_diary_font");
+        if (storedFont === "sans" || storedFont === "serif" || storedFont === "handwriting") {
+            setDiaryFont(storedFont);
+        }
     }, []);
+
+    const handleFontChange = (font: 'sans' | 'serif' | 'handwriting') => {
+        setDiaryFont(font);
+        localStorage.setItem("selahly_diary_font", font);
+    };
 
     const loadUserData = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -112,12 +150,23 @@ export default function Diaries() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user || !entry.trim()) return;
 
-        // 1. Save Entry
+        // 1. Save Entry with Wax Seal Metadata
+        const contentWithSeal = `${entry.trim()}\n\n[SelahlySeal:${JSON.stringify({ seal: selectedSeal, color: selectedSealColor })}]`;
+        
         await supabase.from("diaries").insert({
             user_id: user.id,
             verse_reference: verse?.reference,
-            content: entry
+            content: contentWithSeal
         });
+
+        // Add to local history list dynamically so it renders immediately
+        const newHistoryItem: HistoryEntry = {
+            id: Math.random().toString(), // temp ID
+            content: contentWithSeal,
+            verse_reference: verse?.reference || "",
+            created_at: new Date().toISOString()
+        };
+        setHistory(prev => [newHistoryItem, ...prev]);
 
         // 2. Update Streak Logic Manually for immediate feedback
         // If hasJournaledToday is true, we returned early, so this is a new entry for today.
@@ -164,9 +213,6 @@ export default function Diaries() {
             });
 
             if (bloomAwarded) {
-                // If we already showed a modal for First Glow (unlikely to get both at same exact moment unless 1st entry somehow counts as 3rd streak? Impossible logic unless manual hack), 
-                // but if we did, we might want to queue them.
-                // For now, let's assume valid flow: First Glow is day 1. Bloom is day 3. They won't overlap.
                 setJustEarnedBadge({
                     name: "Bloom",
                     description: "You've grown in grace with a 3-day streak! 🌸"
@@ -252,11 +298,11 @@ export default function Diaries() {
                     </div>
 
                     {/* Right: Journaling Area */}
-                    <div className="glass-card p-6 rounded-3xl border border-white/60 flex flex-col h-[500px]">
+                    <div className="glass-card p-6 rounded-3xl border border-white/60 flex flex-col h-[520px]">
                         <div className="flex items-center gap-3 mb-4 pb-4 border-b border-warm-grey/5">
                             <PenLine className="w-5 h-5 text-warm-grey/60" />
                             <h2 className="font-serif text-xl text-warm-grey">Daily Reflection</h2>
-                            <span className="ml-auto text-xs text-warm-grey/40">
+                            <span className="ml-auto text-xs text-warm-grey/40 font-sans">
                                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                             </span>
                         </div>
@@ -266,32 +312,122 @@ export default function Diaries() {
                             onChange={(e) => setEntry(e.target.value)}
                             disabled={hasJournaledToday}
                             placeholder="What is God speaking to you through this verse?"
-                            className={`flex-1 bg-transparent border-none resize-none focus:ring-0 text-warm-grey placeholder:text-warm-grey/30 leading-relaxed font-serif text-lg custom-scrollbar p-0 ${hasJournaledToday ? "opacity-50 italic cursor-not-allowed" : ""}`}
+                            className={`flex-1 bg-transparent border-none resize-none focus:ring-0 text-warm-grey placeholder:text-warm-grey/30 leading-relaxed text-lg custom-scrollbar p-0 ${getFontClass(diaryFont)} ${hasJournaledToday ? "opacity-50 italic cursor-not-allowed" : ""}`}
                         />
 
-                        <div className="pt-4 flex justify-end">
-                            {hasJournaledToday && !saved ? (
-                                <span className="text-sm text-sage-green font-medium flex items-center bg-sage-green/10 px-3 py-2 rounded-full">
-                                    <Check className="w-4 h-4 mr-2" /> Completed for today
-                                </span>
-                            ) : (
-                                <Button
-                                    onClick={handleSave}
-                                    disabled={saved || hasJournaledToday || !entry.trim()}
-                                    className={`transition-all duration-500 ${saved ? "bg-orange-400 hover:bg-orange-500 text-white w-full" : ""}`}
-                                >
-                                    {saved ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="text-lg animate-bounce">🔥</span>
-                                            <span>Streak Updated!</span>
+                        {/* Editor Controls & Wax Seal Options */}
+                        <div className="border-t border-warm-grey/5 pt-3 mt-auto flex flex-col gap-2">
+                            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                                {/* Font Selector */}
+                                <div className="flex gap-1 bg-stone-100/60 p-0.5 rounded-lg text-[10px] font-sans">
+                                    <button
+                                        onClick={() => handleFontChange('sans')}
+                                        className={`px-1.5 py-0.5 rounded transition-all ${diaryFont === 'sans' ? 'bg-white shadow-sm font-bold text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey'}`}
+                                    >
+                                        Sans
+                                    </button>
+                                    <button
+                                        onClick={() => handleFontChange('serif')}
+                                        className={`px-1.5 py-0.5 rounded transition-all ${diaryFont === 'serif' ? 'bg-white shadow-sm font-bold text-warm-cocoa font-serif' : 'text-warm-grey/60 hover:text-warm-grey font-serif'}`}
+                                    >
+                                        Serif
+                                    </button>
+                                    <button
+                                        onClick={() => handleFontChange('handwriting')}
+                                        className={`px-1.5 py-0.5 rounded transition-all font-handwriting ${diaryFont === 'handwriting' ? 'bg-white shadow-sm font-bold text-warm-cocoa' : 'text-warm-grey/60 hover:text-warm-grey'}`}
+                                    >
+                                        Write
+                                    </button>
+                                </div>
+
+                                {/* Wax Seal Selector Controls */}
+                                {!hasJournaledToday && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex gap-1 items-center">
+                                            {(['bow', 'cross', 'branch', 'heart'] as const).map(s => (
+                                                <button
+                                                    key={s}
+                                                    onClick={() => setSelectedSeal(s)}
+                                                    title={`Stamp: ${s}`}
+                                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-all ${selectedSeal === s ? 'bg-muted-rose text-white scale-110 shadow-sm' : 'bg-stone-50 border border-warm-grey/5 hover:bg-stone-100 text-warm-grey/60'}`}
+                                                >
+                                                    {s === 'bow' ? '౨ৎ' : s === 'cross' ? '✝' : s === 'branch' ? '🌿' : '♥'}
+                                                </button>
+                                            ))}
                                         </div>
+                                        <div className="flex gap-1 items-center">
+                                            {(['gold', 'rose', 'sage', 'lavender'] as const).map(c => {
+                                                const colorHex = c === 'gold' ? '#eab308' : c === 'rose' ? '#f43f5e' : c === 'sage' ? '#10b981' : '#a855f7';
+                                                return (
+                                                    <button
+                                                        key={c}
+                                                        onClick={() => setSelectedSealColor(c)}
+                                                        title={`Color: ${c}`}
+                                                        className={`w-3.5 h-3.5 rounded-full border transition-all ${selectedSealColor === c ? 'ring-2 ring-muted-rose ring-offset-1 scale-125' : 'hover:scale-110'}`}
+                                                        style={{ backgroundColor: colorHex, borderColor: 'rgba(0,0,0,0.1)' }}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center justify-between mt-1 pt-2 border-t border-stone-100/60">
+                                {/* Active Seal Preview */}
+                                {!hasJournaledToday ? (
+                                    <div className="flex items-center gap-1.5 text-xs text-warm-grey/50 font-sans">
+                                        <span>Seal:</span>
+                                        <div className="flex items-center gap-1">
+                                            <span 
+                                                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] text-white shadow-sm border border-black/5"
+                                                style={{
+                                                    background: selectedSealColor === 'gold' 
+                                                        ? 'linear-gradient(135deg, #fbbf24, #b45309)' 
+                                                        : selectedSealColor === 'rose'
+                                                        ? 'linear-gradient(135deg, #fda4af, #be123c)'
+                                                        : selectedSealColor === 'sage'
+                                                        ? 'linear-gradient(135deg, #a7f3d0, #047857)'
+                                                        : 'linear-gradient(135deg, #ddd6fe, #6d28d9)'
+                                                }}
+                                            >
+                                                {selectedSeal === 'bow' ? '౨ৎ' : selectedSeal === 'cross' ? '✝' : selectedSeal === 'branch' ? '🌿' : '♥'}
+                                            </span>
+                                            <span className="font-semibold capitalize text-warm-cocoa/80">{selectedSealColor} {selectedSeal}</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-sage-green font-medium font-sans">
+                                        ✨ Sealed in Grace
+                                    </div>
+                                )}
+
+                                {/* Save Button */}
+                                <div>
+                                    {hasJournaledToday && !saved ? (
+                                        <span className="text-xs text-sage-green font-medium flex items-center bg-sage-green/10 px-3 py-1.5 rounded-full font-sans">
+                                            <Check className="w-3.5 h-3.5 mr-1" /> Completed
+                                        </span>
                                     ) : (
-                                        <>
-                                            <Save className="w-4 h-4 mr-2" /> Save Entry
-                                        </>
+                                        <Button
+                                            onClick={handleSave}
+                                            disabled={saved || hasJournaledToday || !entry.trim()}
+                                            className={`transition-all duration-500 font-sans ${saved ? "bg-orange-400 hover:bg-orange-500 text-white w-full" : ""}`}
+                                        >
+                                            {saved ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="text-lg animate-bounce">🔥</span>
+                                                    <span>Streak Updated!</span>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <Save className="w-4 h-4 mr-2" /> Save Entry
+                                                </>
+                                            )}
+                                        </Button>
                                     )}
-                                </Button>
-                            )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -305,26 +441,60 @@ export default function Diaries() {
 
                     {history.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {history.map((entry) => (
-                                <div key={entry.id} className="glass-card p-6 rounded-2xl border border-white/60 hover:shadow-md transition-all duration-300 group">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <span className="text-xs font-bold uppercase tracking-widest text-sage-green">
-                                            {new Date(entry.created_at).toLocaleDateString('en-US', {
-                                                weekday: 'short',
-                                                month: 'short',
-                                                day: 'numeric'
-                                            })}
-                                        </span>
-                                        <span className="text-xs text-warm-grey/40 font-serif italic">
-                                            {entry.verse_reference || "No Verse"}
-                                        </span>
-                                    </div>
+                            {history.map((entry) => {
+                                const { content: cleanContent, seal } = parseEntryContent(entry.content);
+                                return (
+                                    <div key={entry.id} className="glass-card p-6 pb-14 rounded-2xl border border-white/60 hover:shadow-md transition-all duration-300 group relative flex flex-col justify-between min-h-[180px]">
+                                        <div>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-sage-green font-sans">
+                                                    {new Date(entry.created_at).toLocaleDateString('en-US', {
+                                                        weekday: 'short',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
+                                                </span>
+                                                <span className="text-xs text-warm-grey/40 font-serif italic">
+                                                    {entry.verse_reference || "No Verse"}
+                                                </span>
+                                            </div>
 
-                                    <p className="text-warm-grey font-serif leading-relaxed line-clamp-4 group-hover:line-clamp-none transition-all">
-                                        {entry.content}
-                                    </p>
-                                </div>
-                            ))}
+                                            <p className={`text-warm-grey leading-relaxed line-clamp-5 group-hover:line-clamp-none transition-all ${getFontClass(diaryFont)}`}>
+                                                {cleanContent}
+                                            </p>
+                                        </div>
+
+                                        {seal && (
+                                            <motion.div
+                                                whileHover={{ scale: 1.15, rotate: 12 }}
+                                                transition={{ type: "spring", stiffness: 300, damping: 10 }}
+                                                className="absolute bottom-3 right-3 flex items-center justify-center cursor-default select-none pointer-events-auto"
+                                                title={`Sealed with ${seal.color} ${seal.seal}`}
+                                            >
+                                                <div 
+                                                    className="w-9 h-9 rounded-[45%_55%_48%_52%] relative flex items-center justify-center shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.35),2px_3px_6px_rgba(0,0,0,0.2)] border border-black/5"
+                                                    style={{
+                                                        background: seal.color === 'gold' 
+                                                            ? 'linear-gradient(135deg, #fbbf24, #b45309, #d97706)' 
+                                                            : seal.color === 'rose'
+                                                            ? 'linear-gradient(135deg, #fda4af, #be123c, #e11d48)'
+                                                            : seal.color === 'sage'
+                                                            ? 'linear-gradient(135deg, #a7f3d0, #047857, #059669)'
+                                                            : 'linear-gradient(135deg, #ddd6fe, #6d28d9, #7c3aed)'
+                                                    }}
+                                                >
+                                                    {/* Inner Ring Stamp */}
+                                                    <div className="w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-[inset_1px_1px_3px_rgba(0,0,0,0.4)]">
+                                                        <span className="text-white text-[10px] font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                                                            {seal.seal === 'bow' ? '౨ৎ' : seal.seal === 'cross' ? '✝' : seal.seal === 'branch' ? '🌿' : '♥'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="text-center py-12 bg-white/30 rounded-3xl border border-white/40 dashed-border">
@@ -353,6 +523,8 @@ export default function Diaries() {
                     verseReference={verse.reference}
                 />
             )}
+
+            <QuietTimeAudio />
         </div>
     );
 }

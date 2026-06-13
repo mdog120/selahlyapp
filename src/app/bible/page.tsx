@@ -7,6 +7,7 @@ import { CommunityHighlights } from "@/components/bible/CommunityHighlights";
 import { YourNotes } from "@/components/bible/YourNotes";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, ArrowRight, Book } from "lucide-react";
+import { QuietTimeAudio } from "@/components/ui/QuietTimeAudio";
 
 const BOOKS = [
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -117,6 +118,7 @@ function BiblePageContent() {
                     </div>
                 </div>
             </div>
+            <QuietTimeAudio />
         </div>
     );
 }
