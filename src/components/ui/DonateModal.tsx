@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { X, CreditCard, Heart, ShieldCheck, Loader2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Button } from "./Button";
-import { loadStripe } from "@stripe/stripe-js/pure";
+import { loadStripe } from "@stripe/stripe-js";
 import { 
     Elements, 
     CardElement, 
