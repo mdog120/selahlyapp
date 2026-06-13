@@ -138,6 +138,13 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* Allow iOS long press callout menu specifically on images to save wallpapers/scrapbooks */
+img {
+  -webkit-touch-callout: default !important;
+  -webkit-user-select: auto !important;
+  user-select: auto !important;
+}
+
 /* Mobile-native app experience optimizations */
 button, 
 a, 

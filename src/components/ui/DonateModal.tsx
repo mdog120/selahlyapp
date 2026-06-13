@@ -328,9 +328,13 @@ function StripeCheckoutForm({ amount, clientSecret, onSuccess }: StripeCheckoutF
         const isWebView = typeof window !== "undefined" && 
             /iPhone|iPad|iPod/.test(navigator.userAgent) && 
             !/Safari/.test(navigator.userAgent);
+        const isIOS = typeof window !== "undefined" && (
+            /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+        );
 
-        if (isStandalone || isWebView) {
-            console.log("Stripe Payment Request Button skipped in standalone PWA/WebView mode to prevent browser breakout.");
+        if (isStandalone || isWebView || isIOS) {
+            console.log("Stripe Payment Request Button skipped on iOS/standalone/webview to prevent browser breakout.");
             return;
         }
 
@@ -390,6 +394,7 @@ function StripeCheckoutForm({ amount, clientSecret, onSuccess }: StripeCheckoutF
                         name: cardName.trim(),
                     },
                 },
+                return_url: `${window.location.origin}${window.location.pathname}?redirect_status=succeeded`,
             });
 
             if (error) {
