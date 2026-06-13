@@ -5,6 +5,7 @@ import { Sparkles, Key, Lock, ChevronRight, Check, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAnonymousAlias } from "@/lib/vaultHelper";
 
 interface VaultKeyholeProps {
     onThreadCreated: () => void;
@@ -73,6 +74,16 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
     const [posting, setPosting] = useState(false);
     const [posted, setPosted] = useState(false);
     const [confirmPost, setConfirmPost] = useState(false);
+    const [isAnonymous, setIsAnonymous] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) setCurrentUserId(user.id);
+        };
+        fetchUser();
+    }, []);
 
     // Physics Refs
     const dustMotesRef = useRef<DustMote[]>([]);
@@ -116,7 +127,8 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
             title: dailyPrompt.text,
             category: dailyPrompt.category,
             message_count: 0,
-            view_count: 0
+            view_count: 0,
+            is_anonymous: isAnonymous
         });
 
         if (!error) {
@@ -565,23 +577,34 @@ export function VaultKeyhole({ onThreadCreated }: VaultKeyholeProps) {
                                             <Check className="w-4 h-4" /> Discussion launched!
                                         </span>
                                     ) : confirmPost ? (
-                                        <div className="flex gap-2 justify-center animate-fade-in">
-                                            <Button 
-                                                size="sm" 
-                                                variant="secondary"
-                                                className="border-white/10 hover:bg-white/5 text-white/70 py-4 text-xs font-bold uppercase tracking-wider"
-                                                onClick={() => setConfirmPost(false)}
-                                            >
-                                                Cancel
-                                            </Button>
-                                            <Button 
-                                                size="sm"
-                                                onClick={handleCreateThread}
-                                                disabled={posting}
-                                                className="bg-yellow-500 hover:bg-yellow-600 text-[#1C152B] py-4 text-xs font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/20"
-                                            >
-                                                {posting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Post to Vault ౨ৎ"}
-                                            </Button>
+                                        <div className="flex flex-col gap-3 items-center animate-fade-in w-full">
+                                            <label className="flex items-center gap-2 text-[11px] text-yellow-100/70 cursor-pointer select-none">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isAnonymous}
+                                                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                                                    className="rounded border-yellow-500/30 text-yellow-500 focus:ring-yellow-500 bg-transparent w-3 h-3"
+                                                />
+                                                <span>Post anonymously as <span className="font-semibold text-yellow-400">{getAnonymousAlias(currentUserId)}</span></span>
+                                            </label>
+                                            <div className="flex gap-2 justify-center w-full">
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="secondary"
+                                                    className="border-white/10 hover:bg-white/5 text-white/70 py-4 text-xs font-bold uppercase tracking-wider px-4"
+                                                    onClick={() => setConfirmPost(false)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button 
+                                                    size="sm"
+                                                    onClick={handleCreateThread}
+                                                    disabled={posting}
+                                                    className="bg-yellow-500 hover:bg-yellow-600 text-[#1C152B] py-4 text-xs font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/20 px-4"
+                                                >
+                                                    {posting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Post to Vault ౨ৎ"}
+                                                </Button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <Button

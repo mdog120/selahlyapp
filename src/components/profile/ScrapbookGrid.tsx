@@ -6,6 +6,7 @@ import { Plus, X, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ScrapbookModal } from "./ScrapbookModal";
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 type ScrapbookEntry = {
     id: string;
@@ -133,6 +134,24 @@ export function ScrapbookGrid({ userId, username, isOwner }: ScrapbookGridProps)
                                 <div className="aspect-square bg-stone-100 overflow-hidden relative rounded filter sepia-[.2] contrast-110 brightness-110 mb-4">
                                     <img src={entry.image_url} alt={entry.caption} className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
+                                    {entry.styles?.stickers && Array.isArray(entry.styles.stickers) && entry.styles.stickers.map((sticker: any, sIdx: number) => (
+                                        <motion.div
+                                            key={sIdx}
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ type: "spring", stiffness: 200, damping: 12, delay: sIdx * 0.1 }}
+                                            style={{
+                                                position: 'absolute',
+                                                left: `${sticker.x}%`,
+                                                top: `${sticker.y}%`,
+                                                transform: `translate(-50%, -50%) rotate(${sticker.rotate || 0}deg)`,
+                                                pointerEvents: 'none',
+                                            }}
+                                            className="text-2xl select-none z-10"
+                                        >
+                                            {sticker.emoji}
+                                        </motion.div>
+                                    ))}
                                 </div>
                                 <p className="font-handwriting text-center text-warm-grey text-lg leading-tight px-2 min-h-6">
                                     {renderCaptionWithTags(entry.caption)}

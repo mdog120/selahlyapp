@@ -9,6 +9,7 @@ import { PrayerRequestList } from "@/components/home/PrayerRequestList";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
 import { InstagramEmbed } from "@/components/social/InstagramEmbed";
 import { HomeOnboarding } from "@/components/home/HomeOnboarding";
+import { SisterSpotlight } from "@/components/home/SisterSpotlight";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +99,9 @@ export default async function UserHome(props: {
 
                         {/* Prayer Pocket (Requests) */}
                         <PrayerRequestList />
+
+                        {/* Sister Spotlight */}
+                        <SisterSpotlight />
 
                         {/* Velvet Vault (Discussions) */}
                         <div className="glass-card p-6 rounded-3xl border border-white/60 bg-gradient-to-b from-purple-50/30 to-transparent flex flex-col items-center text-center">

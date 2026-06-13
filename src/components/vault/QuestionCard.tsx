@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ShareModal } from "../messaging/ShareModal";
 import { createClient } from "@/lib/supabase/client";
 import { StoryAvatar } from "../social/StoryAvatar";
+import { getAnonymousAlias } from "@/lib/vaultHelper";
 
 type Thread = {
     id: string;
@@ -16,6 +17,7 @@ type Thread = {
     category: string;
     message_count: number;
     created_at: string;
+    is_anonymous?: boolean;
     author: {
         username: string;
         first_name: string;
@@ -25,7 +27,9 @@ type Thread = {
 };
 
 export function QuestionCard({ thread }: { thread: Thread }) {
-    const formattedName = `${thread.author?.first_name || "Sister"} ${thread.author?.last_name ? thread.author.last_name[0] + "." : ""}`;
+    const isAnon = thread.is_anonymous;
+    const alias = getAnonymousAlias(thread.user_id);
+    const formattedName = isAnon ? alias : `${thread.author?.first_name || "Sister"} ${thread.author?.last_name ? thread.author.last_name[0] + "." : ""}`;
 
     // Choose color based on category (simple hash or preset)
     const getCategoryColor = (cat: string) => {
@@ -169,23 +173,34 @@ export function QuestionCard({ thread }: { thread: Thread }) {
                 </h3>
 
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-warm-grey/5">
-                    <Link
-                        href={`/profile/${thread.author?.username || ""}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                    >
-                        <StoryAvatar
-                            userId={thread.user_id}
-                            username={thread.author?.username || ""}
-                            avatarUrl={thread.author?.avatar_url}
-                            firstName={thread.author?.first_name}
-                            lastName={thread.author?.last_name}
-                            sizeClass="w-6 h-6"
-                        />
-                        <span className="text-xs text-warm-grey/60 font-medium">
-                            Asked by <span className="text-warm-grey">{formattedName}</span>
-                        </span>
-                    </Link>
+                    {isAnon ? (
+                        <div className="flex items-center gap-2 select-none">
+                            <div className="w-6 h-6 rounded-full bg-deep-velvet/10 flex items-center justify-center text-[9px] text-deep-velvet font-bold">
+                                {((alias.split(" ")[0]?.[0] || "") + (alias.split(" ")[1]?.[0] || ""))}
+                            </div>
+                            <span className="text-xs text-warm-grey/60 font-medium">
+                                Asked by <span className="text-warm-grey">{formattedName}</span>
+                            </span>
+                        </div>
+                    ) : (
+                        <Link
+                            href={`/profile/${thread.author?.username || ""}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                        >
+                            <StoryAvatar
+                                userId={thread.user_id}
+                                username={thread.author?.username || ""}
+                                avatarUrl={thread.author?.avatar_url}
+                                firstName={thread.author?.first_name}
+                                lastName={thread.author?.last_name}
+                                sizeClass="w-6 h-6"
+                            />
+                            <span className="text-xs text-warm-grey/60 font-medium">
+                                Asked by <span className="text-warm-grey">{formattedName}</span>
+                            </span>
+                        </Link>
+                    )}
 
                     <div className="flex items-center gap-3">
                         <button

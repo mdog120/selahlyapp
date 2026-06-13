@@ -5,12 +5,15 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Sparkles } from "lucide-react";
+import { getAnonymousAlias } from "@/lib/vaultHelper";
 
 export function AskQuestion({ onQuestionAsked }: { onQuestionAsked: () => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const [title, setTitle] = useState("");
     const [category, setCategory] = useState("Faith");
     const [loading, setLoading] = useState(false);
+    const [isAnonymous, setIsAnonymous] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const supabase = createClient();
 
@@ -28,12 +31,14 @@ export function AskQuestion({ onQuestionAsked }: { onQuestionAsked: () => void }
             title: title,
             category: category,
             message_count: 0,
-            view_count: 0
+            view_count: 0,
+            is_anonymous: isAnonymous
         });
 
         if (!error) {
             setTitle("");
             setCategory("Faith");
+            setIsAnonymous(false);
             setIsOpen(false);
             onQuestionAsked();
         } else {
@@ -46,6 +51,11 @@ export function AskQuestion({ onQuestionAsked }: { onQuestionAsked: () => void }
 
     useEffect(() => {
         setMounted(true);
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) setCurrentUserId(user.id);
+        };
+        fetchUser();
     }, []);
 
     // ... existing code ...
@@ -113,6 +123,19 @@ export function AskQuestion({ onQuestionAsked }: { onQuestionAsked: () => void }
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 py-1 ml-1 select-none">
+                                <input
+                                    type="checkbox"
+                                    id="ask-anonymous"
+                                    checked={isAnonymous}
+                                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                                    className="rounded border-warm-grey/30 text-deep-velvet focus:ring-deep-velvet bg-transparent w-4 h-4 cursor-pointer"
+                                />
+                                <label htmlFor="ask-anonymous" className="text-xs text-warm-grey/70 cursor-pointer">
+                                    Ask anonymously as <span className="font-semibold text-deep-velvet">{getAnonymousAlias(currentUserId)}</span>
+                                </label>
                             </div>
 
                             <Button

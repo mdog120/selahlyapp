@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { BookOpen, PenLine, Save, Check } from "lucide-react";
+import { BookOpen, PenLine, Save, Check, Flame, Flower2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getDailyVerse } from "@/lib/dailyVerse";
 import { BadgeUnlockModal } from "@/components/gamification/BadgeUnlockModal";
-import { Flame, Flower2 } from "lucide-react";
 import { GlowingCandle } from "@/components/diaries/GlowingCandle";
+import { VerseWallpaperModal } from "@/components/home/VerseWallpaperModal";
 
 type Verse = {
     reference: string;
@@ -33,6 +33,7 @@ export default function Diaries() {
     const [hasJournaledToday, setHasJournaledToday] = useState(false);
     const [animatingStreak, setAnimatingStreak] = useState(false);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
+    const [isDiariesWallpaperOpen, setIsDiariesWallpaperOpen] = useState(false);
 
     // Badge State
     const [showBadgeModal, setShowBadgeModal] = useState(false);
@@ -230,12 +231,21 @@ export default function Diaries() {
                                     "{verse?.text?.trim()}"
                                 </p>
                                 <p className="font-medium text-warm-cocoa">— {verse?.reference}</p>
-                                <Link
-                                    href={`/bible?book=${encodeURIComponent(verse?.reference.split(' ')[0] || '')}&chapter=${encodeURIComponent(verse?.reference.split(' ')[1]?.split(':')[0] || '1')}`}
-                                    className="inline-flex items-center gap-1 mt-4 text-xs font-serif italic text-warm-grey/60 hover:text-warm-cocoa transition-colors"
-                                >
-                                    <BookOpen className="w-3 h-3" /> Read Full Chapter
-                                </Link>
+                                <div className="flex flex-wrap gap-4 items-center justify-center mt-4">
+                                    <Link
+                                        href={`/bible?book=${encodeURIComponent(verse?.reference.split(' ')[0] || '')}&chapter=${encodeURIComponent(verse?.reference.split(' ')[1]?.split(':')[0] || '1')}`}
+                                        className="inline-flex items-center gap-1 text-xs font-serif italic text-warm-grey/60 hover:text-warm-cocoa transition-colors"
+                                    >
+                                        <BookOpen className="w-3 h-3" /> Read Full Chapter
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDiariesWallpaperOpen(true)}
+                                        className="inline-flex items-center gap-1 text-xs font-serif italic text-muted-rose hover:text-muted-rose/85 transition-colors font-semibold"
+                                    >
+                                        <span>✨</span> Create Wallpaper
+                                    </button>
+                                </div>
                             </div>
                         )}
                         <BookOpen className="absolute -bottom-10 -right-10 w-48 h-48 text-sage-green/5 -rotate-12 pointer-events-none" />
@@ -334,6 +344,15 @@ export default function Diaries() {
                 badgeDescription={justEarnedBadge?.description || ""}
                 icon={justEarnedBadge?.name === "Bloom" ? <Flower2 className="w-12 h-12 text-pink-400 fill-pink-400/20" /> : <Flame className="w-12 h-12 text-orange-400 fill-orange-400/20" />}
             />
+
+            {verse && (
+                <VerseWallpaperModal
+                    isOpen={isDiariesWallpaperOpen}
+                    onClose={() => setIsDiariesWallpaperOpen(false)}
+                    verseText={verse.text}
+                    verseReference={verse.reference}
+                />
+            )}
         </div>
     );
 }

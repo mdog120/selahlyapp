@@ -6,11 +6,16 @@ import { Play, Pause, Music } from "lucide-react";
 interface SongPlayerProps {
     previewUrl?: string | null;
     color?: string; // e.g. "rose"
+    onPlayingChange?: (playing: boolean) => void;
 }
 
-export function SongPlayer({ previewUrl, color = "rose" }: SongPlayerProps) {
+export function SongPlayer({ previewUrl, color = "rose", onPlayingChange }: SongPlayerProps) {
     const [playing, setPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        onPlayingChange?.(playing);
+    }, [playing, onPlayingChange]);
 
     useEffect(() => {
         return () => {

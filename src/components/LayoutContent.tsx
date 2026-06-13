@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
@@ -11,6 +12,29 @@ interface LayoutContentProps {
 export function LayoutContent({ children }: LayoutContentProps) {
     const pathname = usePathname();
     const isGraceInhale = pathname === "/grace-inhale";
+
+    useEffect(() => {
+        const updateTheme = () => {
+            const hour = new Date().getHours();
+            let theme = "theme-midday";
+            if (hour >= 5 && hour < 10) {
+                theme = "theme-sunrise";
+            } else if (hour >= 10 && hour < 17) {
+                theme = "theme-midday";
+            } else if (hour >= 17 && hour < 21) {
+                theme = "theme-sunset";
+            } else {
+                theme = "theme-night";
+            }
+
+            document.body.classList.remove("theme-sunrise", "theme-midday", "theme-sunset", "theme-night");
+            document.body.classList.add(theme);
+        };
+
+        updateTheme();
+        const interval = setInterval(updateTheme, 60000); // update every minute
+        return () => clearInterval(interval);
+    }, []);
 
     if (isGraceInhale) {
         return (

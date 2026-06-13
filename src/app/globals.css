@@ -247,3 +247,89 @@ img {
   animation: soundWave 0.7s ease-in-out infinite alternate;
   transform-origin: bottom;
 }
+
+/* Time of Day Themes */
+body.theme-sunrise {
+  --warm-paper: #FFF5EC; /* Peach sunrise */
+}
+
+body.theme-midday {
+  --warm-paper: #FDFBF7; /* Default warm paper */
+}
+
+body.theme-sunset {
+  --warm-paper: #FFF0EB; /* Soft honey-gold / rose sunset */
+}
+
+body.theme-night {
+  --warm-paper: #191222; /* Velvet midnight purple */
+  --warm-grey: #D8D1C5;  /* Light warm grey text */
+  --soft-black: #E6E0EC; /* Off-white text */
+  --glass-white: rgba(45, 35, 55, 0.65); /* Darker glass backdrop */
+  background-color: #191222 !important;
+  color: #D8D1C5;
+}
+
+/* Override container styles for dark theme */
+body.theme-night .bg-white,
+body.theme-night .bg-white\/60,
+body.theme-night .bg-white\/80,
+body.theme-night .bg-white\/90,
+body.theme-night .bg-white\/95,
+body.theme-night .glass-card,
+body.theme-night .bg-warm-paper\/50,
+body.theme-night .bg-stone-50 {
+  background-color: rgba(45, 35, 55, 0.75) !important;
+  color: #D8D1C5 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-night input,
+body.theme-night textarea,
+body.theme-night select {
+  background-color: rgba(30, 20, 40, 0.6) !important;
+  color: #E6E0EC !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.theme-night .text-warm-grey,
+body.theme-night .text-warm-grey\/60,
+body.theme-night .text-warm-grey\/80,
+body.theme-night .text-warm-grey\/40,
+body.theme-night .text-warm-cocoa {
+  color: #D8D1C5 !important;
+}
+
+body.theme-night .border-warm-grey\/5,
+body.theme-night .border-warm-grey\/10,
+body.theme-night .border-stone-100 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-night .bg-stone-100 {
+  background-color: rgba(30, 20, 40, 0.4) !important;
+}
+
+body.theme-night a:hover,
+body.theme-night button:hover {
+  filter: brightness(1.1);
+}
+
+/* Floating notes upward animation */
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-50px) scale(1.2) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+.animate-float-note {
+  animation: floatUp 2.5s ease-out infinite;
+}

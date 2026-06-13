@@ -11,6 +11,7 @@ import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 import { SongPlayer } from "@/components/ui/SongPlayer";
+import { VerseWallpaperModal } from "@/components/home/VerseWallpaperModal";
 import { BadgeGrid } from "@/components/gamification/BadgeGrid";
 import { useBadge } from "@/context/BadgeContext";
 import { HeartHandshake } from "lucide-react";
@@ -102,6 +103,8 @@ export default function ProfilePage() {
     const [favVerseText, setFavVerseText] = useState<string | null>(null);
     const [loadingVerse, setLoadingVerse] = useState(false);
     const [viewedMomentIds, setViewedMomentIds] = useState<Set<string>>(new Set());
+    const [isAnthemPlaying, setIsAnthemPlaying] = useState(false);
+    const [isProfileWallpaperOpen, setIsProfileWallpaperOpen] = useState(false);
 
     const { triggerBadge } = useBadge();
     const supabase = createClient();
@@ -490,24 +493,39 @@ export default function ProfilePage() {
                                     </div>
 
                                     {profile.song_title ? (
-                                        <div className="flex items-center gap-4 bg-white/50 p-3 rounded-2xl border border-white shadow-sm backdrop-blur-sm">
+                                        <div className="flex items-center gap-4 bg-white/50 p-3 rounded-2xl border border-white shadow-sm backdrop-blur-sm relative overflow-hidden">
+                                            {/* Floating musical notes */}
+                                            {isAnthemPlaying && (
+                                                <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                                                    <span className="absolute text-[10px] text-muted-rose/60 animate-float-note" style={{ left: '10%', animationDelay: '0s' }}>🎵</span>
+                                                    <span className="absolute text-[12px] text-muted-rose/60 animate-float-note" style={{ left: '30%', animationDelay: '0.6s' }}>🎶</span>
+                                                    <span className="absolute text-[9px] text-muted-rose/60 animate-float-note" style={{ left: '50%', animationDelay: '1.2s' }}>♩</span>
+                                                    <span className="absolute text-[11px] text-muted-rose/60 animate-float-note" style={{ left: '75%', animationDelay: '1.8s' }}>♫</span>
+                                                </div>
+                                            )}
+
                                             {profile.song_album_art ? (
-                                                <div className="w-10 h-10 rounded-lg overflow-hidden shadow-sm shrink-0">
+                                                <div className={`w-10 h-10 rounded-lg overflow-hidden shadow-sm shrink-0 z-10 ${isAnthemPlaying ? "animate-[spin_12s_linear_infinite]" : ""}`}>
                                                     <img src={profile.song_album_art} alt="Cover" className="w-full h-full object-cover" />
                                                 </div>
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-soft-blush/50 flex items-center justify-center shrink-0">
+                                                <div className={`w-10 h-10 rounded-full bg-soft-blush/50 flex items-center justify-center shrink-0 z-10 ${isAnthemPlaying ? "animate-[spin_12s_linear_infinite]" : ""}`}>
                                                     <Music className="w-5 h-5 text-muted-rose" />
                                                 </div>
                                             )}
 
-                                            <div className="flex-1 min-w-0">
+                                            <div className="flex-1 min-w-0 z-10">
                                                 <p className="font-bold text-warm-cocoa text-sm truncate">{profile.song_title || "My Anthem"}</p>
                                                 <p className="text-xs text-warm-grey/60 truncate">{profile.song_artist || "Unknown Artist"}</p>
                                             </div>
 
                                             {profile.song_preview_url && (
-                                                <SongPlayer previewUrl={profile.song_preview_url} />
+                                                <div className="z-10">
+                                                    <SongPlayer 
+                                                        previewUrl={profile.song_preview_url} 
+                                                        onPlayingChange={setIsAnthemPlaying}
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     ) : (
@@ -554,22 +572,45 @@ export default function ProfilePage() {
 
                             {/* Beautiful Verse Card */}
                             {profile.fav_verse && (
-                                <div className={`p-4 rounded-2xl border mb-6 text-left relative overflow-hidden backdrop-blur-sm ${getBadgeStyle(profile.fav_verse_color)} shadow-sm`}>
-                                    <div className="flex items-center gap-2 mb-1.5 opacity-85">
-                                        <Heart className="w-3.5 h-3.5 fill-current" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Favorite Verse</span>
-                                    </div>
-                                    {loadingVerse ? (
-                                        <p className="text-xs italic opacity-75">Loading scripture...</p>
-                                    ) : favVerseText ? (
-                                        <div className="space-y-1">
-                                            <p className="font-serif italic text-sm leading-relaxed text-current">"{favVerseText.trim()}"</p>
-                                            <p className="text-[10px] font-bold text-right opacity-90">— {profile.fav_verse} (KJV)</p>
+                                <>
+                                    <div className={`p-4 rounded-2xl border mb-6 text-left relative overflow-hidden backdrop-blur-sm ${getBadgeStyle(profile.fav_verse_color)} shadow-sm`}>
+                                        <div className="flex items-center justify-between mb-1.5 opacity-85">
+                                            <div className="flex items-center gap-2">
+                                                <Heart className="w-3.5 h-3.5 fill-current" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Favorite Verse</span>
+                                            </div>
+                                            {favVerseText && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsProfileWallpaperOpen(true)}
+                                                    className="text-[9px] font-bold uppercase tracking-wider bg-white/20 hover:bg-white/40 px-2 py-0.5 rounded transition-all flex items-center gap-1 z-10"
+                                                    title="Create Wallpaper card"
+                                                >
+                                                    <span>✨</span> Wallpaper
+                                                </button>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <p className="text-xs font-serif italic text-sm">{profile.fav_verse}</p>
+                                        {loadingVerse ? (
+                                            <p className="text-xs italic opacity-75">Loading scripture...</p>
+                                        ) : favVerseText ? (
+                                            <div className="space-y-1">
+                                                <p className="font-serif italic text-sm leading-relaxed text-current">"{favVerseText.trim()}"</p>
+                                                <p className="text-[10px] font-bold text-right opacity-90">— {profile.fav_verse} (KJV)</p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs font-serif italic text-sm">{profile.fav_verse}</p>
+                                        )}
+                                    </div>
+
+                                    {favVerseText && (
+                                        <VerseWallpaperModal
+                                            isOpen={isProfileWallpaperOpen}
+                                            onClose={() => setIsProfileWallpaperOpen(false)}
+                                            verseText={favVerseText}
+                                            verseReference={profile.fav_verse}
+                                        />
                                     )}
-                                </div>
+                                </>
                             )}
 
                             <div className="flex flex-wrap gap-3 justify-center md:justify-start">

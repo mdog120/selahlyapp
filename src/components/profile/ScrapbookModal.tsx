@@ -28,6 +28,8 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
     const [selectedFrame, setSelectedFrame] = useState("polaroid");
     const [uploading, setUploading] = useState(false);
     const [friends, setFriends] = useState<any[]>([]);
+    const [stickers, setStickers] = useState<{ emoji: string; x: number; y: number; rotate: number }[]>([]);
+    const [activeSticker, setActiveSticker] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
@@ -69,11 +71,15 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
             setSelectedFrame(editingEntry.styles?.frame || "polaroid");
             setPreview(editingEntry.image_url);
             setFile(null);
+            setStickers(editingEntry.styles?.stickers || []);
+            setActiveSticker(null);
         } else {
             setCaption("");
             setSelectedFrame("polaroid");
             setPreview(null);
             setFile(null);
+            setStickers([]);
+            setActiveSticker(null);
         }
     }, [isOpen, editingEntry]);
 
@@ -119,7 +125,7 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                     .update({
                         image_url: publicUrl,
                         caption: caption,
-                        styles: { filter: "polaroid", frame: selectedFrame }
+                        styles: { filter: "polaroid", frame: selectedFrame, stickers: stickers }
                     })
                     .eq("id", editingEntry.id);
 
@@ -129,7 +135,7 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                     user_id: user.id,
                     image_url: publicUrl,
                     caption: caption,
-                    styles: { filter: "polaroid", frame: selectedFrame }
+                    styles: { filter: "polaroid", frame: selectedFrame, stickers: stickers }
                 });
 
                 if (dbError) throw dbError;
@@ -140,6 +146,8 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
             setPreview(null);
             setCaption("");
             setSelectedFrame("polaroid");
+            setStickers([]);
+            setActiveSticker(null);
             onSuccess();
 
         } catch (error) {
@@ -166,14 +174,53 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                             selectedFrame === 'gingham' ? 'border-gingham' :
                             selectedFrame === 'polka' ? 'border-polka' : 'border-polaroid'
                         }`}
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => {
+                            if (!preview || !activeSticker) {
+                                fileInputRef.current?.click();
+                            }
+                        }}
                     >
                         <div className="w-full h-full flex flex-col justify-between">
-                            <div className="flex-1 bg-stone-100 overflow-hidden relative rounded filter sepia-[.2] contrast-110 brightness-110">
+                            <div 
+                                onClick={(e) => {
+                                    if (activeSticker && preview) {
+                                        e.stopPropagation();
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const x = ((e.clientX - rect.left) / rect.width) * 100;
+                                        const y = ((e.clientY - rect.top) / rect.height) * 100;
+                                        const rotate = Math.floor(Math.random() * 50) - 25;
+                                        setStickers([...stickers, { emoji: activeSticker, x, y, rotate }]);
+                                    }
+                                }}
+                                className="flex-1 bg-stone-100 overflow-hidden relative rounded filter sepia-[.2] contrast-110 brightness-110"
+                            >
                                 {preview ? (
                                     <>
                                         <img src={preview} alt="Preview" className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-gradient-to-tr from-orange-50/20 to-blue-50/10 pointer-events-none mix-blend-overlay"></div>
+                                        
+                                        {/* Placed Stickers Preview */}
+                                        {stickers.map((st, sIdx) => (
+                                            <button
+                                                key={sIdx}
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setStickers(stickers.filter((_, idx) => idx !== sIdx));
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: `${st.x}%`,
+                                                    top: `${st.y}%`,
+                                                    transform: `translate(-50%, -50%) rotate(${st.rotate}deg)`,
+                                                    zIndex: 20
+                                                }}
+                                                className="text-2xl hover:scale-110 transition-transform cursor-pointer select-none active:scale-95"
+                                                title="Click to remove"
+                                            >
+                                                {st.emoji}
+                                            </button>
+                                        ))}
                                     </>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-center text-warm-grey/40 group-hover:text-muted-rose transition-colors p-4">
@@ -240,6 +287,40 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
                             </div>
                         </div>
                     )}
+
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs font-bold text-warm-grey uppercase tracking-widest">Add Stickers 🎨</label>
+                            {stickers.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setStickers([])}
+                                    className="text-[10px] text-red-400 hover:text-red-500 underline font-bold"
+                                >
+                                    Clear All
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-warm-grey/50 italic mb-1">
+                            Select a sticker, then click anywhere on your photo above to place it. Click placed stickers to remove.
+                        </p>
+                        <div className="flex gap-3 items-center">
+                            {["౨ৎ", "🌸", "✨", "⭐", "☕"].map((emoji) => (
+                                <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => setActiveSticker(activeSticker === emoji ? null : emoji)}
+                                    className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border transition-all ${
+                                        activeSticker === emoji
+                                            ? "bg-muted-rose/10 border-muted-rose scale-110 shadow-sm"
+                                            : "bg-white border-warm-grey/10 hover:bg-stone-50"
+                                    }`}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-warm-grey uppercase tracking-widest">Select Frame</label>

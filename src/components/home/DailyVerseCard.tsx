@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getDailyVerse } from "@/lib/dailyVerse";
 import { BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { VerseWallpaperModal } from "./VerseWallpaperModal";
 
 type Verse = {
     reference: string;
@@ -12,6 +13,7 @@ type Verse = {
 
 export function DailyVerseCard() {
     const [verse, setVerse] = useState<Verse | null>(null);
+    const [isWallpaperModalOpen, setIsWallpaperModalOpen] = useState(false);
 
     useEffect(() => {
         setVerse(getDailyVerse());
@@ -33,9 +35,26 @@ export function DailyVerseCard() {
                 "{verse.text}"
             </p>
             <p className="text-xs text-right text-warm-grey/40 mb-4">— {verse.reference}</p>
-            <a href="/diaries" className="block w-full">
-                <Button variant="outline" size="sm" className="w-full">Reflect & Journal</Button>
-            </a>
+            <div className="flex gap-2 w-full">
+                <a href="/diaries" className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full text-xs font-semibold py-4 h-9">Journal ✏️</Button>
+                </a>
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsWallpaperModalOpen(true)}
+                    className="flex-1 text-xs font-semibold border-muted-rose/20 text-muted-rose hover:bg-muted-rose hover:text-white py-4 h-9"
+                >
+                    Wallpaper ✨
+                </Button>
+            </div>
+
+            <VerseWallpaperModal
+                isOpen={isWallpaperModalOpen}
+                onClose={() => setIsWallpaperModalOpen(false)}
+                verseText={verse.text}
+                verseReference={verse.reference}
+            />
         </div>
     );
 }
