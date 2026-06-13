@@ -49,21 +49,33 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [retrievedAmount, setRetrievedAmount] = useState<number | null>(null);
     const [isWebView, setIsWebView] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const ZELLE_NUMBER = "682-812-0796";
+    const [copiedMethod, setCopiedMethod] = useState<"" | "zelle" | "cashapp">("");
+    const ZELLE_NUMBER = "6828120796";
+    const ZELLE_NUMBER_DISPLAY = "682-812-0796";
+    const CASHAPP_TAG = "$KidzCanCode";
 
     useEffect(() => {
         if (typeof window !== "undefined") {
-            const isIOSWebView = /iPhone|iPad|iPod/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent);
-            const isAndroidWebView = /Android/.test(navigator.userAgent) && /Version\/\d/.test(navigator.userAgent);
-            setIsWebView(isIOSWebView || isAndroidWebView);
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                // Exclude standard iOS browsers to detect only the iPhone App wrapper (WKWebView)
+                const isSafariBrowser = /Safari/.test(navigator.userAgent) && /Version\/\d/.test(navigator.userAgent);
+                const isChromeIOS = /CriOS/.test(navigator.userAgent);
+                const isFirefoxIOS = /FxiOS/.test(navigator.userAgent);
+                
+                const hasWebKit = !!(window as any).webkit;
+                const isIOSAppWrapper = hasWebKit || (!isSafariBrowser && !isChromeIOS && !isFirefoxIOS);
+                setIsWebView(isIOSAppWrapper);
+            } else {
+                setIsWebView(false);
+            }
         }
     }, []);
 
-    const handleCopyZelle = () => {
-        navigator.clipboard.writeText(ZELLE_NUMBER);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleCopyText = (text: string, method: "zelle" | "cashapp") => {
+        navigator.clipboard.writeText(text);
+        setCopiedMethod(method);
+        setTimeout(() => setCopiedMethod(""), 2000);
     };
 
     const presetAmounts = ["5", "10", "25", "50", "100"];
@@ -223,43 +235,73 @@ export function DonateModal({ isOpen, onClose }: DonateModalProps) {
                 )}
 
                 {isWebView ? (
-                    <div className="flex flex-col gap-5 z-10 animate-fade-in">
+                    <div className="flex flex-col gap-5 z-10 animate-fade-in overflow-y-auto max-h-[65vh] pr-1 scrollbar-thin">
                         <div className="text-center md:text-left">
                             <p className="text-sm text-warm-grey/80 leading-relaxed">
-                                Selahly is a digital sanctuary for sisterhood. To support us inside the app, please use Zelle. This helps cover server costs and maintain an ad-free experience.
+                                Selahly is a digital sanctuary for sisterhood. To support us inside the iOS app, please use Zelle or Cash App. This helps cover server costs and maintain an ad-free experience.
                             </p>
                         </div>
 
-                        <div className="p-6 bg-white border border-warm-grey/10 rounded-3xl shadow-sm relative overflow-hidden group text-center">
-                            <h4 className="text-lg font-serif text-warm-cocoa mb-1 font-semibold text-center">Support via Zelle</h4>
-                            <p className="text-xs text-warm-grey/60 mb-4 text-center">Send your gift directly using the number below.</p>
+                        <div className="flex flex-col gap-4">
+                            {/* Zelle Option Card */}
+                            <div className="p-5 bg-white border border-warm-grey/10 rounded-3xl shadow-sm text-center relative overflow-hidden group">
+                                <h4 className="text-base font-serif text-warm-cocoa font-semibold mb-1">Support via Zelle</h4>
+                                <p className="text-[11px] text-warm-grey/60 mb-3">Direct gift using our phone number</p>
 
-                            <div className="flex items-center gap-3 bg-stone-50 p-3.5 rounded-xl border border-stone-100 relative justify-center">
-                                <div className="font-mono text-lg text-warm-grey tracking-wider font-bold">
-                                    {ZELLE_NUMBER}
+                                <div className="flex items-center gap-2 bg-stone-50 px-3 py-2.5 rounded-xl border border-stone-100 justify-center mb-3">
+                                    <span className="font-mono text-sm text-warm-grey font-bold">{ZELLE_NUMBER_DISPLAY}</span>
+                                    <button
+                                        onClick={() => handleCopyText(ZELLE_NUMBER, "zelle")}
+                                        className="p-1.5 hover:bg-white rounded-lg transition-colors text-warm-grey/60 hover:text-muted-rose active:scale-95 cursor-pointer animate-fade-in"
+                                        title="Copy number"
+                                    >
+                                        {copiedMethod === "zelle" ? <Check className="w-3.5 h-3.5 text-sage-green" /> : <Copy className="w-3.5 h-3.5" />}
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={handleCopyZelle}
-                                    className="p-2 hover:bg-white rounded-lg transition-colors text-warm-grey/60 hover:text-muted-rose active:scale-95 cursor-pointer"
-                                    title="Copy number"
-                                >
-                                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                </button>
-                            </div>
-                            {copied && (
-                                <p className="text-[10px] text-muted-rose mt-1.5 text-center animate-fade-in">
-                                    Copied to clipboard!
-                                </p>
-                            )}
+                                {copiedMethod === "zelle" && (
+                                    <p className="text-[10px] text-muted-rose mb-3 text-center animate-fade-in">
+                                        Number copied!
+                                    </p>
+                                )}
 
-                            <div className="mt-5">
                                 <a
                                     href={`https://enroll.zellepay.com/qr-codes?data=${ZELLE_NUMBER}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-full bg-warm-cocoa text-white py-3 px-6 rounded-xl font-sans text-xs font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
+                                    className="inline-flex w-full items-center justify-center gap-1.5 bg-warm-cocoa text-white py-2.5 px-4 rounded-xl font-sans text-xs font-bold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
                                 >
                                     Open Zelle App <ArrowRight className="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+
+                            {/* Cash App Option Card */}
+                            <div className="p-5 bg-white border border-warm-grey/10 rounded-3xl shadow-sm text-center relative overflow-hidden group">
+                                <h4 className="text-base font-serif text-warm-cocoa font-semibold mb-1">Support via Cash App</h4>
+                                <p className="text-[11px] text-warm-grey/60 mb-3">Direct gift using our Cashtag</p>
+
+                                <div className="flex items-center gap-2 bg-stone-50 px-3 py-2.5 rounded-xl border border-stone-100 justify-center mb-3">
+                                    <span className="font-mono text-sm text-warm-grey font-bold">{CASHAPP_TAG}</span>
+                                    <button
+                                        onClick={() => handleCopyText(CASHAPP_TAG, "cashapp")}
+                                        className="p-1.5 hover:bg-white rounded-lg transition-colors text-warm-grey/60 hover:text-muted-rose active:scale-95 cursor-pointer animate-fade-in"
+                                        title="Copy cashtag"
+                                    >
+                                        {copiedMethod === "cashapp" ? <Check className="w-3.5 h-3.5 text-sage-green" /> : <Copy className="w-3.5 h-3.5" />}
+                                    </button>
+                                </div>
+                                {copiedMethod === "cashapp" && (
+                                    <p className="text-[10px] text-muted-rose mb-3 text-center animate-fade-in">
+                                        Cashtag copied!
+                                    </p>
+                                )}
+
+                                <a
+                                    href={`https://cash.app/${CASHAPP_TAG}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex w-full items-center justify-center gap-1.5 bg-[#00D632] hover:bg-[#00b82b] text-white py-2.5 px-4 rounded-xl font-sans text-xs font-bold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+                                >
+                                    Open Cash App <ArrowRight className="w-3.5 h-3.5" />
                                 </a>
                             </div>
                         </div>
