@@ -14,24 +14,24 @@ type Thread = {
     title: string;
     category: string;
     created_at: string;
-    author: {
+    author?: {
         username: string;
         first_name: string;
         last_name: string;
         avatar_url: string;
-    };
+    } | null;
 };
 
 type Message = {
     id: string;
     content: string;
     created_at: string;
-    author: {
+    author?: {
         username: string;
         first_name: string;
         last_name: string;
         avatar_url: string;
-    };
+    } | null;
 };
 
 export default function ThreadPage() {
@@ -131,16 +131,16 @@ export default function ThreadPage() {
                     </h1>
 
                     <div className="flex items-center justify-between pt-6 border-t border-warm-grey/10">
-                        <Link href={`/profile/${thread.author.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                        <Link href={`/profile/${thread.author?.username || ""}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                             <div className="w-10 h-10 rounded-full bg-soft-blush flex items-center justify-center text-xs font-medium text-warm-grey overflow-hidden">
-                                {thread.author.avatar_url ? (
+                                {thread.author?.avatar_url ? (
                                     <img src={thread.author.avatar_url} alt={thread.author.username} className="w-full h-full object-cover" />
                                 ) : (
-                                    <span>{getInitials(thread.author.first_name, thread.author.last_name)}</span>
+                                    <span>{getInitials(thread.author?.first_name, thread.author?.last_name)}</span>
                                 )}
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-warm-grey">{thread.author.first_name} {thread.author.last_name ? thread.author.last_name[0] + "." : ""}</p>
+                                <p className="text-sm font-medium text-warm-grey">{thread.author?.first_name || "Sister"} {thread.author?.last_name ? thread.author.last_name[0] + "." : ""}</p>
                                 <p className="text-xs text-warm-grey/40">{formatDistanceToNow(new Date(thread.created_at), { addSuffix: true })}</p>
                             </div>
                         </Link>
@@ -156,18 +156,18 @@ export default function ThreadPage() {
 
                     {messages.map((msg) => (
                         <div key={msg.id} className="flex gap-4 animate-fade-in-up">
-                            <Link href={`/profile/${msg.author.username}`} className="flex-shrink-0 hover:opacity-80 transition-opacity">
+                            <Link href={`/profile/${msg.author?.username || ""}`} className="flex-shrink-0 hover:opacity-80 transition-opacity">
                                 <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-[10px] text-warm-grey font-medium overflow-hidden">
-                                    {msg.author.avatar_url ? (
+                                    {msg.author?.avatar_url ? (
                                         <img src={msg.author.avatar_url} alt={msg.author.username} className="w-full h-full object-cover" />
                                     ) : (
-                                        <span>{getInitials(msg.author.first_name, msg.author.last_name)}</span>
+                                        <span>{getInitials(msg.author?.first_name, msg.author?.last_name)}</span>
                                     )}
                                 </div>
                             </Link>
                             <div className="flex-1 bg-white/60 p-4 rounded-2xl rounded-tl-none border border-white/50">
                                 <div className="flex justify-between items-baseline mb-1">
-                                    <Link href={`/profile/${msg.author.username}`} className="text-xs font-bold text-warm-grey hover:underline">{msg.author.first_name}</Link>
+                                    <Link href={`/profile/${msg.author?.username || ""}`} className="text-xs font-bold text-warm-grey hover:underline">{msg.author?.first_name || "Sister"}</Link>
                                     <span className="text-[10px] text-warm-grey/30">{formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}</span>
                                 </div>
                                 <p className="text-warm-grey text-sm leading-relaxed">{msg.content}</p>

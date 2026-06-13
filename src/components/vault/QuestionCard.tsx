@@ -170,7 +170,7 @@ export function QuestionCard({ thread }: { thread: Thread }) {
 
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-warm-grey/5">
                     <Link
-                        href={`/profile/${thread.author.username}`}
+                        href={`/profile/${thread.author?.username || ""}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                     >

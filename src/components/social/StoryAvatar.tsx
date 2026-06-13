@@ -50,7 +50,7 @@ export function StoryAvatar({
 
     const glowClass =
         state === "pink"
-            ? "from-pink-400 via-pink-300 to-pink-400 ring-[1px] ring-pink-100/50 shadow-[0_0_8px_rgba(244,143,177,0.5)] animate-pulse"
+            ? "from-pink-400 via-pink-300 to-pink-400 ring-[1px] ring-pink-100/50 shadow-[0_0_8px_rgba(244,143,177,0.5)]"
             : "from-[#D4C3B3] via-[#EBE3DB] to-[#D4C3B3] ring-[1px] ring-[#F5EFEB]/50 shadow-[0_0_8px_rgba(212,195,179,0.35)]";
 
     return (

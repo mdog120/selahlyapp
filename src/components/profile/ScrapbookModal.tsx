@@ -152,7 +152,7 @@ export function ScrapbookModal({ isOpen, editingEntry = null, onClose, onSuccess
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-md bg-warm-paper flex flex-col max-h-full overflow-hidden">
+            <DialogContent className="sm:max-w-md bg-warm-paper flex flex-col max-h-[80vh] max-h-[80dvh] min-h-0 overflow-hidden">
                 <div className="shrink-0 pb-2 border-b border-warm-grey/5 text-center mb-4">
                     <DialogTitle>{editingEntry ? "Edit Memory ✏️" : "New Memory 📸"}</DialogTitle>
                 </div>
