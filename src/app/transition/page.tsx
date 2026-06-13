@@ -48,7 +48,7 @@ function TransitionContent() {
     }, [router, name, initial]);
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFBF7] text-warm-grey relative overflow-hidden">
+        <div className="fixed inset-0 w-screen h-screen flex flex-col items-center justify-center bg-[#FDFBF7] text-warm-grey overflow-hidden select-none touch-none">
             {/* Ambient background blobs */}
             <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#FCEADE] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob" />
             <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#E3E9E2] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000" />
@@ -61,7 +61,7 @@ function TransitionContent() {
                 </div>
 
                 <h2 className="font-serif text-2xl md:text-3xl text-warm-grey mb-3 text-center">
-                    Entering Sanctuary...
+                    Entering Selahly...
                 </h2>
                 
                 {/* Glowing breathing loader bar */}
