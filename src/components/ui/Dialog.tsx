@@ -18,16 +18,16 @@ export function DialogContent({ children, className }: { children: React.ReactNo
     return <div className={`p-4 sm:p-6 ${className}`}>{children}</div>;
 }
 
-export function DialogHeader({ children }: { children: React.ReactNode }) {
-    return <div className="mb-4 text-center">{children}</div>;
+export function DialogHeader({ children, className }: { children: React.ReactNode, className?: string }) {
+    return <div className={`mb-4 text-center ${className || ""}`}>{children}</div>;
 }
 
-export function DialogTitle({ children }: { children: React.ReactNode }) {
-    return <h2 className="font-serif text-xl font-bold text-warm-cocoa">{children}</h2>;
+export function DialogTitle({ children, className }: { children: React.ReactNode, className?: string }) {
+    return <h2 className={`font-serif text-xl font-bold text-warm-cocoa ${className || ""}`}>{children}</h2>;
 }
 
-export function DialogFooter({ children }: { children: React.ReactNode }) {
-    return <div className="mt-6 flex justify-end gap-2">{children}</div>;
+export function DialogFooter({ children, className }: { children: React.ReactNode, className?: string }) {
+    return <div className={`mt-6 flex justify-end gap-2 ${className || ""}`}>{children}</div>;
 }
 
 // Minimal trigger compatibility wrapper
