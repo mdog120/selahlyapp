@@ -517,6 +517,7 @@ export default function ProfilePage() {
     );
 
     const hasSeenAllActive = activeMoments.length > 0 && activeMoments.every(m => viewedMomentIds.has(m.id));
+    const canViewFriends = friendStatus === 'accepted' || friendStatus === 'self' || profile.is_friends_public;
 
     return (
         <div className="min-h-screen bg-warm-paper font-sans">
@@ -902,32 +903,36 @@ export default function ProfilePage() {
                     {/* Friends List */}
                     <div className="md:col-span-1">
                         <div className="bg-white/60 p-6 rounded-3xl border border-white h-full">
-                            <h3 className="font-serif text-lg text-warm-cocoa mb-4">Friends ({friends.length})</h3>
-                            {friends.length > 0 ? (
-                                <div className="space-y-3">
-                                    {friends.map(friend => (
-                                        <Link href={`/profile/${friend.username}`} key={friend.username} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl transition-colors">
-                                            <div className="w-10 h-10 rounded-full bg-stone-200 overflow-hidden">
-                                                {friend.avatar_url ? (
-                                                    <img src={friend.avatar_url} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="w-full h-full flex items-center justify-center text-warm-grey text-xs">
-                                                        {(friend.first_name?.[0] || "")}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="font-bold text-warm-grey text-sm truncate">{friend.first_name} {friend.last_name}</p>
-                                                <p className="text-xs text-warm-grey/40 truncate">@{friend.username}</p>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
+                            <h3 className="font-serif text-lg text-warm-cocoa mb-4">Friends ({canViewFriends ? friends.length : 0})</h3>
+                            {canViewFriends ? (
+                                friends.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {friends.map(friend => (
+                                            <Link href={`/profile/${friend.username}`} key={friend.username} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl transition-colors">
+                                                <div className="w-10 h-10 rounded-full bg-stone-200 overflow-hidden">
+                                                    {friend.avatar_url ? (
+                                                        <img src={friend.avatar_url} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="w-full h-full flex items-center justify-center text-warm-grey text-xs">
+                                                            {(friend.first_name?.[0] || "")}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-warm-grey text-sm truncate">{friend.first_name} {friend.last_name}</p>
+                                                    <p className="text-xs text-warm-grey/40 truncate">@{friend.username}</p>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-warm-grey/40 text-sm italic">
+                                        No friends added yet.
+                                    </div>
+                                )
                             ) : (
                                 <div className="text-center py-8 text-warm-grey/40 text-sm italic">
-                                    {friendStatus === 'accepted' || friendStatus === 'self' || profile.is_friends_public
-                                        ? "No friends added yet."
-                                        : "Friend list private."}
+                                    Friend list private.
                                 </div>
                             )}
                         </div>
