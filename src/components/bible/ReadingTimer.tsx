@@ -76,13 +76,13 @@ export function ReadingTimer({
             return;
         }
 
-        const noteComment = `Quiet Time Reflection:\n${reflectionText.trim()}`;
+        const noteComment = `Selah Reflection:\n${reflectionText.trim()}`;
         const { error } = await supabase.from('bible_notes').insert({
             user_id: user.id,
             book: currentBook,
             chapter: currentChapter,
             comment: noteComment,
-            selected_text: `Quiet Time completed (${Math.round(duration / 60)}m)`
+            selected_text: `Selah Timer completed (${Math.round(duration / 60)}m)`
         });
 
         if (error) {
@@ -182,7 +182,7 @@ export function ReadingTimer({
                     <div className="flex flex-col items-center gap-5 mt-4 z-10">
                         <div className="flex items-center gap-2 text-warm-cocoa">
                             <Clock className="w-5 h-5 text-muted-rose" />
-                            <h3 className="font-serif text-lg font-bold">Quiet Time Timer</h3>
+                            <h3 className="font-serif text-lg font-bold">Selah Timer</h3>
                         </div>
 
                         {/* Circular Timer Visualizer */}

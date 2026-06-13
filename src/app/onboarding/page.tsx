@@ -203,8 +203,8 @@ export default function Onboarding() {
                 </div>
 
                 <div className="flex flex-col items-center gap-4 relative z-10">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${accepted ? "bg-sage-green border-sage-green" : "border-warm-grey/30 group-hover:border-sage-green"}`}>
+                    <label className="flex items-start gap-3 cursor-pointer group max-w-md">
+                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 mt-0.5 ${accepted ? "bg-sage-green border-sage-green" : "border-warm-grey/30 group-hover:border-sage-green"}`}>
                             {accepted && <span className="text-white text-sm">✓</span>}
                         </div>
                         <input
@@ -213,21 +213,19 @@ export default function Onboarding() {
                             checked={accepted}
                             onChange={(e) => setAccepted(e.target.checked)}
                         />
-                        <span className="text-sm font-medium text-warm-grey/80">I agree to use Selahly for God's purpose.</span>
+                        <span className="text-sm font-medium text-warm-grey/80 leading-relaxed text-left">
+                            I accept the <a href="/legal/terms" target="_blank" onClick={(e) => e.stopPropagation()} className="underline hover:text-warm-cocoa font-semibold">Terms & Conditions</a>, <a href="/legal/privacy" target="_blank" onClick={(e) => e.stopPropagation()} className="underline hover:text-warm-cocoa font-semibold">Privacy Policy</a>, and <a href="/legal/safety" target="_blank" onClick={(e) => e.stopPropagation()} className="underline hover:text-warm-cocoa font-semibold">Safety Guidelines</a>, and I agree to use Selahly for God's purpose.
+                        </span>
                     </label>
 
                     <Button
                         onClick={handleAccept}
                         disabled={!accepted || submitting}
                         size="lg"
-                        className="w-full sm:w-auto px-12"
+                        className="w-full sm:w-auto px-12 mt-2"
                     >
-                        {submitting ? "Joining Sanctuary..." : "Enter Selahly"}
+                        {submitting ? "Joining Sanctuary..." : "I Accept"}
                     </Button>
-
-                    <div className="text-[10px] text-warm-grey/40 text-center mt-2">
-                        By entering, you agree to our <a href="/legal/terms" target="_blank" className="underline hover:text-warm-grey">Terms</a>, <a href="/legal/privacy" target="_blank" className="underline hover:text-warm-grey">Privacy Policy</a>, and <a href="/legal/safety" target="_blank" className="underline hover:text-warm-grey">Safety Guidelines</a>.
-                    </div>
                 </div>
             </div>
         </div>
