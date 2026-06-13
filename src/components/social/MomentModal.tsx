@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Heart, MessageSquare, Trash2, Volume2, VolumeX, Send, Loader2, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useStoryAuras } from "@/context/StoryAuraContext";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -56,6 +57,7 @@ export function MomentModal({
     currentUserId = null,
     onMomentDeleted
 }: MomentModalProps) {
+    const { refreshAuras } = useStoryAuras();
     const parseVideoTimeFragment = (url: string | null | undefined): { start: number; end: number | null } => {
         if (!url) return { start: 0, end: null };
         try {
@@ -328,6 +330,8 @@ export function MomentModal({
                     });
             } catch (err) {
                 // Ignore silent unique key violations or database errors
+            } finally {
+                refreshAuras();
             }
         };
         recordMomentView();
