@@ -396,6 +396,108 @@ export default function ProfilePage() {
         }
     };
 
+    // Note handlers
+    const handleOpenNoteModal = () => {
+        if (activeNote) {
+            setNoteContent(activeNote.content || "");
+            setSongTitle(activeNote.song_title || "");
+            setSongArtist(activeNote.song_artist || "");
+            setSongLink(activeNote.song_link || "");
+            setSongPreview(activeNote.song_preview_url || "");
+            setSongArtwork(activeNote.song_album_art || "");
+            setShowSongInput(!!activeNote.song_title);
+        } else {
+            setNoteContent("");
+            setSongTitle("");
+            setSongArtist("");
+            setSongLink("");
+            setSongPreview("");
+            setSongArtwork("");
+            setShowSongInput(false);
+        }
+        setIsNoteModalOpen(true);
+    };
+
+    const handleSaveNote = async () => {
+        if (!currentUser) return;
+        const noteData = {
+            user_id: currentUser.id,
+            content: noteContent,
+            song_title: songTitle.trim() || null,
+            song_artist: songArtist.trim() || null,
+            song_link: songLink.trim() || null,
+            song_preview_url: songPreview.trim() || null,
+            song_album_art: songArtwork.trim() || null,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        };
+
+        let error;
+        if (activeNote) {
+            const { data, error: updateError } = await supabase
+                .from('notes')
+                .update({
+                    ...noteData,
+                    created_at: new Date().toISOString()
+                })
+                .eq('id', activeNote.id)
+                .select()
+                .single();
+            error = updateError;
+            if (!error && data) {
+                setActiveNote(data);
+            }
+        } else {
+            const { data, error: insertError } = await supabase
+                .from('notes')
+                .insert(noteData)
+                .select()
+                .single();
+            error = insertError;
+            if (!error && data) {
+                setActiveNote(data);
+            }
+        }
+
+        if (error) {
+            console.error("Error saving note:", error);
+            alert("Could not save note.");
+        } else {
+            setIsNoteModalOpen(false);
+        }
+    };
+
+    const handleDeleteNote = async () => {
+        if (!activeNote) return;
+        const { error } = await supabase.from('notes').delete().eq('id', activeNote.id);
+        if (error) {
+            console.error("Error deleting note:", error);
+            alert("Could not delete note.");
+        } else {
+            setActiveNote(null);
+            setIsNoteModalOpen(false);
+        }
+    };
+
+    const handleSendReply = async () => {
+        if (!currentUser || !profile || !activeNote || !replyContent.trim()) return;
+
+        const { error } = await supabase.from('direct_messages').insert({
+            sender_id: currentUser.id,
+            receiver_id: profile.id,
+            content: `Replying to note: "${activeNote.content}"\n\n${replyContent}`,
+            is_edited: false
+        });
+
+        if (error) {
+            console.error("Error sending reply:", error);
+            alert("Failed to send reply.");
+        } else {
+            setReplyContent("");
+            setIsNoteReplyModalOpen(false);
+            alert("Reply sent!");
+        }
+    };
+
 
 
 
