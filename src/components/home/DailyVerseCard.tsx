@@ -14,24 +14,72 @@ type Verse = {
 export function DailyVerseCard() {
     const [verse, setVerse] = useState<Verse | null>(null);
     const [isWallpaperModalOpen, setIsWallpaperModalOpen] = useState(false);
+    const [theme, setTheme] = useState<"sunrise" | "midday" | "sunset" | "night">("midday");
 
     useEffect(() => {
         setVerse(getDailyVerse());
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 10) {
+            setTheme("sunrise");
+        } else if (hour >= 10 && hour < 17) {
+            setTheme("midday");
+        } else if (hour >= 17 && hour < 21) {
+            setTheme("sunset");
+        } else {
+            setTheme("night");
+        }
     }, []);
 
     if (!verse) return null; // Hydration gap prevention
 
+    const getCardStyles = () => {
+        switch (theme) {
+            case "sunrise":
+            case "midday":
+                return {
+                    backgroundColor: "#fefaf6",
+                    backgroundImage: "linear-gradient(90deg, rgba(212,165,165,0.06) 50%, transparent 50%), linear-gradient(rgba(212,165,165,0.06) 50%, transparent 50%)",
+                    backgroundSize: "20px 20px",
+                    borderColor: "rgba(244, 197, 197, 0.4)"
+                };
+            case "sunset":
+                // Brown Gingham
+                return {
+                    backgroundColor: "#FAF6F0",
+                    backgroundImage: "linear-gradient(90deg, rgba(141,123,104,0.06) 50%, transparent 50%), linear-gradient(rgba(141,123,104,0.06) 50%, transparent 50%)",
+                    backgroundSize: "20px 20px",
+                    borderColor: "rgba(141, 123, 104, 0.2)"
+                };
+            case "night":
+                // Dark Purple Gingham
+                return {
+                    backgroundColor: "#16121E",
+                    backgroundImage: "linear-gradient(90deg, rgba(110,85,150,0.15) 50%, transparent 50%), linear-gradient(rgba(110,85,150,0.15) 50%, transparent 50%)",
+                    backgroundSize: "20px 20px",
+                    borderColor: "rgba(110, 85, 150, 0.3)"
+                };
+        }
+    };
+
+    const getWashiTapeClasses = () => {
+        switch (theme) {
+            case "sunrise":
+            case "midday":
+                return "bg-pink-100/60 border-pink-200/30 text-muted-rose";
+            case "sunset":
+                return "bg-amber-100/50 border-amber-200/20 text-warm-cocoa/80";
+            case "night":
+                return "bg-purple-900/40 border-purple-800/30 text-purple-300";
+        }
+    };
+
     return (
         <div 
-            className="group relative overflow-hidden p-6 rounded-3xl border border-pink-100/40 shadow-sm transition-all duration-300 hover:shadow-md"
-            style={{
-                backgroundColor: "#fefaf6",
-                backgroundImage: "linear-gradient(90deg, rgba(212,165,165,0.06) 50%, transparent 50%), linear-gradient(rgba(212,165,165,0.06) 50%, transparent 50%)",
-                backgroundSize: "20px 20px"
-            }}
+            className="group relative overflow-hidden p-6 rounded-3xl border shadow-sm transition-all duration-300 hover:shadow-md"
+            style={getCardStyles()}
         >
             {/* Top Washi Tape accent */}
-            <div className="absolute top-2 right-6 w-14 h-4 bg-pink-100/60 border-x border-pink-200/30 rotate-2 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center justify-center text-[8px] text-muted-rose font-bold select-none z-10">
+            <div className={`absolute top-2 right-6 w-14 h-4 border-x rotate-2 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center justify-center text-[8px] font-bold select-none z-10 ${getWashiTapeClasses()}`}>
                 ౨ৎ SELAH
             </div>
 
