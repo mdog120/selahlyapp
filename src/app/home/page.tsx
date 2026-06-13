@@ -1,6 +1,4 @@
 import { Navbar } from "@/components/Navbar";
-import { Button } from "@/components/ui/Button";
-import { Sparkles, MessageCircle, Heart, BookOpen, Flower2, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SocialFeed } from "@/components/social/SocialFeed";
 import { Greeting } from "@/components/home/Greeting";
@@ -104,48 +102,6 @@ export default async function UserHome(props: {
 
                         {/* Prayer Pocket (Requests) */}
                         <PrayerRequestList />
-
-
-                        {/* Velvet Vault (Discussions) */}
-                        <div className="glass-card p-6 rounded-3xl border border-white/60 bg-gradient-to-b from-purple-50/30 to-transparent flex flex-col items-center text-center">
-                            <div className="flex items-center gap-2 text-purple-400 mb-4">
-                                <Lock className="w-5 h-5" />
-                                <span className="text-xs font-bold uppercase tracking-widest">Velvet Vault</span>
-                            </div>
-
-                            <h3 className="font-serif text-xl mb-2 text-warm-cocoa">Deep Questions,<br />Honest Answers</h3>
-                            <p className="text-xs text-warm-grey/60 mb-6">
-                                A safe space to ask the hard things.
-                            </p>
-
-                            <a href="/velvet-vault" className="w-full">
-                                <Button className="w-full bg-warm-cocoa hover:bg-warm-cocoa/90 text-white rounded-xl py-6 text-sm font-serif tracking-widest shadow-lg shadow-warm-cocoa/20 transition-transform hover:scale-[1.02] flex items-center justify-center gap-2">
-                                    <Lock className="w-4 h-4" />
-                                    ENTER THE VAULT
-                                </Button>
-                            </a>
-                        </div>
-
-
-                        {/* Vibe Board (New) */}
-                        <div className="glass-card p-6 rounded-3xl border border-white/60 bg-gradient-to-br from-teal-50/40 to-transparent">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2 text-sage-green">
-                                    <Sparkles className="w-4 h-4" />
-                                    <span className="text-xs font-bold uppercase tracking-widest">The Vibe Board</span>
-                                </div>
-                                <a href="/vibe-board" className="text-[10px] text-warm-grey/40 hover:text-warm-grey underline">View Board</a>
-                            </div>
-                            <h3 className="font-serif text-lg mb-2">Music, Podcasts & More</h3>
-                            <p className="text-xs text-warm-grey/60 mb-4">
-                                Discover what's helping others grow in their faith journey.
-                            </p>
-                            <a href="/vibe-board" className="block w-full">
-                                <Button variant="outline" size="sm" className="w-full border-sage-green/20 text-sage-green hover:bg-sage-green hover:text-white">
-                                    Browse Vibes 🎧
-                                </Button>
-                            </a>
-                        </div>
 
                         {/* Instagram Embed (New Position) */}
                         <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40">
