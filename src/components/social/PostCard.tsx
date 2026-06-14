@@ -118,55 +118,30 @@ export function PostCard({ post }: { post: Post }) {
             return;
         }
 
-        const fetchFriendsForMention = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
+        const fetchProfilesForMention = async () => {
             const { data, error } = await supabase
-                .from("friendships")
-                .select(`
-                    user_id_1,
-                    user_id_2,
-                    user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
-                    user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
-                `)
-                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-                .eq("status", "accepted");
+                .from("profiles")
+                .select("id, username, first_name, avatar_url")
+                .or(`username.ilike.%${mentionQuery}%,first_name.ilike.%${mentionQuery}%`)
+                .limit(5);
 
             if (error) {
-                console.error("Error fetching friends for mention:", error);
+                console.error("Error fetching profiles for mention:", error);
                 setMentionResults([]);
                 setIsMentionOpen(false);
                 return;
             }
 
-            if (data) {
-                const friendsList = data.map((f: any) => {
-                    return f.user_id_1 === user.id ? f.user2 : f.user1;
-                }).filter(Boolean);
-
-                const lowerQuery = mentionQuery.toLowerCase();
-                const filtered = friendsList.filter((friend: any) => {
-                    return (
-                        friend.username?.toLowerCase().includes(lowerQuery) ||
-                        friend.first_name?.toLowerCase().includes(lowerQuery)
-                    );
-                });
-
-                if (filtered.length > 0) {
-                    setMentionResults(filtered as any);
-                    setIsMentionOpen(true);
-                } else {
-                    setMentionResults([]);
-                    setIsMentionOpen(false);
-                }
+            if (data && data.length > 0) {
+                setMentionResults(data as any);
+                setIsMentionOpen(true);
             } else {
                 setMentionResults([]);
                 setIsMentionOpen(false);
             }
         };
 
-        const timeoutId = setTimeout(fetchFriendsForMention, 300);
+        const timeoutId = setTimeout(fetchProfilesForMention, 300);
         return () => clearTimeout(timeoutId);
     }, [mentionQuery]);
 
@@ -1146,17 +1121,21 @@ export function PostCard({ post }: { post: Post }) {
                         <div className="flex flex-col gap-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
                             {comments.map(comment => (
                                 <div key={comment.id} className="flex gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-soft-blush flex-shrink-0 flex items-center justify-center text-[10px] overflow-hidden">
-                                        {comment.author?.avatar_url ? (
-                                            <img src={comment.author.avatar_url} alt={comment.author.first_name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span>{comment.author?.first_name?.[0] || "?"}</span>
-                                        )}
-                                    </div>
+                                    <Link href={`/profile/${comment.author?.username || ""}`} className="flex-shrink-0">
+                                        <div className="w-6 h-6 rounded-full bg-soft-blush flex items-center justify-center text-[10px] overflow-hidden hover:opacity-85 transition-opacity">
+                                            {comment.author?.avatar_url ? (
+                                                <img src={comment.author.avatar_url} alt={comment.author.first_name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span>{comment.author?.first_name?.[0] || "?"}</span>
+                                            )}
+                                        </div>
+                                    </Link>
                                     <div className="bg-white/60 px-3 py-2 rounded-lg rounded-tl-none text-xs text-warm-grey flex-1 group/comment relative">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <span className="font-bold mr-1">{comment.author?.first_name}:</span>
+                                                <Link href={`/profile/${comment.author?.username || ""}`} className="font-bold mr-1 hover:underline hover:text-muted-rose">
+                                                    {comment.author?.first_name}:
+                                                </Link>
                                                 {renderContentWithStickers(comment.content)}
                                             </div>
 

@@ -165,55 +165,30 @@ export function MomentModal({
             return;
         }
 
-        const fetchFriendsForMention = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
+        const fetchProfilesForMention = async () => {
             const { data, error } = await supabase
-                .from("friendships")
-                .select(`
-                    user_id_1,
-                    user_id_2,
-                    user1:profiles!friendships_user_id_1_fkey(id, username, first_name, avatar_url),
-                    user2:profiles!friendships_user_id_2_fkey(id, username, first_name, avatar_url)
-                `)
-                .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-                .eq("status", "accepted");
+                .from("profiles")
+                .select("id, username, first_name, avatar_url")
+                .or(`username.ilike.%${mentionQuery}%,first_name.ilike.%${mentionQuery}%`)
+                .limit(5);
 
             if (error) {
-                console.error("Error fetching friends for mention:", error);
+                console.error("Error fetching profiles for mention:", error);
                 setMentionResults([]);
                 setIsMentionOpen(false);
                 return;
             }
 
-            if (data) {
-                const friendsList = data.map((f: any) => {
-                    return f.user_id_1 === user.id ? f.user2 : f.user1;
-                }).filter(Boolean);
-
-                const lowerQuery = mentionQuery.toLowerCase();
-                const filtered = friendsList.filter((friend: any) => {
-                    return (
-                        friend.username?.toLowerCase().includes(lowerQuery) ||
-                        friend.first_name?.toLowerCase().includes(lowerQuery)
-                    );
-                });
-
-                if (filtered.length > 0) {
-                    setMentionResults(filtered as any);
-                    setIsMentionOpen(true);
-                } else {
-                    setMentionResults([]);
-                    setIsMentionOpen(false);
-                }
+            if (data && data.length > 0) {
+                setMentionResults(data as any);
+                setIsMentionOpen(true);
             } else {
                 setMentionResults([]);
                 setIsMentionOpen(false);
             }
         };
 
-        const timeoutId = setTimeout(fetchFriendsForMention, 300);
+        const timeoutId = setTimeout(fetchProfilesForMention, 300);
         return () => clearTimeout(timeoutId);
     }, [mentionQuery]);
 
@@ -997,17 +972,21 @@ export function MomentModal({
                             ) : (
                                 comments.map(c => (
                                     <div key={c.id} className="flex gap-2.5 items-start text-xs">
-                                        <div className="w-6 h-6 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/10">
-                                            {c.profiles.avatar_url ? (
-                                                <img src={c.profiles.avatar_url} alt={c.profiles.first_name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="w-full h-full flex items-center justify-center font-serif text-[10px] bg-soft-blush text-warm-cocoa uppercase">
-                                                    {c.profiles.first_name[0]}
-                                                </span>
-                                            )}
-                                        </div>
+                                        <Link href={`/profile/${c.profiles.username}`} onClick={onClose} className="shrink-0">
+                                            <div className="w-6 h-6 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/10 hover:opacity-85 transition-opacity">
+                                                {c.profiles.avatar_url ? (
+                                                    <img src={c.profiles.avatar_url} alt={c.profiles.first_name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="w-full h-full flex items-center justify-center font-serif text-[10px] bg-soft-blush text-warm-cocoa uppercase">
+                                                        {c.profiles.first_name[0]}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </Link>
                                         <div className="flex-1 bg-white/5 p-2 rounded-xl border border-white/5">
-                                            <p className="font-bold text-white mb-0.5">@{c.profiles.username}</p>
+                                            <Link href={`/profile/${c.profiles.username}`} onClick={onClose} className="font-bold text-white mb-0.5 block hover:underline hover:text-muted-rose">
+                                                @{c.profiles.username}
+                                            </Link>
                                             <p className="text-white/80 leading-relaxed">{renderContentWithMentions(c.content)}</p>
                                         </div>
                                     </div>
