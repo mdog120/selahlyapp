@@ -66,6 +66,14 @@ const getNoteRotation = (id: string) => {
     return degrees;
 };
 
+// Returns a font size class based on text length to prevent scrolling on aspect-square cards
+const getFontSizeClass = (length: number) => {
+    if (length < 60) return "text-lg md:text-xl";
+    if (length < 110) return "text-base md:text-lg";
+    if (length < 160) return "text-sm md:text-base";
+    return "text-xs md:text-sm";
+};
+
 export default function GratitudeWall() {
     const [notes, setNotes] = useState<GratitudeNote[]>([]);
     const [loading, setLoading] = useState(true);
@@ -263,7 +271,7 @@ export default function GratitudeWall() {
                                                 </div>
 
                                                 {/* Content */}
-                                                <p className="font-handwriting text-lg leading-relaxed text-left flex-1 overflow-y-auto pr-1 select-text scrollbar-thin">
+                                                <p className={`font-handwriting ${getFontSizeClass(note.content.length)} leading-snug text-left flex-1 overflow-hidden select-text`}>
                                                     {note.content}
                                                 </p>
 
