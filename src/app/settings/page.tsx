@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
+import { RetroCassette } from "@/components/ui/RetroCassette";
 import { Camera, Save, Trash2, Loader2, User, Mail, Music, X } from "lucide-react";
 
 // Icon helper
@@ -85,6 +86,7 @@ export default function SettingsPage() {
     const [songLink, setSongLink] = useState("");
     const [songPreview, setSongPreview] = useState("");
     const [songArtwork, setSongArtwork] = useState("");
+    const [songCassetteColor, setSongCassetteColor] = useState("rose");
     const [isSongModalOpen, setIsSongModalOpen] = useState(false);
 
     // New Bio Fields
@@ -134,6 +136,7 @@ export default function SettingsPage() {
                 setSongLink(profile.song_link || "");
                 setSongPreview(profile.song_preview_url || "");
                 setSongArtwork(profile.song_album_art || "");
+                setSongCassetteColor(profile.song_cassette_color || "rose");
                 setSchool(profile.school || "");
                 setSchoolColor(profile.school_color || "rose");
                 setChurch(profile.church || "");
@@ -235,33 +238,53 @@ export default function SettingsPage() {
         if (!user) return;
         setSaving(true);
 
-        const { error } = await supabase
+        const updatePayload: any = {
+            first_name: firstName,
+            last_name: lastName,
+            username: username,
+            biography: bio,
+            avatar_url: avatarUrl,
+            is_friends_public: isFriendsPublic,
+            song_title: songTitle,
+            song_artist: songArtist,
+            song_link: songLink,
+            song_preview_url: songPreview,
+            song_album_art: songArtwork,
+            song_cassette_color: songCassetteColor,
+            school: school,
+            school_color: schoolColor,
+            church: church,
+            church_color: churchColor,
+            sport: sport,
+            sport_color: sportColor,
+            hobby: hobby,
+            hobby_color: hobbyColor,
+            fav_verse: favVerse,
+            fav_verse_color: favVerseColor,
+            updated_at: new Date().toISOString(),
+        };
+
+        let { error } = await supabase
             .from("profiles")
-            .update({
-                first_name: firstName,
-                last_name: lastName,
-                username: username,
-                biography: bio,
-                avatar_url: avatarUrl,
-                is_friends_public: isFriendsPublic,
-                song_title: songTitle,
-                song_artist: songArtist,
-                song_link: songLink,
-                song_preview_url: songPreview,
-                song_album_art: songArtwork,
-                school: school,
-                school_color: schoolColor,
-                church: church,
-                church_color: churchColor,
-                sport: sport,
-                sport_color: sportColor,
-                hobby: hobby,
-                hobby_color: hobbyColor,
-                fav_verse: favVerse,
-                fav_verse_color: favVerseColor,
-                updated_at: new Date().toISOString(),
-            })
+            .update(updatePayload)
             .eq("id", user.id);
+
+        let migrationAlertShown = false;
+        if (error && (error.message.includes("song_cassette_color") || error.code === "P0002" || error.code === "42703")) {
+            console.warn("song_cassette_color column does not exist yet. Retrying without it...");
+            delete updatePayload.song_cassette_color;
+            
+            const { error: retryError } = await supabase
+                .from("profiles")
+                .update(updatePayload)
+                .eq("id", user.id);
+            
+            error = retryError;
+            if (!error) {
+                migrationAlertShown = true;
+                alert("Profile updated, but your custom cassette color could not be saved. Please run the SQL migration script (add_song_cassette_color.sql) in your Supabase dashboard SQL editor to enable customization!");
+            }
+        }
 
         if (error) {
             console.error("Profile update error:", error);
@@ -274,7 +297,9 @@ export default function SettingsPage() {
                     p_badge_name: 'Selah Sister'
                 });
             }
-            alert("Profile updated successfully!");
+            if (!migrationAlertShown) {
+                alert("Profile updated successfully!");
+            }
         }
         setSaving(false);
     };
@@ -506,41 +531,25 @@ export default function SettingsPage() {
                                 <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-3">My Anthem</label>
 
                                 {songTitle ? (
-                                    <div className="flex items-center gap-4 p-4 bg-stone-50 border border-stone-100 rounded-xl relative group">
-                                        <div className="w-12 h-12 rounded-lg bg-stone-200 overflow-hidden shrink-0 shadow-sm">
-                                            {songArtwork ? (
-                                                <img src={songArtwork} alt="Cover" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-stone-200">
-                                                    <Music className="w-5 h-5 text-warm-grey/40" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-warm-cocoa truncate">{songTitle}</div>
-                                            <div className="text-xs text-warm-grey/60 truncate">{songArtist}</div>
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <button
-                                                onClick={() => setIsSongModalOpen(true)}
-                                                className="p-2 text-warm-grey/40 hover:text-deep-velvet hover:bg-warm-grey/5 rounded-full transition-colors"
-                                                title="Change Song"
-                                            >
-                                                <Music className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setSongTitle("");
-                                                    setSongArtist("");
-                                                    setSongLink("");
-                                                    setSongPreview("");
-                                                    setSongArtwork("");
-                                                }}
-                                                className="p-2 text-warm-grey/40 hover:text-red-400 hover:bg-red-50 rounded-full transition-colors"
-                                                title="Remove Song"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
+                                    <div className="space-y-4">
+                                        <RetroCassette
+                                            title={songTitle}
+                                            artist={songArtist || "Unknown Artist"}
+                                            previewUrl={songPreview}
+                                            color={songCassetteColor}
+                                            isEditable={true}
+                                            onEditClick={() => setIsSongModalOpen(true)}
+                                            onDeleteClick={() => {
+                                                setSongTitle("");
+                                                setSongArtist("");
+                                                setSongLink("");
+                                                setSongPreview("");
+                                                setSongArtwork("");
+                                            }}
+                                        />
+                                        <div className="mt-2">
+                                            <span className="block text-[10px] font-bold uppercase tracking-wider text-warm-grey/40 mb-1">Cassette Shell Color</span>
+                                            <ColorPicker selected={songCassetteColor} onChange={setSongCassetteColor} />
                                         </div>
                                     </div>
                                 ) : (

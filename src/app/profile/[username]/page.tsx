@@ -11,6 +11,7 @@ import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 import { SongPlayer } from "@/components/ui/SongPlayer";
+import { RetroCassette } from "@/components/ui/RetroCassette";
 import { VerseWallpaperModal } from "@/components/home/VerseWallpaperModal";
 import { BadgeGrid } from "@/components/gamification/BadgeGrid";
 import { useBadge } from "@/context/BadgeContext";
@@ -71,6 +72,7 @@ type Profile = {
     song_link?: string | null;
     song_preview_url?: string | null;
     song_album_art?: string | null;
+    song_cassette_color?: string | null;
     is_friends_public?: boolean;
     school?: string | null;
     school_color?: string | null;
@@ -702,41 +704,12 @@ export default function ProfilePage() {
                                     </div>
 
                                     {profile.song_title ? (
-                                        <div className="flex items-center gap-4 bg-white/50 p-3 rounded-2xl border border-white shadow-sm backdrop-blur-sm relative overflow-hidden">
-                                            {/* Floating musical notes */}
-                                            {isAnthemPlaying && (
-                                                <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-                                                    <span className="absolute text-[10px] text-muted-rose/60 animate-float-note" style={{ left: '10%', animationDelay: '0s' }}>🎵</span>
-                                                    <span className="absolute text-[12px] text-muted-rose/60 animate-float-note" style={{ left: '30%', animationDelay: '0.6s' }}>🎶</span>
-                                                    <span className="absolute text-[9px] text-muted-rose/60 animate-float-note" style={{ left: '50%', animationDelay: '1.2s' }}>♩</span>
-                                                    <span className="absolute text-[11px] text-muted-rose/60 animate-float-note" style={{ left: '75%', animationDelay: '1.8s' }}>♫</span>
-                                                </div>
-                                            )}
-
-                                            {profile.song_album_art ? (
-                                                <div className={`w-10 h-10 rounded-lg overflow-hidden shadow-sm shrink-0 z-10 ${isAnthemPlaying ? "animate-[spin_12s_linear_infinite]" : ""}`}>
-                                                    <img src={profile.song_album_art} alt="Cover" className="w-full h-full object-cover" />
-                                                </div>
-                                            ) : (
-                                                <div className={`w-10 h-10 rounded-full bg-soft-blush/50 flex items-center justify-center shrink-0 z-10 ${isAnthemPlaying ? "animate-[spin_12s_linear_infinite]" : ""}`}>
-                                                    <Music className="w-5 h-5 text-muted-rose" />
-                                                </div>
-                                            )}
-
-                                            <div className="flex-1 min-w-0 z-10">
-                                                <p className="font-bold text-warm-cocoa text-sm truncate">{profile.song_title || "My Anthem"}</p>
-                                                <p className="text-xs text-warm-grey/60 truncate">{profile.song_artist || "Unknown Artist"}</p>
-                                            </div>
-
-                                            {profile.song_preview_url && (
-                                                <div className="z-10">
-                                                    <SongPlayer 
-                                                        previewUrl={profile.song_preview_url} 
-                                                        onPlayingChange={setIsAnthemPlaying}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        <RetroCassette
+                                            title={profile.song_title}
+                                            artist={profile.song_artist || "Unknown Artist"}
+                                            previewUrl={profile.song_preview_url}
+                                            color={profile.song_cassette_color || "rose"}
+                                        />
                                     ) : (
                                         // Only shown to owner if empty
                                         profile.id === currentUser?.id && (
