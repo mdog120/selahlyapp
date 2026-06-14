@@ -73,11 +73,15 @@ export default function GroupChatPage() {
         }
 
         const fetchProfilesForMention = async () => {
-            const { data, error } = await supabase
+            let query = supabase
                 .from("profiles")
-                .select("id, username, first_name, avatar_url")
-                .or(`username.ilike.%${mentionQuery}%,first_name.ilike.%${mentionQuery}%`)
-                .limit(5);
+                .select("id, username, first_name, avatar_url");
+
+            if (mentionQuery.trim()) {
+                query = query.or(`username.ilike.%${mentionQuery.trim()}%,first_name.ilike.%${mentionQuery.trim()}%`);
+            }
+
+            const { data, error } = await query.limit(5);
 
             if (error) {
                 console.error("Error fetching profiles for mention:", error);
@@ -94,6 +98,11 @@ export default function GroupChatPage() {
                 setIsMentionOpen(false);
             }
         };
+
+        if (mentionQuery === "") {
+            fetchProfilesForMention();
+            return;
+        }
 
         const timeoutId = setTimeout(fetchProfilesForMention, 300);
         return () => clearTimeout(timeoutId);
