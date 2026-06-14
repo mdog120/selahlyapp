@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Sparkles, BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -53,6 +53,35 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
     const [saving, setSaving] = useState(false);
 
     const supabase = createClient();
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    // Auto-scroll long verses to keep currently typed word in view
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const container = containerRef.current;
+        const activeSpan = container.querySelector('[data-active="true"]');
+        if (activeSpan) {
+            const containerTop = container.scrollTop;
+            const containerHeight = container.clientHeight;
+            const spanTop = (activeSpan as HTMLElement).offsetTop;
+            const spanHeight = (activeSpan as HTMLElement).offsetHeight;
+
+            // Scroll if active character moves below the visible section
+            if (spanTop + spanHeight > containerTop + containerHeight - 16) {
+                container.scrollTo({
+                    top: spanTop - containerHeight + spanHeight + 24,
+                    behavior: "smooth"
+                });
+            }
+            // Scroll if active character is above the visible section
+            else if (spanTop < containerTop + 16) {
+                container.scrollTo({
+                    top: spanTop - 24,
+                    behavior: "smooth"
+                });
+            }
+        }
+    }, [typedText.length]);
 
     // Fetch a random verse of the current chapter when modal opens
     useEffect(() => {
@@ -215,6 +244,7 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
             return (
                 <span 
                     key={index} 
+                    data-active={index === typedText.length ? "true" : "false"}
                     className={`${color} transition-colors duration-100 ${char === " " && isTypo ? "border-b-2 border-red-400" : ""}`}
                 >
                     {content}
@@ -273,7 +303,10 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
                         </div>
 
                         {/* Interactive cursive verse container */}
-                        <div className="bg-white/80 p-5 rounded-2xl border border-warm-grey/10 font-serif italic text-lg leading-relaxed text-center shadow-inner max-h-36 overflow-y-auto select-none whitespace-pre-wrap">
+                        <div 
+                            ref={containerRef}
+                            className="bg-white/80 p-5 rounded-2xl border border-warm-grey/10 font-serif italic text-lg leading-relaxed text-center shadow-inner max-h-36 overflow-y-auto select-none whitespace-pre-wrap"
+                        >
                             {renderTargetText()}
                         </div>
 
