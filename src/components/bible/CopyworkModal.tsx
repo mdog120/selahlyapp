@@ -19,6 +19,31 @@ const DEFAULT_VERSE = {
     reference: "Proverbs 31:25"
 };
 
+const normalizePunctuation = (text: string): string => {
+    return text
+        // curly double quotes
+        .replace(/[\u201C\u201D\u201E\u201F\u00AB\u00BB]/g, '"')
+        // curly single quotes and apostrophes
+        .replace(/[\u2018\u2019\u201A\u201B\u2039\u203A]/g, "'")
+        // long dashes
+        .replace(/[\u2013\u2014]/g, "-")
+        // normalize any double/multiple spaces to single spaces
+        .replace(/\s+/g, " ")
+        .trim();
+};
+
+const isCharMatch = (a: string, b: string) => {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    const clean = (c: string) => {
+        if (c === '“' || c === '”' || c === '„' || c === '‟' || c === '«' || c === '»') return '"';
+        if (c === '‘' || c === '’' || c === '‚' || c === '‛' || c === '‹' || c === '›') return "'";
+        if (c === '–' || c === '—') return '-';
+        return c;
+    };
+    return clean(a) === clean(b);
+};
+
 export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: CopyworkModalProps) {
     const [verseText, setVerseText] = useState(DEFAULT_VERSE.text);
     const [verseRef, setVerseRef] = useState(DEFAULT_VERSE.reference);
@@ -45,7 +70,7 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
                     // Choose a random verse from the chapter for variety
                     const randomIdx = Math.floor(Math.random() * json.verses.length);
                     const selectedVerse = json.verses[randomIdx];
-                    const cleanText = selectedVerse.text.replace(/\s+/g, " ").trim();
+                    const cleanText = normalizePunctuation(selectedVerse.text);
                     setVerseText(cleanText);
                     setVerseRef(`${currentBook} ${currentChapter}:${selectedVerse.verse}`);
                 } else {
@@ -130,8 +155,8 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
         setTypedText(val);
         playPencilScribble();
 
-        // Check if finished
-        if (val.trim() === verseText.trim()) {
+        // Check if finished (using normalized punctuation for a forgiving match)
+        if (normalizePunctuation(val) === normalizePunctuation(verseText)) {
             setCompleted(true);
             playSuccessChime();
             confetti({
@@ -173,16 +198,26 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
     const renderTargetText = () => {
         return verseText.split("").map((char, index) => {
             let color = "text-warm-grey/30"; // not typed
+            let isTypo = false;
+
             if (index < typedText.length) {
-                if (typedText[index] === char) {
+                if (isCharMatch(typedText[index], char)) {
                     color = "text-warm-cocoa font-bold";
                 } else {
-                    color = "text-red-400 font-bold bg-red-50/50 rounded-sm";
+                    color = "text-red-500 font-bold bg-red-100/70 rounded-xs";
+                    isTypo = true;
                 }
             }
+
+            // For spaces, display a non-collapsing character and border indicator on typo
+            const content = char === " " ? "\u00A0" : char;
+
             return (
-                <span key={index} className={`${color} transition-colors duration-100`}>
-                    {char}
+                <span 
+                    key={index} 
+                    className={`${color} transition-colors duration-100 ${char === " " && isTypo ? "border-b-2 border-red-400" : ""}`}
+                >
+                    {content}
                 </span>
             );
         });
@@ -238,7 +273,7 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
                         </div>
 
                         {/* Interactive cursive verse container */}
-                        <div className="bg-white/80 p-5 rounded-2xl border border-warm-grey/10 font-serif italic text-lg leading-relaxed text-center shadow-inner max-h-36 overflow-y-auto select-none">
+                        <div className="bg-white/80 p-5 rounded-2xl border border-warm-grey/10 font-serif italic text-lg leading-relaxed text-center shadow-inner max-h-36 overflow-y-auto select-none whitespace-pre-wrap">
                             {renderTargetText()}
                         </div>
 
