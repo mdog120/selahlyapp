@@ -61,25 +61,10 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
         const container = containerRef.current;
         const activeSpan = container.querySelector('[data-active="true"]');
         if (activeSpan) {
-            const containerTop = container.scrollTop;
-            const containerHeight = container.clientHeight;
-            const spanTop = (activeSpan as HTMLElement).offsetTop;
-            const spanHeight = (activeSpan as HTMLElement).offsetHeight;
-
-            // Scroll if active character moves below the visible section
-            if (spanTop + spanHeight > containerTop + containerHeight - 16) {
-                container.scrollTo({
-                    top: spanTop - containerHeight + spanHeight + 24,
-                    behavior: "smooth"
-                });
-            }
-            // Scroll if active character is above the visible section
-            else if (spanTop < containerTop + 16) {
-                container.scrollTo({
-                    top: spanTop - 24,
-                    behavior: "smooth"
-                });
-            }
+            activeSpan.scrollIntoView({
+                block: "nearest",
+                inline: "nearest"
+            });
         }
     }, [typedText.length]);
 
