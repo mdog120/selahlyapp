@@ -23,6 +23,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
     const [tempTrimStart, setTempTrimStart] = useState<number>(0);
     const [tempTrimEnd, setTempTrimEnd] = useState<number>(0);
     const trimmerVideoRef = useRef<HTMLVideoElement>(null);
+    const captionRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         if (trimmingIndex !== null && previewUrls[trimmingIndex]) {
@@ -118,10 +119,20 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
             const textAfterCursor = caption.slice(cursorPosition);
 
             // Reconstruct: valid text before @ + @username + space + text after
-            const newText = caption.slice(0, matchIndex) + `@${username} ` + textAfterCursor;
+            const insertedText = `@${username} `;
+            const newText = caption.slice(0, matchIndex) + insertedText + textAfterCursor;
             setCaption(newText);
             setMentionQuery(null);
             setIsMentionOpen(false);
+
+            // Refocus and position cursor after the mention
+            setTimeout(() => {
+                if (captionRef.current) {
+                    captionRef.current.focus();
+                    const newCursorPos = matchIndex + insertedText.length;
+                    captionRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            }, 50);
         }
     };
 
@@ -551,8 +562,9 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                         <span>{userInitial}</span>
                     )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 relative">
                     <textarea
+                        ref={captionRef}
                         value={caption}
                         onChange={handleCaptionChange}
                         onFocus={() => setExpanded(true)}
@@ -561,6 +573,34 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                         rows={expanded ? 3 : 1}
                         style={{ height: expanded ? "80px" : "36px" }}
                     />
+
+                    {/* Mention Autocomplete Dropdown */}
+                    {isMentionOpen && mentionResults.length > 0 && (
+                        <div className="absolute left-0 top-full mt-1 w-full max-w-xs bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
+                            {mentionResults.map((profile) => (
+                                <button
+                                    type="button"
+                                    key={profile.id}
+                                    className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
+                                    onClick={() => insertMention(profile.username)}
+                                >
+                                    <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
+                                        {profile.avatar_url ? (
+                                            <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
+                                                {profile.first_name?.[0]}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
+                                        <p className="text-[10px] text-warm-grey/60 truncate">{profile.first_name}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Live Sticker Preview */}
                     {caption.includes("[sticker:") && (
@@ -809,32 +849,7 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                                             </div>
                                         )}
                                     </div>
-                                    {/* Mention Autocomplete Dropdown */}
-                                    {isMentionOpen && mentionResults.length > 0 && (
-                                        <div className="absolute left-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
-                                            {mentionResults.map((profile) => (
-                                                <button
-                                                    key={profile.id}
-                                                    className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
-                                                    onClick={() => insertMention(profile.username)}
-                                                >
-                                                    <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
-                                                        {profile.avatar_url ? (
-                                                            <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
-                                                                {profile.first_name?.[0]}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
-                                                        <p className="text-[10px] text-warm-grey/60 truncate">{profile.first_name}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+
                                 </div>
                                 <div className="flex gap-2 justify-end shrink-0">
                                     <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>Cancel</Button>
