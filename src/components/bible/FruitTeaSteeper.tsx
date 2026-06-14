@@ -248,9 +248,9 @@ export function FruitTeaSteeper({ onSelectScripture }: FruitTeaSteeperProps) {
                 }
             `}} />
 
-            {/* Cozy diagonal washi tape decoration */}
-            <div className="absolute -top-3 -left-6 w-24 h-6 bg-soft-blush/65 border border-muted-rose/10 rotate-[-25deg] shadow-xs flex items-center justify-center pointer-events-none select-none z-20">
-                <span className="text-[7px] font-sans font-bold uppercase tracking-widest text-muted-rose/70">౨ৎ Selah ౨ৎ</span>
+            {/* Cozy washi tape decoration */}
+            <div className="absolute top-2 left-6 w-16 h-4 bg-soft-blush border-x border-muted-rose/20 rotate-[-3deg] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center justify-center pointer-events-none select-none z-20">
+                <span className="text-[6.5px] font-sans font-bold uppercase tracking-widest text-muted-rose">౨ৎ Selah ౨ৎ</span>
             </div>
 
             <div className="absolute top-0 right-0 w-16 h-16 bg-muted-rose/5 rounded-bl-full pointer-events-none" />
