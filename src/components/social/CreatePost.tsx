@@ -571,45 +571,47 @@ export function CreatePost({ onPostCreated }: { onPostCreated: () => void }) {
                         <span>{userInitial}</span>
                     )}
                 </div>
-                <div className="flex-1 relative">
-                    <textarea
-                        ref={captionRef}
-                        value={caption}
-                        onChange={handleCaptionChange}
-                        onFocus={() => setExpanded(true)}
-                        placeholder="Share a thought, verse, or OOTD..."
-                        className="w-full bg-transparent border-none outline-none text-warm-grey placeholder:text-warm-grey/40 py-2 resize-none transition-all duration-300 font-sans"
-                        rows={expanded ? 3 : 1}
-                        style={{ height: expanded ? "80px" : "36px" }}
-                    />
+                <div className="flex-1">
+                    <div className="relative">
+                        <textarea
+                            ref={captionRef}
+                            value={caption}
+                            onChange={handleCaptionChange}
+                            onFocus={() => setExpanded(true)}
+                            placeholder="Share a thought, verse, or OOTD..."
+                            className="w-full bg-transparent border-none outline-none text-warm-grey placeholder:text-warm-grey/40 py-2 resize-none transition-all duration-300 font-sans"
+                            rows={expanded ? 3 : 1}
+                            style={{ height: expanded ? "80px" : "36px" }}
+                        />
 
-                    {/* Mention Autocomplete Dropdown */}
-                    {isMentionOpen && mentionResults.length > 0 && (
-                        <div className="absolute left-0 top-full mt-1 w-full max-w-xs bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
-                            {mentionResults.map((profile) => (
-                                <button
-                                    type="button"
-                                    key={profile.id}
-                                    className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
-                                    onClick={() => insertMention(profile.username)}
-                                >
-                                    <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
-                                        {profile.avatar_url ? (
-                                            <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
-                                                {profile.first_name?.[0]}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
-                                        <p className="text-[10px] text-warm-grey/60 truncate">{profile.first_name}</p>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                        {/* Mention Autocomplete Dropdown */}
+                        {isMentionOpen && mentionResults.length > 0 && (
+                            <div className="absolute left-0 top-full mt-1 w-full max-w-xs bg-white rounded-xl shadow-lg border border-warm-grey/10 overflow-hidden z-50 animate-fade-in-up">
+                                {mentionResults.map((profile) => (
+                                    <button
+                                        type="button"
+                                        key={profile.id}
+                                        className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-stone-50 transition-colors"
+                                        onClick={() => insertMention(profile.username)}
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden">
+                                            {profile.avatar_url ? (
+                                                <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-warm-grey/40">
+                                                    {profile.first_name?.[0]}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-warm-grey truncate">@{profile.username}</p>
+                                            <p className="text-[10px] text-warm-grey/60 truncate">{profile.first_name}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Live Sticker Preview */}
                     {caption.includes("[sticker:") && (
