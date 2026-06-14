@@ -29,11 +29,11 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
 
     const supabase = createClient();
 
-    // Fetch the first verse of the current chapter when modal opens
+    // Fetch a random verse of the current chapter when modal opens
     useEffect(() => {
         if (!isOpen) return;
 
-        const fetchFirstVerse = async () => {
+        const fetchRandomVerse = async () => {
             setLoading(true);
             setTypedText("");
             setCompleted(false);
@@ -42,10 +42,12 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
                 if (!res.ok) throw new Error("Verse not found");
                 const json = await res.json();
                 if (json.verses && json.verses.length > 0) {
-                    // Normalize text: replace multiple spaces/newlines
-                    const cleanText = json.verses[0].text.replace(/\s+/g, " ").trim();
+                    // Choose a random verse from the chapter for variety
+                    const randomIdx = Math.floor(Math.random() * json.verses.length);
+                    const selectedVerse = json.verses[randomIdx];
+                    const cleanText = selectedVerse.text.replace(/\s+/g, " ").trim();
                     setVerseText(cleanText);
-                    setVerseRef(`${currentBook} ${currentChapter}:1`);
+                    setVerseRef(`${currentBook} ${currentChapter}:${selectedVerse.verse}`);
                 } else {
                     throw new Error("Empty verses");
                 }
@@ -57,7 +59,7 @@ export function CopyworkModal({ isOpen, onClose, currentBook, currentChapter }: 
             }
         };
 
-        fetchFirstVerse();
+        fetchRandomVerse();
     }, [isOpen, currentBook, currentChapter]);
 
     if (!isOpen) return null;
