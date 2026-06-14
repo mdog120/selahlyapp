@@ -124,6 +124,43 @@ export default function ProfilePage() {
     const { triggerBadge } = useBadge();
     const supabase = createClient();
 
+    const formatBiography = (bioText: string) => {
+        if (!bioText) return "No biography yet. Just a sister in Christ walking the journey! ✨";
+        
+        const mentionRegex = /@([\w.-]+)/g;
+        const parts: React.ReactNode[] = [];
+        let lastIndex = 0;
+        let match;
+
+        while ((match = mentionRegex.exec(bioText)) !== null) {
+            const index = match.index;
+            const fullMatch = match[0];
+            const username = match[1];
+
+            if (index > lastIndex) {
+                parts.push(bioText.substring(lastIndex, index));
+            }
+
+            parts.push(
+                <Link
+                    key={index}
+                    href={`/profile/${username}`}
+                    className="text-muted-rose hover:underline font-bold transition-all"
+                >
+                    {fullMatch}
+                </Link>
+            );
+
+            lastIndex = mentionRegex.lastIndex;
+        }
+
+        if (lastIndex < bioText.length) {
+            parts.push(bioText.substring(lastIndex));
+        }
+
+        return parts;
+    };
+
     const loadMoments = async (prof: Profile) => {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: userMoments } = await supabase
@@ -651,7 +688,7 @@ export default function ProfilePage() {
                             </div>
 
                             <p className="text-warm-grey leading-relaxed max-w-2xl mb-6">
-                                {profile.biography || "No biography yet. Just a sister in Christ walking the journey! ✨"}
+                                {formatBiography(profile.biography)}
                             </p>
 
                             {/* Anthem Section */}
