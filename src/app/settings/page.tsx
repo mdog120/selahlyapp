@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
@@ -101,6 +101,13 @@ export default function SettingsPage() {
     const [favVerse, setFavVerse] = useState("");
     const [favVerseColor, setFavVerseColor] = useState("purple");
 
+    // Bio Tagging Autocomplete States
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionResults, setMentionResults] = useState<{ id: string, username: string, first_name: string, avatar_url: string }[]>([]);
+    const [isMentionOpen, setIsMentionOpen] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+    const bioRef = useRef<HTMLTextAreaElement>(null);
+
     // Verse picker states
     const [bibleBook, setBibleBook] = useState("John");
     const [bibleChapter, setBibleChapter] = useState("3");
@@ -189,6 +196,77 @@ export default function SettingsPage() {
         const timer = setTimeout(fetchVerse, 500);
         return () => clearTimeout(timer);
     }, [bibleBook, bibleChapter, bibleVerse]);
+
+    // Mention search effect for bio tagging
+    useEffect(() => {
+        if (mentionQuery === null) {
+            setMentionResults([]);
+            setIsMentionOpen(false);
+            return;
+        }
+
+        const fetchProfiles = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, username, first_name, avatar_url')
+                .ilike('username', `%${mentionQuery}%`)
+                .limit(5);
+
+            if (data && data.length > 0) {
+                setMentionResults(data as any);
+                setIsMentionOpen(true);
+            } else {
+                setMentionResults([]);
+                setIsMentionOpen(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchProfiles, 300);
+        return () => clearTimeout(timeoutId);
+    }, [mentionQuery]);
+
+    const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        const pos = e.target.selectionStart || 0;
+        setBio(value);
+        setCursorPosition(pos);
+
+        // Detect @ match before the cursor
+        const textBeforeCursor = value.slice(0, pos);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
+
+        if (match) {
+            setMentionQuery(match[1]);
+        } else {
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+        }
+    };
+
+    const insertBioMention = (targetUsername: string) => {
+        if (cursorPosition === null) return;
+        const textBeforeCursor = bio.slice(0, cursorPosition);
+        const match = textBeforeCursor.match(/(?:\s|^)@([\w.-]*)$/);
+
+        if (match) {
+            const matchIndex = match.index! + match[0].indexOf('@');
+            const textAfterCursor = bio.slice(cursorPosition);
+            const newText = bio.slice(0, matchIndex) + `@${targetUsername} ` + textAfterCursor;
+
+            setBio(newText);
+            setMentionQuery(null);
+            setIsMentionOpen(false);
+            
+            // Refocus text area and move cursor after inserted username
+            setTimeout(() => {
+                if (bioRef.current) {
+                    bioRef.current.focus();
+                    const newPos = matchIndex + targetUsername.length + 2; // +2 for '@' and space
+                    bioRef.current.setSelectionRange(newPos, newPos);
+                }
+            }, 50);
+        }
+    };
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -514,12 +592,46 @@ export default function SettingsPage() {
 
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-warm-grey/60 mb-2">Bio</label>
-                            <textarea
-                                value={bio}
-                                onChange={(e) => setBio(e.target.value)}
-                                placeholder="Tell us a bit about your journey..."
-                                className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none h-24 resize-none"
-                            />
+                            <div className="relative">
+                                <textarea
+                                    ref={bioRef}
+                                    value={bio}
+                                    onChange={handleBioChange}
+                                    placeholder="Tell us a bit about your journey..."
+                                    className="w-full bg-stone-50 border-none rounded-xl px-4 py-3 text-sm text-warm-grey focus:ring-2 ring-muted-rose/20 outline-none h-24 resize-y min-h-[96px]"
+                                />
+
+                                {/* Mention Autocomplete Dropdown */}
+                                {isMentionOpen && mentionResults.length > 0 && (
+                                    <div className="absolute left-0 bottom-full mb-1.5 w-full bg-white rounded-2xl shadow-xl border border-warm-grey/10 py-1.5 z-[60] overflow-hidden animate-fade-in-up">
+                                        <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-warm-grey/40 border-b border-warm-grey/5">Tag a Sister</div>
+                                        <div className="max-h-40 overflow-y-auto">
+                                            {mentionResults.map((profile) => (
+                                                <button
+                                                    key={profile.id}
+                                                    type="button"
+                                                    onClick={() => insertBioMention(profile.username)}
+                                                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors text-left"
+                                                >
+                                                    <div className="w-7 h-7 rounded-full bg-stone-100 overflow-hidden shrink-0">
+                                                        {profile.avatar_url ? (
+                                                            <img src={profile.avatar_url} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="w-full h-full flex items-center justify-center text-warm-grey text-[10px] font-bold bg-soft-blush">
+                                                                {profile.first_name?.[0] || profile.username?.[0] || '?'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-warm-cocoa text-xs truncate">{profile.first_name}</p>
+                                                        <p className="text-[10px] text-warm-grey/55 truncate">@{profile.username}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Extended Bio Details */}
