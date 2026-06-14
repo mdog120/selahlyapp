@@ -10,6 +10,8 @@ import { ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { QuietTimeAudio } from "@/components/ui/QuietTimeAudio";
 import { ReadingTimer } from "@/components/bible/ReadingTimer";
 import confetti from "canvas-confetti";
+import { FruitTeaSteeper } from "@/components/bible/FruitTeaSteeper";
+import { CopyworkModal } from "@/components/bible/CopyworkModal";
 
 const BOOKS = [
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -48,6 +50,7 @@ function BiblePageContent() {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [isTimerCompleted, setIsTimerCompleted] = useState(false);
     const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+    const [isCopyworkOpen, setIsCopyworkOpen] = useState(false);
 
     // Sync timeLeft when duration changes (only if not running & not completed)
     useEffect(() => {
@@ -256,16 +259,47 @@ function BiblePageContent() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Main Content: Bible Reader */}
                     <div className="lg:col-span-8">
-                        <div className="min-h-[60vh] bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-warm-grey/5 mb-20 relative">
+                        <div className="min-h-[60vh] bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-warm-grey/5 mb-8 relative">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-soft-rose/10 to-transparent rounded-tr-3xl pointer-events-none" />
                             <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-indigo-50/20 to-transparent rounded-tl-3xl pointer-events-none" />
 
                             <BibleReader book={book} chapter={chapter} onLoading={setLoading} />
                         </div>
+
+                        {/* Navigation & Copywork Actions */}
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-20 bg-white/45 p-4 rounded-2xl border border-warm-grey/5 shadow-sm">
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                disabled={chapter <= 1} 
+                                onClick={prevChapter}
+                                className="w-full sm:w-auto font-sans font-bold text-xs tracking-wider"
+                            >
+                                <ArrowLeft className="w-4 h-4 mr-2" /> Previous Chapter
+                            </Button>
+
+                            <Button
+                                onClick={() => setIsCopyworkOpen(true)}
+                                size="sm"
+                                className="w-full sm:w-auto bg-muted-rose hover:bg-muted-rose/90 text-white font-sans font-bold text-xs tracking-wider px-6 py-2.5 rounded-2xl shadow-md active:scale-95"
+                            >
+                                Practice Copywork ✍️
+                            </Button>
+
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={nextChapter}
+                                className="w-full sm:w-auto font-sans font-bold text-xs tracking-wider"
+                            >
+                                Next Chapter <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Sidebar: Widgets */}
                     <div className="lg:col-span-4 space-y-6">
+                        <FruitTeaSteeper onSelectScripture={handleNavigate} />
                         <CommunityHighlights />
                         <YourNotes />
                     </div>
@@ -285,6 +319,12 @@ function BiblePageContent() {
                 setIsRunning={setIsTimerRunning}
                 isCompleted={isTimerCompleted}
                 setIsCompleted={setIsTimerCompleted}
+            />
+            <CopyworkModal
+                isOpen={isCopyworkOpen}
+                onClose={() => setIsCopyworkOpen(false)}
+                currentBook={book}
+                currentChapter={chapter}
             />
         </div>
     );
