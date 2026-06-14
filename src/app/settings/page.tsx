@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/Button";
 import { SongSearchModal } from "@/components/ui/SongSearchModal";
-import { RetroCassette } from "@/components/ui/RetroCassette";
+import { AestheticPlayer } from "@/components/ui/AestheticPlayer";
 import { Camera, Save, Trash2, Loader2, User, Mail, Music, X } from "lucide-react";
 
 // Icon helper
@@ -644,7 +644,7 @@ export default function SettingsPage() {
 
                                 {songTitle ? (
                                     <div className="space-y-4">
-                                        <RetroCassette
+                                        <AestheticPlayer
                                             title={songTitle}
                                             artist={songArtist || "Unknown Artist"}
                                             previewUrl={songPreview}
@@ -660,7 +660,7 @@ export default function SettingsPage() {
                                             }}
                                         />
                                         <div className="mt-2">
-                                            <span className="block text-[10px] font-bold uppercase tracking-wider text-warm-grey/40 mb-1">Cassette Shell Color</span>
+                                            <span className="block text-[10px] font-bold uppercase tracking-wider text-warm-grey/40 mb-1">Anthem Accent Theme</span>
                                             <ColorPicker selected={songCassetteColor} onChange={setSongCassetteColor} />
                                         </div>
                                     </div>

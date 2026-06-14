@@ -11,7 +11,7 @@ import Link from "next/link";
 import { StickyBoard } from "@/components/profile/StickyBoard";
 import { ScrapbookGrid } from "@/components/profile/ScrapbookGrid";
 import { SongPlayer } from "@/components/ui/SongPlayer";
-import { RetroCassette } from "@/components/ui/RetroCassette";
+import { AestheticPlayer } from "@/components/ui/AestheticPlayer";
 import { VerseWallpaperModal } from "@/components/home/VerseWallpaperModal";
 import { BadgeGrid } from "@/components/gamification/BadgeGrid";
 import { useBadge } from "@/context/BadgeContext";
@@ -704,7 +704,7 @@ export default function ProfilePage() {
                                     </div>
 
                                     {profile.song_title ? (
-                                        <RetroCassette
+                                        <AestheticPlayer
                                             title={profile.song_title}
                                             artist={profile.song_artist || "Unknown Artist"}
                                             previewUrl={profile.song_preview_url}
