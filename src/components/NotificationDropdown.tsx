@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Bell, Heart, MessageCircle, MessageSquare, User } from "lucide-react";
+import { Bell, Heart, MessageCircle, MessageSquare, User, AtSign } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type Notification = {
     id: string;
-    type: 'like' | 'comment' | 'reply' | 'pray' | 'prayer' | 'friend_request' | 'message' | 'post';
+    type: 'like' | 'comment' | 'reply' | 'pray' | 'prayer' | 'friend_request' | 'message' | 'post' | 'mention';
     read: boolean;
     created_at: string;
     resource_id: string;
+    resource_type?: string;
     actor_id: string;
     actor: {
         username: string;
@@ -138,6 +139,7 @@ export function NotificationDropdown() {
         else if (type === 'friend_request') action = "sent you a friend request.";
         else if (type === 'message') action = "sent you a message.";
         else if (type === 'post') action = "shared a new post.";
+        else if (type === 'mention') action = "mentioned you.";
 
         new window.Notification("Selahly ౨ৎ", {
             body: `${name} ${action}`,
@@ -189,6 +191,7 @@ export function NotificationDropdown() {
             case 'friend_request': return <User className="w-3 h-3 text-white" />;
             case 'message': return <MessageCircle className="w-3 h-3 text-white" />; // Use Message icon
             case 'post': return <Heart className="w-3 h-3 text-white" />; // Use generic icon for post or image
+            case 'mention': return <AtSign className="w-3 h-3 text-white" />;
             default: return <Bell className="w-3 h-3 text-white" />;
         }
     };
@@ -203,6 +206,7 @@ export function NotificationDropdown() {
             case 'friend_request': return "bg-emerald-400";
             case 'message': return "bg-sage-green"; // Distinct color for messages
             case 'post': return "bg-warm-cocoa";
+            case 'mention': return "bg-purple-400";
             default: return "bg-warm-grey";
         }
     };
@@ -212,6 +216,11 @@ export function NotificationDropdown() {
         if (n.type === 'pray' || n.type === 'prayer') return `/prayer-pocket`;
         if (n.type === 'friend_request') return `/profile/${n.actor?.username || "user"}`;
         if (n.type === 'message') return `/messages/${n.actor_id}`; // Correctly use UUID
+        if (n.type === 'mention') {
+            if (n.resource_type === 'note') return `/profile/${n.actor?.username || "user"}`;
+            if (n.resource_type === 'group_chat') return `/messages/group/${n.resource_id}`;
+            return `/home`;
+        }
         // For feeds, we might just go to base page if we don't have single post view yet
         return `/home`;
     };
@@ -274,6 +283,11 @@ export function NotificationDropdown() {
                                                     {n.type === 'reply' && "replied to your question."}
                                                     {(n.type === 'pray' || n.type === 'prayer') && "prayed for you."}
                                                     {n.type === 'friend_request' && "sent you a friend request."}
+                                                    {n.type === 'mention' && (
+                                                        n.resource_type === 'note' ? "mentioned you in a note." :
+                                                        n.resource_type === 'group_chat' ? "mentioned you in a group chat." :
+                                                        "mentioned you in a post."
+                                                    )}
                                                 </p>
                                                 <p className="text-[10px] text-warm-grey/40 mt-1">
                                                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
