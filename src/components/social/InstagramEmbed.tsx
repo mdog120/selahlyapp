@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Script from "next/script";
+import { Instagram } from "lucide-react";
 
 export function InstagramEmbed() {
     useEffect(() => {
@@ -12,52 +13,46 @@ export function InstagramEmbed() {
     }, []);
 
     return (
-        <div className="w-full flex justify-center my-8">
+        <div className="w-full flex justify-center my-4 overflow-hidden">
             <blockquote
-                className="instagram-media"
+                className="instagram-media w-full"
                 data-instgrm-permalink="https://www.instagram.com/selahlyapp/"
                 data-instgrm-version="14"
                 style={{
                     background: "#FFF",
                     border: "0",
-                    borderRadius: "3px",
-                    boxShadow: "0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)",
+                    borderRadius: "24px",
+                    boxShadow: "0 4px 20px -2px rgba(0,0,0,0.05)",
                     margin: "1px",
                     maxWidth: "540px",
                     minWidth: "326px",
                     padding: "0",
-                    width: "99.375%",
-                    // @ts-ignore
-                    WebkitCalc: "100% - 2px",
-                    calc: "100% - 2px",
+                    width: "calc(100% - 2px)",
                 }}
             >
-                <div style={{ padding: "16px" }}>
-                    <a href="https://www.instagram.com/selahlyapp/" style={{ background: "#FFFFFF", lineHeight: "0", padding: "0 0", textAlign: "center", textDecoration: "none", width: "100%" }} target="_blank">
-                        <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-                            <div style={{ backgroundColor: "#F4F4F4", borderRadius: "50%", flexGrow: 0, height: "40px", marginRight: "14px", width: "40px" }}></div>
-                            <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, justifyItems: "flex-start" }}>
-                                <div style={{ backgroundColor: "#F4F4F4", borderRadius: "4px", flexGrow: 0, height: "14px", marginBottom: "6px", width: "100px" }}></div>
-                                <div style={{ backgroundColor: "#F4F4F4", borderRadius: "4px", flexGrow: 0, height: "14px", width: "60px" }}></div>
-                            </div>
-                        </div>
-                        <div style={{ padding: "19% 0" }}></div>
-                        <div style={{ display: "block", height: "50px", margin: "0 auto 12px", width: "50px" }}></div>
-                        <div style={{ paddingTop: "8px" }}>
-                            <div style={{ color: "#3897f0", fontFamily: "Arial,sans-serif", fontSize: "14px", fontStyle: "normal", fontWeight: "550", lineHeight: "18px" }}>
-                                View this post on Instagram
-                            </div>
-                        </div>
-                        <div style={{ padding: "12.5% 0" }}></div>
-                        <div style={{ display: "flex", flexDirection: "row", marginBottom: "14px", alignItems: "center" }}>
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, justifyItems: "flex-center", marginBottom: "24px" }}>
-                            <div style={{ backgroundColor: "#F4F4F4", borderRadius: "4px", flexGrow: 0, height: "14px", marginBottom: "6px", width: "224px" }}></div>
-                            <div style={{ backgroundColor: "#F4F4F4", borderRadius: "4px", flexGrow: 0, height: "14px", width: "144px" }}></div>
-                        </div>
+                {/* Clean, themed fallback blockquote content */}
+                <div className="p-6 flex flex-col items-center justify-center text-center bg-white rounded-[24px]">
+                    <div className="w-12 h-12 rounded-full bg-muted-rose/10 flex items-center justify-center mb-3">
+                        <Instagram className="w-6 h-6 text-muted-rose" />
+                    </div>
+                    <a 
+                        href="https://www.instagram.com/selahlyapp/" 
+                        className="text-warm-cocoa font-bold font-serif hover:underline text-sm block mb-1"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        @selahlyapp
+                    </a>
+                    <p className="text-[11px] text-warm-grey/50 mb-4 leading-normal">
+                        Click to view our daily inspiration on Instagram
+                    </p>
+                    <a 
+                        href="https://www.instagram.com/selahlyapp/"
+                        className="px-4 py-2 bg-warm-cocoa text-white text-xs font-serif font-bold rounded-xl shadow-sm hover:shadow hover:scale-[1.02] active:scale-95 transition-all"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        View Profile
                     </a>
                 </div>
             </blockquote>
