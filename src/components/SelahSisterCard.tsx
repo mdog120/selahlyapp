@@ -7,75 +7,28 @@ import { getDailySelahSister, SelahSister } from "@/data/selahSisters";
 
 export function SelahSisterCard() {
     const [sister, setSister] = useState<SelahSister | null>(null);
-    const [theme, setTheme] = useState<"sunrise" | "midday" | "sunset" | "night">("midday");
 
     useEffect(() => {
         setSister(getDailySelahSister());
-        const hour = new Date().getHours();
-        if (hour >= 5 && hour < 10) {
-            setTheme("sunrise");
-        } else if (hour >= 10 && hour < 17) {
-            setTheme("midday");
-        } else if (hour >= 17 && hour < 21) {
-            setTheme("sunset");
-        } else {
-            setTheme("night");
-        }
     }, []);
 
     if (!sister) return null;
 
     const getCardStyles = () => {
-        switch (theme) {
-            case "sunrise":
-            case "midday":
-                return {
-                    backgroundColor: "#f5f8f5",
-                    backgroundImage: "linear-gradient(90deg, rgba(143,151,121,0.06) 50%, transparent 50%), linear-gradient(rgba(143,151,121,0.06) 50%, transparent 50%)",
-                    backgroundSize: "20px 20px",
-                    borderColor: "rgba(167, 243, 167, 0.3)"
-                };
-            case "sunset":
-                // Hot pink gingham
-                return {
-                    backgroundColor: "#FFF0F5",
-                    backgroundImage: "linear-gradient(90deg, rgba(255,105,180,0.05) 50%, transparent 50%), linear-gradient(rgba(255,105,180,0.05) 50%, transparent 50%)",
-                    backgroundSize: "20px 20px",
-                    borderColor: "rgba(255, 105, 180, 0.2)"
-                };
-            case "night":
-                // Dark blue gingham
-                return {
-                    backgroundColor: "#111827",
-                    backgroundImage: "linear-gradient(90deg, rgba(50,100,220,0.15) 50%, transparent 50%), linear-gradient(rgba(50,100,220,0.15) 50%, transparent 50%)",
-                    backgroundSize: "20px 20px",
-                    borderColor: "rgba(50, 100, 220, 0.3)"
-                };
-        }
+        return {
+            backgroundColor: "#f5f8f5",
+            backgroundImage: "linear-gradient(90deg, rgba(143,151,121,0.06) 50%, transparent 50%), linear-gradient(rgba(143,151,121,0.06) 50%, transparent 50%)",
+            backgroundSize: "20px 20px",
+            borderColor: "rgba(167, 243, 167, 0.3)"
+        };
     };
 
     const getWashiTapeClasses = () => {
-        switch (theme) {
-            case "sunrise":
-            case "midday":
-                return "bg-emerald-100/50 border-emerald-200/20 text-emerald-800/60";
-            case "sunset":
-                return "bg-pink-100/50 border-pink-200/20 text-pink-700/80";
-            case "night":
-                return "bg-blue-900/40 border-blue-800/30 text-blue-300";
-        }
+        return "bg-emerald-100/50 border-emerald-200/20 text-emerald-800/60";
     };
 
     const getWashiTapeBgImage = () => {
-        switch (theme) {
-            case "sunrise":
-            case "midday":
-                return 'repeating-linear-gradient(-45deg, rgba(143,151,121,0.08) 0px, rgba(143,151,121,0.08) 1.5px, transparent 1.5px, transparent 3px)';
-            case "sunset":
-                return 'repeating-linear-gradient(-45deg, rgba(255,105,180,0.08) 0px, rgba(255,105,180,0.08) 1.5px, transparent 1.5px, transparent 3px)';
-            case "night":
-                return 'repeating-linear-gradient(-45deg, rgba(50,100,220,0.15) 0px, rgba(50,100,220,0.15) 1.5px, transparent 1.5px, transparent 3px)';
-        }
+        return 'repeating-linear-gradient(-45deg, rgba(143,151,121,0.08) 0px, rgba(143,151,121,0.08) 1.5px, transparent 1.5px, transparent 3px)';
     };
 
     return (
