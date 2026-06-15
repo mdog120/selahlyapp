@@ -151,7 +151,7 @@ export function Navbar() {
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50 text-warm-grey/80 hover:text-purple-600 transition-colors"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
-                                    <span className="text-lg">🎮</span> Mini Games
+                                    <span className="text-lg font-sans">𑣲⋆</span> Mini Games
                                 </Link>
 
                                 <Link

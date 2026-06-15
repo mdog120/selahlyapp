@@ -231,7 +231,9 @@ export default function MiniGamesPage() {
             <div className="container mx-auto px-4 pt-24 max-w-4xl">
                 {/* Header */}
                 <header className="mb-8 text-center animate-fade-in-up">
-                    <h1 className="font-serif text-3xl text-warm-cocoa font-bold mb-1">౨ৎ Mini Games ౨ৎ</h1>
+                    <h1 className="font-serif text-3xl text-warm-cocoa font-bold mb-1 flex items-center justify-center gap-2">
+                        <span className="font-sans text-2xl">𑣲⋆</span> Mini Games <span className="font-sans text-2xl">𑣲⋆</span>
+                    </h1>
                     <p className="text-xs text-warm-grey/50 italic">
                         "A cheerful heart is good medicine..." — Proverbs 17:22
                     </p>
@@ -276,30 +278,146 @@ export default function MiniGamesPage() {
                         {/* Tab Content (left 8 columns) */}
                         <div className="md:col-span-8 flex flex-col gap-6">
                             {activeTab === "lobby" && (
-                                <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40 text-center animate-fade-in-up">
-                                    <div className="w-16 h-16 rounded-full bg-soft-blush/30 flex items-center justify-center text-3xl mx-auto mb-4">🎮</div>
-                                    <h4 className="font-serif text-xl font-bold text-warm-cocoa mb-2">Welcome to the Arcade!</h4>
-                                    <p className="text-xs text-warm-grey/60 max-w-sm mx-auto leading-relaxed mb-6">
-                                        Select a game from the menu below to start playing, or invite any online sister in the sidebar to join a multiplayer match!
-                                    </p>
-                                    
-                                    {/* Game lists buttons */}
-                                    <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-                                        <Button onClick={() => setActiveTab("blockblast")} className="bg-rose-100 hover:bg-rose-200/80 text-rose-800 border border-rose-200/40 text-xs font-serif py-3 rounded-2xl shadow-sm transition-all hover:scale-[1.02]">
-                                            🌸 Block Blast
-                                        </Button>
-                                        <Button onClick={() => setActiveTab("crosswords")} className="bg-lavender-100 hover:bg-lavender-200/80 text-lavender-800 border border-lavender-200/40 text-xs font-serif py-3 rounded-2xl shadow-sm transition-all hover:scale-[1.02]">
-                                            📖 Crosswords
-                                        </Button>
-                                        <Button onClick={() => setActiveTab("wordsearch")} className="bg-sky-100 hover:bg-sky-200/80 text-sky-800 border border-sky-200/40 text-xs font-serif py-3 rounded-2xl shadow-sm transition-all hover:scale-[1.02]">
-                                            ✨ Word Search
-                                        </Button>
-                                        <Button onClick={() => setActiveTab("sudoku")} className="bg-mint-100 hover:bg-mint-200/80 text-mint-800 border border-mint-200/40 text-xs font-serif py-3 rounded-2xl shadow-sm transition-all hover:scale-[1.02]">
-                                            🌿 Sudoku
-                                        </Button>
-                                        <Button onClick={() => setActiveTab("pong")} className="col-span-2 bg-stone-100 hover:bg-stone-200 text-warm-cocoa border border-stone-200/50 text-xs font-serif py-3 rounded-2xl shadow-sm transition-all hover:scale-[1.02]">
-                                            🏓 Table Tennis (Solo vs. AI)
-                                        </Button>
+                                <div className="flex flex-col gap-6 animate-fade-in-up">
+                                    {/* Welcome Hero Panel */}
+                                    <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40 text-center relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-soft-blush/10 rounded-bl-full pointer-events-none" />
+                                        <div className="w-16 h-16 rounded-full bg-soft-blush/30 flex items-center justify-center text-2xl mx-auto mb-4 shadow-sm relative">
+                                            <span className="font-sans relative z-10">𑣲⋆</span>
+                                            <span className="absolute inset-0 rounded-full bg-soft-blush/20 blur-md animate-pulse" />
+                                        </div>
+                                        <h4 className="font-serif text-xl font-bold text-warm-cocoa mb-2">Selahly Arcade Hub</h4>
+                                        <p className="text-xs text-warm-grey/60 max-w-sm mx-auto leading-relaxed">
+                                            Select an option below to play beautiful, cozy Christian games. You can play solo or send a match invitation to any online sister in the sidebar!
+                                        </p>
+                                    </div>
+
+                                    {/* Upgraded Games Grid with Rich Graphics */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {/* Block Blast */}
+                                        <div 
+                                            onClick={() => setActiveTab("blockblast")}
+                                            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-200/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                        >
+                                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-rose-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                            <div>
+                                                <div className="w-10 h-10 rounded-2xl bg-rose-100/60 text-rose-750 flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                                    🌸
+                                                </div>
+                                                <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Block Blast</h5>
+                                                <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                                    Arrange pastel block shapes onto the board. Clearing rows rewards you with scriptural grace words!
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                                <span className="text-[9px] uppercase tracking-wider font-bold text-rose-600/70 bg-rose-50 px-2 py-0.5 rounded-md">Solo Puzzle</span>
+                                                <span className="text-[10px] font-bold text-warm-cocoa/50 group-hover:text-warm-cocoa transition-colors flex items-center gap-0.5">Play Game →</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Crosswords */}
+                                        <div 
+                                            onClick={() => setActiveTab("crosswords")}
+                                            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-lavender-200/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                        >
+                                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-lavender-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                            <div>
+                                                <div className="w-10 h-10 rounded-2xl bg-lavender-100/60 text-lavender-750 flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                                    📖
+                                                </div>
+                                                <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Crosswords</h5>
+                                                <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                                    Challenge yourself with Bible-themed crossword puzzles. Autocenters cells with letter checks.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                                <span className="text-[9px] uppercase tracking-wider font-bold text-lavender-600/70 bg-lavender-50 px-2 py-0.5 rounded-md">Bible Trivia</span>
+                                                <span className="text-[10px] font-bold text-warm-cocoa/50 group-hover:text-warm-cocoa transition-colors flex items-center gap-0.5">Play Game →</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Word Search */}
+                                        <div 
+                                            onClick={() => setActiveTab("wordsearch")}
+                                            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-sky-200/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                        >
+                                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-sky-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                            <div>
+                                                <div className="w-10 h-10 rounded-2xl bg-sky-100/60 text-sky-755 flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                                    ✨
+                                                </div>
+                                                <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Word Search</h5>
+                                                <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                                    Find scriptures and theological terms in a letter search grid. Highlights selection lines.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                                <span className="text-[9px] uppercase tracking-wider font-bold text-sky-600/70 bg-sky-50 px-2 py-0.5 rounded-md">Theological Word</span>
+                                                <span className="text-[10px] font-bold text-warm-cocoa/50 group-hover:text-warm-cocoa transition-colors flex items-center gap-0.5">Play Game →</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Sudoku */}
+                                        <div 
+                                            onClick={() => setActiveTab("sudoku")}
+                                            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-mint-200/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                        >
+                                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-mint-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                            <div>
+                                                <div className="w-10 h-10 rounded-2xl bg-mint-100/60 text-mint-750 flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                                    🌿
+                                                </div>
+                                                <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Sudoku</h5>
+                                                <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                                    Classic 9x9 logic puzzle grid with Easy, Medium, and Hard modes. Pencil note option included.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                                <span className="text-[9px] uppercase tracking-wider font-bold text-mint-600/70 bg-mint-50 px-2 py-0.5 rounded-md">Logic Board</span>
+                                                <span className="text-[10px] font-bold text-warm-cocoa/50 group-hover:text-warm-cocoa transition-colors flex items-center gap-0.5">Play Game →</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Table Tennis */}
+                                        <div 
+                                            onClick={() => setActiveTab("pong")}
+                                            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-stone-300/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                        >
+                                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-stone-200/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                            <div>
+                                                <div className="w-10 h-10 rounded-2xl bg-stone-100/60 text-warm-cocoa flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                                    🏓
+                                                </div>
+                                                <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Table Tennis</h5>
+                                                <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                                    Play standard paddle ball action against a training bot, or invite an online sister to play multiplayer!
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                                <span className="text-[9px] uppercase tracking-wider font-bold text-stone-600/70 bg-stone-50 px-2 py-0.5 rounded-md">Solo & 1v1</span>
+                                                <span className="text-[10px] font-bold text-warm-cocoa/50 group-hover:text-warm-cocoa transition-colors flex items-center gap-0.5">Play Solo →</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Sisters Sketch (Pictionary) */}
+                                        <div 
+                                            className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 border border-white/80 hover:border-amber-200/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-md overflow-hidden text-left"
+                                        >
+                                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-amber-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                            <div>
+                                                <div className="w-10 h-10 rounded-2xl bg-amber-100/60 text-amber-800 flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                                    🎨
+                                                </div>
+                                                <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Sisters Sketch</h5>
+                                                <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                                    Real-time multiplayer drawing and guessing word game for 2-5 sisters. (Invite from sidebar!)
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                                <span className="text-[9px] uppercase tracking-wider font-bold text-amber-700/70 bg-amber-50 px-2 py-0.5 rounded-md">Multiplayer Only</span>
+                                                <span className="text-[10px] text-warm-grey/40 italic">Invite to play ➔</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
