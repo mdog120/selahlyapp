@@ -39,24 +39,38 @@ export default function MultiplayerGamesPage() {
 
     useEffect(() => {
         const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data } = await supabase
-                    .from("profiles")
-                    .select("id, first_name, username, avatar_url")
-                    .eq("id", user.id)
-                    .single();
-                if (data) {
-                    setCurrentUserProfile(data);
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data } = await supabase
+                        .from("profiles")
+                        .select("id, first_name, username, avatar_url")
+                        .eq("id", user.id)
+                        .single();
+                    if (data) {
+                        setCurrentUserProfile(data);
+                    }
                 }
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchUser();
     }, []);
 
     useEffect(() => {
-        const channel = supabase.channel("sisters_online");
+        if (!currentUserProfile) return;
+
+        // Subscribing to channel sisters_online when visiting the multiplayer lobby
+        const channel = supabase.channel("sisters_online", {
+            config: {
+                presence: {
+                    key: currentUserProfile.id,
+                },
+            },
+        });
 
         const syncPresence = () => {
             const state = channel.presenceState();
@@ -77,12 +91,23 @@ export default function MultiplayerGamesPage() {
             .on("presence", { event: "sync" }, syncPresence)
             .on("presence", { event: "join" }, () => syncPresence())
             .on("presence", { event: "leave" }, () => syncPresence())
-            .subscribe();
+            .subscribe(async (status) => {
+                if (status === "SUBSCRIBED") {
+                    await channel.track({
+                        user_id: currentUserProfile.id,
+                        first_name: currentUserProfile.first_name || "Sister",
+                        username: currentUserProfile.username || "",
+                        avatar_url: currentUserProfile.avatar_url || "",
+                        location: "/minigames/multiplayer",
+                        online_at: new Date().toISOString()
+                    });
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [currentUserProfile]);
 
     const otherSisters = onlineSisters.filter(sister => sister.user_id !== currentUserProfile?.id);
     const currentUserPresence = onlineSisters.find(sister => sister.user_id === currentUserProfile?.id);
@@ -196,19 +221,19 @@ export default function MultiplayerGamesPage() {
                         {/* Other Sisters Online */}
                         <div className="bg-white/50 border border-warm-grey/5 p-5 rounded-3xl shadow-sm flex flex-col gap-4 text-left">
                             <h3 className="font-serif text-sm font-bold text-warm-cocoa border-b border-warm-grey/5 pb-2 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-muted-rose" /> Sisters Online
+                                <Users className="w-4 h-4 text-muted-rose" /> Sisters in Lobby
                             </h3>
 
                             {loading ? (
                                 <div className="flex flex-col gap-3 py-4 items-center justify-center">
                                     <div className="w-5 h-5 border-2 border-warm-grey/20 border-t-warm-grey/80 rounded-full animate-spin" />
-                                    <p className="text-[10px] text-warm-grey/50">Knocking on sanctuary door...</p>
+                                    <p className="text-[10px] text-warm-grey/50">Knocking on lobby door...</p>
                                 </div>
                             ) : otherSisters.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-6 px-4 text-center bg-white/40 border border-dashed border-stone-200/60 rounded-2xl">
                                     <span className="text-xl mb-1">🕊️</span>
                                     <p className="text-[10px] leading-relaxed text-warm-grey/60 italic">
-                                        Just you in the sanctuary right now, sister. A quiet moment for reflection. 🤍
+                                        No other sisters in the lobby right now. A quiet, peaceful moment. 🤍
                                     </p>
                                 </div>
                             ) : (
@@ -240,7 +265,7 @@ export default function MultiplayerGamesPage() {
                             )}
 
                             <p className="text-[9px] text-warm-grey/40 text-center italic mt-1 border-t border-warm-grey/5 pt-2 flex items-center justify-center gap-1">
-                                ⚡ Active Real-time Tracker
+                                ⚡ Active Lobby Tracker
                             </p>
                         </div>
                     </div>
