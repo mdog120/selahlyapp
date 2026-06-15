@@ -139,17 +139,35 @@ export function GraceAlchemy() {
     const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
     const [wobbleIds, setWobbleIds] = useState<string[]>([]);
     
-    // Celebrations Overlay State
+    // Celebration Modal
     const [showCelebration, setShowCelebration] = useState(false);
     const [newDiscovery, setNewDiscovery] = useState<NewDiscovery | null>(null);
     
-    // Modals
+    // Help & Reset Modals
     const [showHelp, setShowHelp] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     const canvasRef = useRef<HTMLDivElement>(null);
 
-    // Load saved discovered elements from localStorage on mount
+    // Precise Drag & Drop Mechanics
+    const activeDragRef = useRef<{ id: string; startX: number; startY: number; initialX: number; initialY: number } | null>(null);
+    const clickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+    const hasDraggedRef = useRef<boolean>(false);
+
+    // Block native touch scrolling on the canvas so pointer drag works on mobile/iOS
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const preventScroll = (e: TouchEvent) => {
+            if (activeDragRef.current) {
+                e.preventDefault();
+            }
+        };
+        canvas.addEventListener("touchmove", preventScroll, { passive: false });
+        return () => canvas.removeEventListener("touchmove", preventScroll);
+    }, []);
+
+    // Load saved discovered elements
     useEffect(() => {
         const saved = localStorage.getItem("discovered_grace_elements");
         if (saved) {
@@ -159,7 +177,7 @@ export function GraceAlchemy() {
                     setDiscovered(parsed);
                 }
             } catch (e) {
-                console.error("Error parsing saved elements", e);
+                console.error(e);
             }
         }
     }, []);
@@ -169,9 +187,8 @@ export function GraceAlchemy() {
         if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
 
-        // Spawn items closer to the center of the workspace
-        const x = rect.width / 2 - 45 + (Math.random() - 0.5) * 40;
-        const y = rect.height / 2 - 25 + (Math.random() - 0.5) * 40;
+        const x = rect.width / 2 - 40 + (Math.random() - 0.5) * 40;
+        const y = rect.height / 2 - 40 + (Math.random() - 0.5) * 40;
 
         setCanvasItems(prev => [
             ...prev,
@@ -218,11 +235,11 @@ export function GraceAlchemy() {
         if (resultElementId) {
             const result = ELEMENTS[resultElementId];
             
-            // Get position of average location to spawn new element
+            // Average location coordinates
             const el1Dom = document.querySelector(`[data-id="${id1}"]`);
             const el2Dom = document.querySelector(`[data-id="${id2}"]`);
-            let newX = 150;
-            let newY = 150;
+            let newX = 100;
+            let newY = 100;
 
             if (el1Dom && el2Dom && canvasRef.current) {
                 const rect1 = el1Dom.getBoundingClientRect();
@@ -232,7 +249,6 @@ export function GraceAlchemy() {
                 newY = ((rect1.top + rect2.top) / 2) - canvasRect.top;
             }
 
-            // Remove merged items and spawn new item
             setCanvasItems(prev => {
                 const filtered = prev.filter(item => item.id !== id1 && item.id !== id2);
                 return [
@@ -248,13 +264,11 @@ export function GraceAlchemy() {
 
             setSelectedCanvasId(null);
 
-            // Add to discovered if new
             if (!discovered.includes(resultElementId)) {
                 const updatedDiscovered = [...discovered, resultElementId];
                 setDiscovered(updatedDiscovered);
                 localStorage.setItem("discovered_grace_elements", JSON.stringify(updatedDiscovered));
                 
-                // Set discovery info and open celebration card
                 setNewDiscovery({
                     id: resultElementId,
                     name: result.name,
@@ -266,15 +280,14 @@ export function GraceAlchemy() {
                 triggerConfetti();
             }
         } else {
-            // Failed combination - shake items
             setWobbleIds([id1, id2]);
             setSelectedCanvasId(null);
             setTimeout(() => setWobbleIds([]), 600);
         }
     };
 
-    // Handle Framer Motion Drag End
-    const handleDragEnd = (draggedId: string) => {
+    // Drag-and-drop overlap calculation
+    const handleMergeCheck = (draggedId: string) => {
         const draggedDom = document.querySelector(`[data-id="${draggedId}"]`);
         if (!draggedDom) return;
         const draggedRect = draggedDom.getBoundingClientRect();
@@ -288,7 +301,6 @@ export function GraceAlchemy() {
 
             const otherRect = el.getBoundingClientRect();
             
-            // Check distance between centers of elements
             const center1 = {
                 x: draggedRect.left + draggedRect.width / 2,
                 y: draggedRect.top + draggedRect.height / 2
@@ -299,7 +311,7 @@ export function GraceAlchemy() {
             };
 
             const distance = Math.hypot(center1.x - center2.x, center1.y - center2.y);
-            if (distance < 50) {
+            if (distance < 60) {
                 const elId1 = draggedDom.getAttribute("data-element-id")!;
                 const elId2 = el.getAttribute("data-element-id")!;
                 attemptMerge(draggedId, otherId!, elId1, elId2);
@@ -308,14 +320,72 @@ export function GraceAlchemy() {
         });
     };
 
-    // Tap-to-select and merge canvas items
+    // Native pointer drag handlers (no Framer Motion offset fights)
+    const handlePointerDown = (e: React.PointerEvent, id: string, initialX: number, initialY: number) => {
+        e.preventDefault();
+        const target = e.currentTarget as HTMLElement;
+        target.setPointerCapture(e.pointerId);
+        
+        activeDragRef.current = {
+            id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialX,
+            initialY
+        };
+        clickStartRef.current = { x: e.clientX, y: e.clientY };
+        hasDraggedRef.current = false;
+    };
+
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!activeDragRef.current) return;
+        const drag = activeDragRef.current;
+        const dx = e.clientX - drag.startX;
+        const dy = e.clientY - drag.startY;
+
+        if (Math.hypot(dx, dy) > 3) {
+            hasDraggedRef.current = true;
+        }
+
+        setCanvasItems(prev => prev.map(item => {
+            if (item.id === drag.id) {
+                return {
+                    ...item,
+                    x: drag.initialX + dx,
+                    y: drag.initialY + dy
+                };
+            }
+            return item;
+        }));
+    };
+
+    const handlePointerUp = (e: React.PointerEvent, id: string, elementId: ElementId) => {
+        if (!activeDragRef.current) return;
+        const target = e.currentTarget as HTMLElement;
+        try {
+            target.releasePointerCapture(e.pointerId);
+        } catch (err) {
+            // Safe fallback
+        }
+        
+        activeDragRef.current = null;
+
+        const dx = e.clientX - clickStartRef.current.x;
+        const dy = e.clientY - clickStartRef.current.y;
+
+        if (!hasDraggedRef.current && Math.hypot(dx, dy) < 4) {
+            handleCanvasItemClick(id, elementId);
+        } else {
+            handleMergeCheck(id);
+        }
+    };
+
     const handleCanvasItemClick = (id: string, elementId: ElementId) => {
         if (!selectedCanvasId) {
             setSelectedCanvasId(id);
         } else if (selectedCanvasId === id) {
             setSelectedCanvasId(null);
         } else {
-            // Merge tap selection
             const otherItem = canvasItems.find(item => item.id === selectedCanvasId);
             if (otherItem) {
                 attemptMerge(selectedCanvasId, id, otherItem.elementId, elementId);
@@ -336,7 +406,6 @@ export function GraceAlchemy() {
         setShowResetConfirm(false);
     };
 
-    // Filter elements list by selected tab
     const filteredDiscovered = discovered.filter(id => {
         const el = ELEMENTS[id];
         if (!el) return false;
@@ -347,7 +416,7 @@ export function GraceAlchemy() {
     return (
         <div className="flex flex-col md:flex-row gap-6 w-full max-h-[calc(100vh-12rem)] md:h-[580px] bg-white/40 border border-warm-grey/5 p-4 rounded-3xl shadow-sm relative overflow-hidden select-none">
             
-            {/* 1. ELEMENTS LIST SIDEBAR (Left / Top) */}
+            {/* 1. SIDEBAR (Left / Top) */}
             <div className="w-full md:w-72 flex flex-col gap-3 border-b md:border-b-0 md:border-r border-stone-200/50 pb-4 md:pb-0 md:pr-4 min-w-0">
                 <div className="flex items-center justify-between">
                     <h3 className="font-serif text-sm font-bold text-warm-cocoa flex items-center gap-1.5">
@@ -358,7 +427,7 @@ export function GraceAlchemy() {
                     </span>
                 </div>
 
-                {/* Category tabs */}
+                {/* Tabs */}
                 <div className="flex md:flex-wrap gap-1 overflow-x-auto pb-1 scrollbar-none text-[9px] font-semibold text-warm-grey">
                     {(["all", "core", "divine", "virtues", "history", "concepts"] as const).map(tab => (
                         <button
@@ -371,18 +440,18 @@ export function GraceAlchemy() {
                     ))}
                 </div>
 
-                {/* Scrollable list of items */}
-                <div className="flex-1 overflow-y-auto grid grid-cols-3 md:grid-cols-2 gap-2 pr-1 max-h-[140px] md:max-h-none">
+                {/* Elements list - styled with NO white background block and vertical layout */}
+                <div className="flex-1 overflow-y-auto grid grid-cols-4 md:grid-cols-3 gap-2 pr-1 max-h-[140px] md:max-h-none">
                     {filteredDiscovered.map(id => {
                         const el = ELEMENTS[id];
                         return (
                             <button
                                 key={id}
                                 onClick={() => spawnElement(id)}
-                                className="flex items-center gap-1.5 p-2 rounded-xl bg-white/95 border border-stone-100 shadow-sm transition-all hover:scale-[1.03] active:scale-95 duration-200 text-left cursor-pointer group"
+                                className="flex flex-col items-center justify-center p-2 rounded-2xl transition-all hover:bg-stone-150/40 active:scale-95 duration-200 text-center cursor-pointer group w-full aspect-square"
                             >
-                                <span className="text-base group-hover:animate-bounce">{el.emoji}</span>
-                                <span className="text-[10px] font-bold text-warm-cocoa truncate">{el.name}</span>
+                                <span className="text-3xl group-hover:animate-bounce leading-none">{el.emoji}</span>
+                                <span className="text-[9px] font-bold text-warm-cocoa/90 mt-1.5 text-center w-full truncate leading-tight">{el.name}</span>
                             </button>
                         );
                     })}
@@ -390,31 +459,28 @@ export function GraceAlchemy() {
             </div>
 
             {/* 2. CANVAS WORKSPACE (Right / Bottom) */}
-            <div className="flex-1 flex flex-col gap-3 min-w-0 h-[280px] md:h-full relative">
-                {/* Canvas Toolbar */}
+            <div className="flex-1 flex flex-col gap-3 min-w-0 h-[300px] md:h-full relative">
+                {/* Toolbar */}
                 <div className="flex items-center justify-between border-b border-stone-200/20 pb-2 z-10">
                     <span className="text-[9px] text-warm-grey/50 italic">
-                        Tap elements in list to spawn. Drag or tap them together to combine!
+                        Tap elements to spawn. Drag them together or tap them sequentially to combine!
                     </span>
                     
                     <div className="flex gap-2">
                         <button
                             onClick={() => setShowHelp(true)}
-                            title="Help Guide"
                             className="p-1.5 rounded-lg bg-white/70 hover:bg-white border border-stone-200/40 text-warm-grey/60 hover:text-warm-grey transition-all shadow-sm"
                         >
                             <HelpCircle className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={clearCanvas}
-                            title="Clear Canvas"
                             className="p-1.5 rounded-lg bg-white/70 hover:bg-white border border-stone-200/40 text-warm-grey/60 hover:text-rose-700 transition-all shadow-sm"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={() => setShowResetConfirm(true)}
-                            title="Reset Progress"
                             className="p-1.5 rounded-lg bg-white/70 hover:bg-white border border-stone-200/40 text-warm-grey/60 hover:text-amber-800 transition-all shadow-sm"
                         >
                             <RefreshCw className="w-3.5 h-3.5" />
@@ -422,11 +488,12 @@ export function GraceAlchemy() {
                     </div>
                 </div>
 
-                {/* Actual canvas box */}
+                {/* Dotted canvas */}
                 <div
                     ref={canvasRef}
                     id="canvas-workspace"
                     className="flex-1 bg-white/40 rounded-2xl border border-stone-200/40 relative overflow-hidden bg-[radial-gradient(#e2e2e2_1px,transparent_1px)] bg-[size:16px_16px]"
+                    style={{ touchAction: "none" }}
                 >
                     {canvasItems.length === 0 && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-warm-grey/40 pointer-events-none">
@@ -438,43 +505,37 @@ export function GraceAlchemy() {
                         </div>
                     )}
 
-                    <AnimatePresence>
-                        {canvasItems.map(item => {
-                            const el = ELEMENTS[item.elementId];
-                            const isSelected = selectedCanvasId === item.id;
-                            const isWobbling = wobbleIds.includes(item.id);
+                    {canvasItems.map(item => {
+                        const el = ELEMENTS[item.elementId];
+                        const isSelected = selectedCanvasId === item.id;
+                        const isWobbling = wobbleIds.includes(item.id);
 
-                            return (
-                                <motion.div
-                                    key={item.id}
-                                    drag
-                                    dragMomentum={false}
-                                    dragElastic={0}
-                                    onDragEnd={() => handleDragEnd(item.id)}
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ 
-                                        scale: 1, 
-                                        opacity: 1,
-                                        x: item.x,
-                                        y: item.y
-                                    }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    onClick={() => handleCanvasItemClick(item.id, item.elementId)}
-                                    data-id={item.id}
-                                    data-element-id={item.elementId}
-                                    className={`canvas-item absolute z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border cursor-grab active:cursor-grabbing shadow-sm select-none ${isSelected ? "border-amber-400 ring-2 ring-amber-100" : "border-stone-200/60"} ${isWobbling ? "animate-wobble" : ""}`}
-                                    style={{ left: 0, top: 0 }}
-                                >
-                                    <span className="text-base pointer-events-none">{el.emoji}</span>
-                                    <span className="text-[10px] font-bold text-warm-cocoa pointer-events-none">{el.name}</span>
-                                </motion.div>
-                            );
-                        })}
-                    </AnimatePresence>
+                        return (
+                            <div
+                                key={item.id}
+                                onPointerDown={(e) => handlePointerDown(e, item.id, item.x, item.y)}
+                                onPointerMove={handlePointerMove}
+                                onPointerUp={(e) => handlePointerUp(e, item.id, item.elementId)}
+                                data-id={item.id}
+                                data-element-id={item.elementId}
+                                className={`canvas-item absolute z-10 flex flex-col items-center justify-center p-2 rounded-2xl select-none w-20 h-20 cursor-grab active:cursor-grabbing ${isSelected ? "ring-2 ring-amber-400 bg-amber-50/20" : ""} ${isWobbling ? "animate-wobble" : ""}`}
+                                style={{ 
+                                    left: item.x, 
+                                    top: item.y,
+                                    touchAction: "none" // Crucial for responsive mobile dragging
+                                }}
+                            >
+                                <span className="text-4xl leading-none pointer-events-none">{el.emoji}</span>
+                                <span className="text-[9px] font-bold text-warm-cocoa mt-1 text-center w-full truncate leading-tight pointer-events-none">
+                                    {el.name}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* 3. DISCOVERY CELEBRATION MODAL OVERLAY */}
+            {/* 3. DISCOVERY CELEBRATION MODAL */}
             <AnimatePresence>
                 {showCelebration && newDiscovery && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden bg-warm-cocoa/40 backdrop-blur-sm">
@@ -485,7 +546,6 @@ export function GraceAlchemy() {
                             transition={{ type: "spring", damping: 20 }}
                             className="relative bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-amber-250/20 text-center flex flex-col items-center"
                         >
-                            {/* Rotating Gold Aura Ring */}
                             <div className="mb-6 relative h-28 flex items-center justify-center w-full">
                                 <div className="absolute inset-0 bg-amber-100 rounded-full blur-2xl opacity-40 animate-pulse" />
                                 <div className="absolute w-24 h-24 rounded-full border border-dashed border-amber-400/30 animate-spin [animation-duration:15s]" />
@@ -519,7 +579,7 @@ export function GraceAlchemy() {
                 )}
             </AnimatePresence>
 
-            {/* 4. HELP INSTRUCTIONS MODAL */}
+            {/* 4. HELP MODAL */}
             <AnimatePresence>
                 {showHelp && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden bg-warm-cocoa/40 backdrop-blur-sm">
@@ -548,7 +608,7 @@ export function GraceAlchemy() {
                                 <h5 className="font-bold text-warm-cocoa uppercase tracking-wide text-[9px]">How to play:</h5>
                                 <ul className="list-disc pl-4 space-y-1">
                                     <li>Click elements in the sidebar to spawn them in the workspace.</li>
-                                    <li>Drag elements together to merge.</li>
+                                    <li>Drag elements together to merge them.</li>
                                     <li>Alternatively, tap element A then tap element B on the canvas to combine them instantly.</li>
                                     <li>Discovering a new element unlocks its theological and scriptural definition.</li>
                                 </ul>
@@ -558,7 +618,7 @@ export function GraceAlchemy() {
                 )}
             </AnimatePresence>
 
-            {/* 5. RESET CONFIRMATION MODAL */}
+            {/* 5. RESET CONFIRMATION */}
             <AnimatePresence>
                 {showResetConfirm && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden bg-warm-cocoa/40 backdrop-blur-sm">
