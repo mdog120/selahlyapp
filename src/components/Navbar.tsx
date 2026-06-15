@@ -147,14 +147,6 @@ export function Navbar() {
                                 </Link>
 
                                 <Link
-                                    href="/minigames"
-                                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50 text-warm-grey/80 hover:text-purple-600 transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    <span className="text-lg">🂡</span> Mini Games
-                                </Link>
-
-                                <Link
                                     href="/garden"
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-green-50 text-warm-grey/80 hover:text-green-700 transition-colors"
                                     onClick={() => setIsMenuOpen(false)}
