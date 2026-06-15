@@ -191,21 +191,37 @@ export function Pong({
             // 1. Move Paddles
             // Left paddle (Host / Solo Player)
             if (isHost) {
-                if (keyState.current["w"] || keyState.current["W"]) {
+                if (
+                    keyState.current["w"] || 
+                    keyState.current["W"] || 
+                    keyState.current["ArrowUp"] || 
+                    keyState.current["ArrowLeft"]
+                ) {
                     paddle1Y.current = Math.max(0, paddle1Y.current - 6);
                 }
-                if (keyState.current["s"] || keyState.current["S"]) {
+                if (
+                    keyState.current["s"] || 
+                    keyState.current["S"] || 
+                    keyState.current["ArrowDown"] || 
+                    keyState.current["ArrowRight"]
+                ) {
                     paddle1Y.current = Math.min(HEIGHT - PADDLE_HEIGHT, paddle1Y.current + 6);
                 }
             } else {
                 // Guest movement controls
-                if (keyState.current["ArrowUp"]) {
+                if (
+                    keyState.current["ArrowUp"] || 
+                    keyState.current["ArrowLeft"]
+                ) {
                     paddle2Y.current = Math.max(0, paddle2Y.current - 6);
                 }
-                if (keyState.current["ArrowDown"]) {
+                if (
+                    keyState.current["ArrowDown"] || 
+                    keyState.current["ArrowRight"]
+                ) {
                     paddle2Y.current = Math.min(HEIGHT - PADDLE_HEIGHT, paddle2Y.current + 6);
                 }
-
+ 
                 // Send guest movement to host
                 channelRef.current?.send({
                     type: "broadcast",
@@ -504,7 +520,7 @@ export function Pong({
             <div className="text-[10px] text-warm-grey/40 flex gap-4 mt-2">
                 <span>🖱️ Move mouse up/down to slide paddle</span>
                 <span className="hidden md:inline">|</span>
-                <span>Keyboard fallback: W/S (Left) / Arrow Keys (Right)</span>
+                <span>Keyboard fallback: W/S or Arrow Keys (Left/Right & Up/Down)</span>
             </div>
         </div>
     );
