@@ -229,10 +229,9 @@ export default function MiniGamesPage() {
             <Navbar />
 
             <div className="container mx-auto px-4 pt-24 max-w-4xl">
-                {/* Header */}
                 <header className="mb-8 text-center animate-fade-in-up">
                     <h1 className="font-serif text-3xl text-warm-cocoa font-bold mb-1 flex items-center justify-center gap-2">
-                        <span className="font-sans text-2xl">𑣲⋆</span> Mini Games <span className="font-sans text-2xl">𑣲⋆</span>
+                        <span className="text-2xl">🂡</span> Mini Games <span className="text-2xl">🂡</span>
                     </h1>
                     <p className="text-xs text-warm-grey/50 italic">
                         "A cheerful heart is good medicine..." — Proverbs 17:22
@@ -283,7 +282,7 @@ export default function MiniGamesPage() {
                                     <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40 text-center relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-soft-blush/10 rounded-bl-full pointer-events-none" />
                                         <div className="w-16 h-16 rounded-full bg-soft-blush/30 flex items-center justify-center text-2xl mx-auto mb-4 shadow-sm relative">
-                                            <span className="font-sans relative z-10">𑣲⋆</span>
+                                            <span className="relative z-10">🂡</span>
                                             <span className="absolute inset-0 rounded-full bg-soft-blush/20 blur-md animate-pulse" />
                                         </div>
                                         <h4 className="font-serif text-xl font-bold text-warm-cocoa mb-2">Selahly Arcade Hub</h4>
