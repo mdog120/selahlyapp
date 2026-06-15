@@ -247,7 +247,6 @@ export function Pong({
                 // Broadcast updates to guest
                 let beep: "hit" | "wall" | "score" | null = null;
 
-                ballX.current += ballX.current > 0 ? ballVX.current : 0; // Prevent freeze on bounds
                 ballX.current += ballVX.current;
                 ballY.current += ballVY.current;
 
@@ -266,7 +265,7 @@ export function Pong({
                 }
 
                 // Left Paddle Collision
-                if (ballX.current <= PADDLE_WIDTH + BALL_SIZE) {
+                if (ballX.current <= PADDLE_WIDTH + BALL_SIZE && ballVX.current < 0) {
                     if (ballY.current >= paddle1Y.current && ballY.current <= paddle1Y.current + PADDLE_HEIGHT) {
                         ballX.current = PADDLE_WIDTH + BALL_SIZE;
                         ballVX.current = -ballVX.current;
@@ -296,7 +295,7 @@ export function Pong({
                 }
 
                 // Right Paddle Collision
-                if (ballX.current >= WIDTH - PADDLE_WIDTH - BALL_SIZE) {
+                if (ballX.current >= WIDTH - PADDLE_WIDTH - BALL_SIZE && ballVX.current > 0) {
                     if (ballY.current >= paddle2Y.current && ballY.current <= paddle2Y.current + PADDLE_HEIGHT) {
                         ballX.current = WIDTH - PADDLE_WIDTH - BALL_SIZE;
                         ballVX.current = -ballVX.current;

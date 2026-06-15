@@ -234,9 +234,11 @@ export function Sudoku() {
     const gameSolved = board.length > 0 && isCompleted();
 
     // Pause timer on game end
-    if ((gameOver || gameSolved) && timerActive) {
-        setTimerActive(false);
-    }
+    useEffect(() => {
+        if ((gameOver || gameSolved) && timerActive) {
+            setTimerActive(false);
+        }
+    }, [gameOver, gameSolved, timerActive]);
 
     return (
         <div className="flex flex-col items-center max-w-xl mx-auto w-full select-none">

@@ -193,10 +193,10 @@ export function WordSearch() {
     // Pastel background colors for permanent highlights
     const HIGHLIGHT_BG_COLORS = [
         "bg-rose-200/60 border-rose-300/40 text-rose-800",
-        "bg-lavender-200/60 border-lavender-300/40 text-lavender-800",
+        "bg-purple-200/60 border-purple-300/40 text-purple-800",
         "bg-sky-200/60 border-sky-300/40 text-sky-800",
-        "bg-mint-200/60 border-mint-300/40 text-mint-800",
-        "bg-apricot-200/60 border-apricot-300/40 text-apricot-800"
+        "bg-emerald-200/60 border-emerald-300/40 text-emerald-800",
+        "bg-orange-200/60 border-orange-300/40 text-orange-800"
     ];
 
     const isWordSearchCompleted = targetWords.length > 0 && foundWords.length === targetWords.length;

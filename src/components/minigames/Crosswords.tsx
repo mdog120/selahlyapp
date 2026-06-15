@@ -112,8 +112,7 @@ export function Crosswords() {
     // Handle backspace navigation
     const handleKeyDown = (r: number, c: number, e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Backspace") {
-            const key = getCellKey(r, c);
-            if (!userAnswers[key]) {
+            if (!e.currentTarget.value) {
                 // Navigate backwards
                 moveToPrevCell(r, c);
             }
