@@ -421,6 +421,15 @@ export default function MiniGamesPage() {
                                 </div>
                             )}
 
+                            {activeTab !== "lobby" && (
+                                <button
+                                    onClick={() => setActiveTab("lobby")}
+                                    className="self-start flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/60 hover:bg-white border border-stone-200/40 text-xs text-warm-cocoa font-bold transition-all shadow-sm hover:scale-[1.02] active:scale-95 duration-200 mb-4 cursor-pointer"
+                                >
+                                    ← Back to Lobby
+                                </button>
+                            )}
+
                             {activeTab === "blockblast" && <BlockBlast />}
                             {activeTab === "crosswords" && <Crosswords />}
                             {activeTab === "wordsearch" && <WordSearch />}
@@ -539,7 +548,7 @@ export default function MiniGamesPage() {
                             activeTab === "lobby" ? "bg-warm-cocoa text-white" : "text-warm-grey/50 hover:text-warm-grey/80"
                         }`}
                     >
-                        Dashboard
+                        Lobby 🂡
                     </button>
                     <button
                         onClick={() => setActiveTab("blockblast")}
