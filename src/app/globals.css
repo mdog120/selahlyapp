@@ -341,3 +341,17 @@ body.theme-night button:hover {
 .animate-float-note {
   animation: floatUp 2.5s ease-out infinite;
 }
+
+/* Wobble animation for failed combinations */
+@keyframes wobble {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px) rotate(-3deg); }
+  30% { transform: translateX(5px) rotate(2deg); }
+  45% { transform: translateX(-4px) rotate(-2deg); }
+  60% { transform: translateX(3px) rotate(1deg); }
+  75% { transform: translateX(-2px) rotate(-1deg); }
+}
+
+.animate-wobble {
+  animation: wobble 0.6s ease-in-out;
+}
