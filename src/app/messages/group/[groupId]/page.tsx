@@ -49,6 +49,7 @@ export default function GroupChatPage() {
     const [currentProfile, setCurrentProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [uploadingMedia, setUploadingMedia] = useState(false);
 
     // Real-time State
     const [isTyping, setIsTyping] = useState<string | null>(null); // userId who is typing
@@ -339,6 +340,81 @@ export default function GroupChatPage() {
         }
     };
 
+    const sendMediaMessage = async (content: string) => {
+        if (!currentUser) return;
+
+        // Optimistic
+        const tempMsg: Message = {
+            id: `temp-${Date.now()}`,
+            content: content,
+            sender_id: currentUser.id,
+            group_id: groupId,
+            created_at: new Date().toISOString(),
+            reactions: {},
+            read_by: [],
+            sender: {
+                first_name: currentProfile?.first_name || currentUser.user_metadata?.first_name || "Me",
+                avatar_url: currentProfile?.avatar_url || currentUser.user_metadata?.avatar_url || ""
+            }
+        };
+        setMessages(prev => [...prev, tempMsg]);
+
+        const { data, error } = await supabase.from("group_messages").insert({
+            sender_id: currentUser.id,
+            group_id: groupId,
+            content: content,
+            reactions: {}
+        }).select().single();
+
+        if (error) {
+            setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+            alert("Failed to send media");
+        } else if (data) {
+            setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...m, id: data.id } : m));
+        }
+    };
+
+    const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            if (!event.target.files || event.target.files.length === 0) return;
+            setUploadingMedia(true);
+
+            const file = event.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `groupchat-${currentUser.id}-${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            let bucket = 'posts';
+            let { error: uploadError } = await supabase.storage
+                .from(bucket)
+                .upload(filePath, file);
+
+            if (uploadError) {
+                console.warn("Upload to 'posts' failed, trying 'avatars'", uploadError);
+                bucket = 'avatars';
+                const { error: retryError } = await supabase.storage
+                    .from(bucket)
+                    .upload(filePath, file);
+                if (retryError) throw retryError;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from(bucket)
+                .getPublicUrl(filePath);
+
+            const type = file.type.startsWith('video/') ? 'video' : 'image';
+            const mediaTag = `[media:${type}:${publicUrl}]`;
+
+            await sendMediaMessage(mediaTag);
+
+        } catch (error: any) {
+            alert(error.message || 'Error uploading media file.');
+            console.error(error);
+        } finally {
+            setUploadingMedia(false);
+        }
+    };
+ 
     const handleSend = async () => {
         if (!newMessage.trim() || !currentUser) return;
         const content = newMessage;
@@ -392,6 +468,31 @@ export default function GroupChatPage() {
     // Helper to render stickers
     const renderContentWithStickers = (text: string) => {
         if (!text) return null;
+        if (text.startsWith("[media:image:")) {
+            const url = text.replace("[media:image:", "").replace("]", "");
+            return (
+                <div className="mt-1">
+                    <img 
+                        src={url} 
+                        alt="Shared image" 
+                        className="max-w-xs rounded-xl shadow-sm border border-stone-200/50 object-cover max-h-60 cursor-pointer hover:opacity-95 transition-opacity" 
+                        onClick={() => window.open(url, '_blank')}
+                    />
+                </div>
+            );
+        }
+        if (text.startsWith("[media:video:")) {
+            const url = text.replace("[media:video:", "").replace("]", "");
+            return (
+                <div className="mt-1">
+                    <video 
+                        src={url} 
+                        controls 
+                        className="max-w-xs rounded-xl shadow-sm border border-stone-200/50 max-h-60" 
+                    />
+                </div>
+            );
+        }
         const parts = text.split(/(\[sticker:[^\]]+\]|@[\w.-]+)/g);
         return parts.map((part, index) => {
             const stickerMatch = part.match(/\[sticker:(.+)\]/);
@@ -636,8 +737,22 @@ export default function GroupChatPage() {
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     className="flex items-center gap-2 bg-stone-50 p-2 rounded-full border border-warm-grey/10 focus-within:ring-2 focus-within:ring-muted-rose/20 transition-all"
                 >
-                    {/* StickerPicker removed */}
-
+                    {/* Attach media button */}
+                    <label className="p-2 hover:bg-stone-200/50 rounded-full cursor-pointer transition-colors shrink-0 text-warm-grey/50 hover:text-muted-rose">
+                        {uploadingMedia ? (
+                            <div className="w-4 h-4 border-2 border-muted-rose/20 border-t-muted-rose rounded-full animate-spin" />
+                        ) : (
+                            <ImageIcon className="w-4 h-4" />
+                        )}
+                        <input
+                            type="file"
+                            accept="image/*,video/*"
+                            onChange={handleMediaUpload}
+                            disabled={uploadingMedia}
+                            className="hidden"
+                        />
+                    </label>
+ 
                     <input
                         ref={inputRef}
                         type="text"
