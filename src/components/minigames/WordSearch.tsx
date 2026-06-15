@@ -235,7 +235,7 @@ export function WordSearch() {
                             return (
                                 <div
                                     key={`${r}-${c}`}
-                                    onClick={() => handleGridCellClick(r, c)}
+                                    onClick={() => handleCellClick(r, c)}
                                     onMouseEnter={() => startCell && setHoverCell({ r, c })}
                                     className={`w-full h-full rounded-md border flex items-center justify-center text-xs font-bold font-sans cursor-pointer transition-all duration-150 shadow-sm ${cellClass}`}
                                 >
