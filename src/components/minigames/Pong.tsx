@@ -189,7 +189,7 @@ export function Pong({
             if (!gameStarted || winner) return;
 
             // 1. Move Paddles
-            // Left paddle (Grace / Host / Solo Player)
+            // Left paddle (Host / Solo Player)
             if (isHost) {
                 if (keyState.current["w"] || keyState.current["W"]) {
                     paddle1Y.current = Math.max(0, paddle1Y.current - 6);
@@ -339,13 +339,13 @@ export function Pong({
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Draw left paddle (Grace)
+            // Draw left paddle
             ctx.fillStyle = "#EAA79E"; // Pastel Rose
             ctx.shadowColor = "rgba(0, 0, 0, 0.05)";
             ctx.shadowBlur = 4;
             ctx.fillRect(0, paddle1Y.current, PADDLE_WIDTH, PADDLE_HEIGHT);
 
-            // Draw right paddle (Mercy)
+            // Draw right paddle
             ctx.fillStyle = "#93C572"; // Soft Pastel Green (Sage/Mint)
             ctx.fillRect(WIDTH - PADDLE_WIDTH, paddle2Y.current, PADDLE_WIDTH, PADDLE_HEIGHT);
 
