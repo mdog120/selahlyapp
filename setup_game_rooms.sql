@@ -41,6 +41,12 @@ create policy "Members can update to leave"
   to authenticated
   using (members::text like '%' || auth.uid()::text || '%');
 
+-- Any authenticated user can join a waiting room
+create policy "Anyone can join a waiting room"
+  on public.game_rooms for update
+  to authenticated
+  using (status = 'waiting');
+
 -- Host can delete their room
 create policy "Host can delete room"
   on public.game_rooms for delete
