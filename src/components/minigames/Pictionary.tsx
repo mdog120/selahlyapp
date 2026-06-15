@@ -95,6 +95,17 @@ export function Pictionary({
     const timerRef = useRef<any>(null);
     const channelRef = useRef<any>(null);
 
+    const pictionaryStateRef = useRef({
+        players: [] as { id: string; name: string; score: number }[],
+        drawerId: "",
+        secretWord: "",
+        gameStarted: false,
+    });
+
+    useEffect(() => {
+        pictionaryStateRef.current = { players, drawerId, secretWord, gameStarted };
+    }, [players, drawerId, secretWord, gameStarted]);
+
     // Fetch user details
     const myName = initialUserName || "Sister";
 
