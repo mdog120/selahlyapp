@@ -155,11 +155,11 @@ export function Pictionary({
             .on("presence", { event: "sync" }, () => {
                 const state = channel.presenceState();
                 const syncedPlayers = Object.keys(state).map(id => {
-                    const pres = state[id][0] as any;
+                    const pres = state[id] && state[id][0] as any;
                     return {
                         id,
-                        name: pres.name || "Sister",
-                        score: pres.score || 0
+                        name: (pres && pres.name) || "Sister",
+                        score: (pres && pres.score) || 0
                     };
                 });
                 setPlayers(syncedPlayers);
@@ -214,12 +214,13 @@ export function Pictionary({
 
     // Rotate turn (called by active Drawer)
     const rotateTurn = () => {
-        if (players.length < 2) return;
+        const { players: currentPlayers } = pictionaryStateRef.current;
+        if (currentPlayers.length < 2) return;
         
         // Find next player index
-        const currentIdx = players.findIndex(p => p.id === userId);
-        const nextIdx = (currentIdx + 1) % players.length;
-        const nextPlayer = players[nextIdx];
+        const currentIdx = currentPlayers.findIndex(p => p.id === userId);
+        const nextIdx = (currentIdx + 1) % currentPlayers.length;
+        const nextPlayer = currentPlayers[nextIdx];
 
         // Pick random secret word
         const randomTerm = WORDS_DB[Math.floor(Math.random() * WORDS_DB.length)];
