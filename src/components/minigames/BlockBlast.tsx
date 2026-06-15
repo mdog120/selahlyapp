@@ -254,7 +254,7 @@ export function BlockBlast() {
             `}</style>
 
             {/* Header / Scores */}
-            <div className="w-full flex items-center justify-between bg-white/50 border border-warm-grey/5 p-4 rounded-2xl mb-6 shadow-sm">
+            <div className="w-full flex items-center justify-between bg-white/50 border border-warm-grey/5 p-2.5 sm:p-4 rounded-2xl mb-3 sm:mb-6 shadow-sm">
                 <div className="flex flex-col items-start">
                     <span className="text-[10px] uppercase font-bold tracking-widest text-warm-grey/40">Score</span>
                     <span className="text-2xl font-serif text-warm-cocoa font-bold">{score}</span>
@@ -279,7 +279,7 @@ export function BlockBlast() {
             </div>
 
             {/* Grid Container */}
-            <div className="relative w-full aspect-square bg-stone-100/50 rounded-3xl p-3 border border-stone-200/30 shadow-inner mb-6">
+            <div className="relative w-full max-w-[min(340px,78vw,38vh)] aspect-square bg-stone-100/50 rounded-3xl p-2 sm:p-3 border border-stone-200/30 shadow-inner mb-3 sm:mb-6">
                 <div className="w-full h-full grid grid-cols-8 gap-1.5">
                     {grid.map((row, r) =>
                         row.map((cellColorIdx, c) => {
@@ -340,7 +340,7 @@ export function BlockBlast() {
             </div>
 
             {/* Available Shapes Drawer */}
-            <div className="w-full grid grid-cols-3 gap-4 bg-white/50 p-4 border border-warm-grey/5 rounded-3xl shadow-sm">
+            <div className="w-full grid grid-cols-3 gap-2 sm:gap-4 bg-white/50 p-2.5 sm:p-4 border border-warm-grey/5 rounded-2xl sm:rounded-3xl shadow-sm">
                 {availableShapes.map((shape, idx) => {
                     if (shape.placed) {
                         return (
@@ -379,8 +379,8 @@ export function BlockBlast() {
                                 style={{
                                     gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
                                     gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                                    width: `${cols * 18}px`,
-                                    height: `${rows * 18}px`
+                                    width: `${cols * 14}px`,
+                                    height: `${rows * 14}px`
                                 }}
                             >
                                 {Array(rows).fill(null).map((_, rIdx) =>

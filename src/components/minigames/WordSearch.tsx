@@ -286,7 +286,7 @@ export function WordSearch() {
 
                 {/* Grid Board */}
                 <div 
-                    className="w-full max-w-[420px] aspect-square bg-stone-100/50 border border-stone-200/30 p-2 rounded-2xl grid gap-[3px] shadow-inner relative"
+                    className="w-full max-w-[min(340px,78vw,38vh)] aspect-square bg-stone-100/50 border border-stone-200/30 p-1.5 sm:p-2 rounded-2xl grid gap-[2.5px] shadow-inner relative"
                     style={{
                         gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
                         gridTemplateRows: `repeat(${GRID_SIZE}, minmax(0, 1fr))`
@@ -340,7 +340,7 @@ export function WordSearch() {
             </div>
 
             {/* Checklist Panel */}
-            <div className="w-full lg:w-80 bg-white/50 border border-warm-grey/5 p-6 rounded-3xl shadow-sm flex flex-col gap-6 text-left">
+            <div className="w-full lg:w-80 bg-white/50 border border-warm-grey/5 p-4 sm:p-6 rounded-3xl shadow-sm flex flex-col gap-4 sm:gap-6 text-left">
                 {/* Theme Selector */}
                 <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-warm-grey/40 block mb-2">Select Theme</label>
@@ -349,7 +349,7 @@ export function WordSearch() {
                             <button
                                 key={idx}
                                 onClick={() => setThemeIdx(idx)}
-                                className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between border ${
+                                className={`w-full text-left px-3 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-between border ${
                                     themeIdx === idx
                                         ? "bg-rose-50 border-rose-250 text-muted-rose"
                                         : "bg-white/60 hover:bg-white border-transparent text-warm-grey/70"
@@ -373,7 +373,7 @@ export function WordSearch() {
                             return (
                                 <div
                                     key={word}
-                                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all duration-200 ${
+                                    className={`px-2 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1.5 border transition-all duration-200 ${
                                         isFound
                                             ? "bg-green-50 border-green-200 text-green-700 line-through opacity-60"
                                             : "bg-white/60 border-stone-200/40 text-warm-grey/80"

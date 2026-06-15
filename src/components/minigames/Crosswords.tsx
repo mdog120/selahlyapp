@@ -348,7 +348,7 @@ export function Crosswords() {
 
                 {/* Grid Board */}
                 <div 
-                    className="w-full max-w-[360px] aspect-square bg-stone-100/50 border border-stone-200/30 p-2 rounded-2xl grid gap-1 shadow-inner relative"
+                    className="w-full max-w-[min(320px,78vw,35vh)] aspect-square bg-stone-100/50 border border-stone-200/30 p-1 sm:p-2 rounded-2xl grid gap-[3px] sm:gap-1 shadow-inner relative"
                     style={{
                         gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
                         gridTemplateRows: `repeat(${GRID_SIZE}, minmax(0, 1fr))`
@@ -428,17 +428,17 @@ export function Crosswords() {
                 </div>
 
                 {/* Helper buttons */}
-                <div className="flex gap-3 mt-6 w-full max-w-[340px]">
+                <div className="flex gap-2 sm:gap-3 mt-3 sm:mt-6 w-full max-w-[340px]">
                     <Button 
                         onClick={handleRevealLetter} 
                         disabled={!selectedCell}
-                        className="flex-1 bg-stone-150 hover:bg-stone-200 text-warm-cocoa font-bold text-xs py-2.5 rounded-xl border border-stone-250/20 flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+                        className="flex-1 bg-stone-150 hover:bg-stone-200 text-warm-cocoa font-bold text-xs py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-stone-250/20 flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
                     >
                         <HelpCircle className="w-4 h-4 text-warm-grey/60" /> Reveal Letter
                     </Button>
                     <Button 
                         onClick={handleCheck}
-                        className="flex-1 bg-warm-cocoa hover:bg-warm-cocoa/90 text-white font-bold text-xs py-2.5 rounded-xl shadow-md flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+                        className="flex-1 bg-warm-cocoa hover:bg-warm-cocoa/90 text-white font-bold text-xs py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl shadow-md flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
                     >
                         <Check className="w-4 h-4" /> Check Answers
                     </Button>
@@ -446,7 +446,7 @@ export function Crosswords() {
             </div>
 
             {/* Clues Area */}
-            <div className="w-full lg:w-80 bg-white/50 border border-warm-grey/5 p-6 rounded-3xl shadow-sm flex flex-col gap-6 text-left">
+            <div className="w-full lg:w-80 bg-white/50 border border-warm-grey/5 p-4 sm:p-6 rounded-3xl shadow-sm grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-6 text-left">
                 {/* Across Clues */}
                 <div>
                     <h5 className="font-serif text-sm font-bold text-warm-cocoa border-b border-warm-grey/5 pb-2 mb-3 flex items-center gap-1.5">

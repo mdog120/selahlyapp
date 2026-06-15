@@ -250,7 +250,7 @@ export function Sudoku() {
             `}</style>
 
             {/* Header Controls */}
-            <div className="w-full flex items-center justify-between bg-white/50 border border-warm-grey/5 p-4 rounded-2xl mb-6 shadow-sm flex-wrap gap-3">
+            <div className="w-full flex items-center justify-between bg-white/50 border border-warm-grey/5 p-2.5 sm:p-4 rounded-2xl mb-3 sm:mb-6 shadow-sm flex-wrap gap-2 sm:gap-3">
                 {/* Level selector */}
                 <div className="flex gap-1 bg-stone-100/60 p-0.5 rounded-xl border border-stone-200/40">
                     {(["easy", "medium", "hard"] as const).map(level => (
@@ -285,7 +285,7 @@ export function Sudoku() {
             </div>
 
             {/* Sudoku 9x9 Board */}
-            <div className={`relative w-full aspect-square bg-stone-100/50 border border-stone-200/30 p-2 rounded-3xl grid grid-cols-9 grid-rows-9 gap-[1.5px] shadow-inner mb-6 transition-transform duration-300 ${
+            <div className={`relative w-full max-w-[min(350px,78vw,42vh)] aspect-square bg-stone-100/50 border border-stone-200/30 p-1.5 sm:p-2 rounded-3xl grid grid-cols-9 grid-rows-9 gap-[1.5px] shadow-inner mb-3 sm:mb-6 transition-transform duration-300 ${
                 shakeTrigger ? "animate-shake border-red-400" : ""
             }`}>
                 {board.map((row, r) =>
@@ -380,35 +380,35 @@ export function Sudoku() {
             </div>
 
             {/* Input Keypad Controls */}
-            <div className="w-full flex flex-col gap-3">
-                <div className="grid grid-cols-9 gap-1.5 bg-white/40 p-2.5 border border-warm-grey/5 rounded-2xl shadow-sm">
+            <div className="w-full flex flex-col gap-2 sm:gap-3">
+                <div className="grid grid-cols-9 gap-1 sm:gap-1.5 bg-white/40 p-1.5 sm:p-2.5 border border-warm-grey/5 rounded-xl sm:rounded-2xl shadow-sm">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                         <button
                             key={num}
                             onClick={() => handleNumberInput(num)}
-                            className="aspect-square bg-white hover:bg-stone-50 border border-stone-200/50 rounded-xl text-sm font-bold text-warm-cocoa flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all duration-200"
+                            className="aspect-square bg-white hover:bg-stone-50 border border-stone-200/50 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold text-warm-cocoa flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all duration-200"
                         >
                             {num}
                         </button>
                     ))}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                     <Button
                         onClick={handleErase}
-                        className="flex-1 bg-stone-100 hover:bg-stone-200 text-warm-cocoa border border-stone-200/50 font-bold text-xs py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+                        className="flex-1 bg-stone-100 hover:bg-stone-200 text-warm-cocoa border border-stone-200/50 font-bold text-xs py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl shadow-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
                     >
-                        <Eraser className="w-4 h-4 text-warm-grey/60" /> Erase
+                        <Eraser className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-warm-grey/60" /> Erase
                     </Button>
                     <Button
                         onClick={() => setIsNotesMode(!isNotesMode)}
-                        className={`flex-1 font-bold text-xs py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-1.5 border active:scale-[0.98] transition-transform ${
+                        className={`flex-1 font-bold text-xs py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl shadow-sm flex items-center justify-center gap-1.5 border active:scale-[0.98] transition-transform ${
                             isNotesMode
                                 ? "bg-rose-50 border-rose-250 text-muted-rose"
                                 : "bg-stone-100 hover:bg-stone-200 text-warm-cocoa border-stone-200/50"
                         }`}
                     >
-                        <Edit2 className="w-4 h-4" /> Note {isNotesMode ? "ON" : "OFF"}
+                        <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Note {isNotesMode ? "ON" : "OFF"}
                     </Button>
                 </div>
             </div>
