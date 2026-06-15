@@ -1,17 +1,92 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
-import { Users, ShieldAlert, Sparkles } from "lucide-react";
+import { Users, ShieldAlert, Sparkles, Compass } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { getFriendlyLocation } from "@/lib/location";
 
-const MOCK_ONLINE_SISTERS = [
-    { name: "Hannah 🌿", status: "In Prayer Pocket", avatarColor: "bg-emerald-100 text-emerald-800" },
-    { name: "Esther 👑", status: "Reflecting in Diaries", avatarColor: "bg-amber-100 text-amber-800" },
-    { name: "Sarah ౨ৎ", status: "Browsing Lily Pad", avatarColor: "bg-pink-100 text-pink-850" },
-    { name: "Deborah ✨", status: "Active in Garden", avatarColor: "bg-purple-100 text-purple-800" }
-];
+type OnlineSister = {
+    user_id: string;
+    first_name: string;
+    username: string;
+    avatar_url: string;
+    location: string;
+    online_at: string;
+};
+
+const getAvatarBg = (id: string) => {
+    const colors = [
+        "bg-pink-100 text-pink-700 border-pink-200/50",
+        "bg-emerald-100 text-emerald-800 border-emerald-200/50",
+        "bg-purple-100 text-purple-800 border-purple-200/50",
+        "bg-amber-100 text-amber-800 border-amber-200/50",
+        "bg-rose-100 text-rose-800 border-rose-200/50",
+    ];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash += id.charCodeAt(i);
+    }
+    return colors[hash % colors.length];
+};
 
 export default function MultiplayerGamesPage() {
+    const supabase = createClient();
+    const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+    const [onlineSisters, setOnlineSisters] = useState<OnlineSister[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase
+                    .from("profiles")
+                    .select("id, first_name, username, avatar_url")
+                    .eq("id", user.id)
+                    .single();
+                if (data) {
+                    setCurrentUserProfile(data);
+                }
+            }
+            setLoading(false);
+        };
+        fetchUser();
+    }, []);
+
+    useEffect(() => {
+        const channel = supabase.channel("sisters_online");
+
+        const syncPresence = () => {
+            const state = channel.presenceState();
+            const sistersList: OnlineSister[] = [];
+
+            Object.values(state).forEach((presences: any) => {
+                if (presences && presences.length > 0) {
+                    sistersList.push(presences[0] as OnlineSister);
+                }
+            });
+
+            // Sort by active time (most recent first)
+            sistersList.sort((a, b) => new Date(b.online_at).getTime() - new Date(a.online_at).getTime());
+            setOnlineSisters(sistersList);
+        };
+
+        channel
+            .on("presence", { event: "sync" }, syncPresence)
+            .on("presence", { event: "join" }, () => syncPresence())
+            .on("presence", { event: "leave" }, () => syncPresence())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    const otherSisters = onlineSisters.filter(sister => sister.user_id !== currentUserProfile?.id);
+    const currentUserPresence = onlineSisters.find(sister => sister.user_id === currentUserProfile?.id);
+
     return (
         <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
             <Navbar />
@@ -82,29 +157,92 @@ export default function MultiplayerGamesPage() {
                     </div>
 
                     {/* Sisters Online Card (Right 4 Columns) */}
-                    <div className="md:col-span-4 bg-white/50 border border-warm-grey/5 p-6 rounded-3xl shadow-sm flex flex-col gap-4 text-left">
-                        <h3 className="font-serif text-sm font-bold text-warm-cocoa border-b border-warm-grey/5 pb-2 flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-rose" /> Sisters Online
-                        </h3>
-
-                        <div className="flex flex-col gap-3">
-                            {MOCK_ONLINE_SISTERS.map((sister, idx) => (
-                                <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-white/80 border border-stone-100 shadow-sm transition-all hover:scale-[1.01]">
-                                    <div className={`w-8 h-8 rounded-full ${sister.avatarColor} flex items-center justify-center text-xs font-bold font-sans shadow-inner`}>
-                                        {sister.name[0]}
+                    <div className="md:col-span-4 flex flex-col gap-6">
+                        {/* Current User Status */}
+                        {currentUserProfile && (
+                            <div className="bg-white/50 border border-warm-grey/5 p-4 rounded-3xl shadow-sm text-left flex flex-col gap-3">
+                                <h4 className="text-[10px] font-bold tracking-wider text-warm-grey/40 uppercase">Your Status</h4>
+                                <div className="flex items-center gap-3 p-2 rounded-2xl bg-white border border-stone-100 shadow-sm">
+                                    <div className="relative">
+                                        {currentUserProfile.avatar_url ? (
+                                            <img
+                                                src={currentUserProfile.avatar_url}
+                                                alt={currentUserProfile.first_name}
+                                                className="w-10 h-10 rounded-full object-cover border border-stone-200"
+                                            />
+                                        ) : (
+                                            <div className={`w-10 h-10 rounded-full ${getAvatarBg(currentUserProfile.id)} flex items-center justify-center text-sm font-bold font-sans border shadow-inner`}>
+                                                {currentUserProfile.first_name?.[0]?.toUpperCase() || "S"}
+                                            </div>
+                                        )}
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h5 className="text-[11px] font-bold text-warm-cocoa truncate">{sister.name}</h5>
-                                        <p className="text-[9px] text-warm-grey/40 truncate">{sister.status}</p>
+                                        <h5 className="text-xs font-bold text-warm-cocoa truncate">
+                                            {currentUserProfile.first_name}
+                                        </h5>
+                                        <p className="text-[9px] text-warm-grey/40 truncate">
+                                            @{currentUserProfile.username}
+                                        </p>
+                                        <p className="text-[9px] text-purple-700 font-medium mt-0.5 flex items-center gap-1">
+                                            <Compass className="w-2.5 h-2.5" />
+                                            {getFriendlyLocation(currentUserPresence?.location || "/minigames/multiplayer")}
+                                        </p>
                                     </div>
-                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        )}
 
-                        <p className="text-[9px] text-warm-grey/40 text-center italic mt-2">
-                            Simulated real-time status tracker ⚡
-                        </p>
+                        {/* Other Sisters Online */}
+                        <div className="bg-white/50 border border-warm-grey/5 p-5 rounded-3xl shadow-sm flex flex-col gap-4 text-left">
+                            <h3 className="font-serif text-sm font-bold text-warm-cocoa border-b border-warm-grey/5 pb-2 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-muted-rose" /> Sisters Online
+                            </h3>
+
+                            {loading ? (
+                                <div className="flex flex-col gap-3 py-4 items-center justify-center">
+                                    <div className="w-5 h-5 border-2 border-warm-grey/20 border-t-warm-grey/80 rounded-full animate-spin" />
+                                    <p className="text-[10px] text-warm-grey/50">Knocking on sanctuary door...</p>
+                                </div>
+                            ) : otherSisters.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-6 px-4 text-center bg-white/40 border border-dashed border-stone-200/60 rounded-2xl">
+                                    <span className="text-xl mb-1">🕊️</span>
+                                    <p className="text-[10px] leading-relaxed text-warm-grey/60 italic">
+                                        Just you in the sanctuary right now, sister. A quiet moment for reflection. 🤍
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-1">
+                                    {otherSisters.map((sister, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 p-2.5 rounded-2xl bg-white border border-stone-100 shadow-sm transition-all hover:scale-[1.01]">
+                                            <div className="relative">
+                                                {sister.avatar_url ? (
+                                                    <img
+                                                        src={sister.avatar_url}
+                                                        alt={sister.first_name}
+                                                        className="w-8 h-8 rounded-full object-cover border border-stone-200"
+                                                    />
+                                                ) : (
+                                                    <div className={`w-8 h-8 rounded-full ${getAvatarBg(sister.user_id)} flex items-center justify-center text-xs font-bold font-sans border shadow-inner`}>
+                                                        {sister.first_name?.[0]?.toUpperCase() || "S"}
+                                                    </div>
+                                                )}
+                                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h5 className="text-[11px] font-bold text-warm-cocoa truncate">{sister.first_name}</h5>
+                                                <p className="text-[9px] text-warm-grey/40 truncate">@{sister.username}</p>
+                                                <p className="text-[9px] text-emerald-800 font-medium mt-0.5">{getFriendlyLocation(sister.location)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <p className="text-[9px] text-warm-grey/40 text-center italic mt-1 border-t border-warm-grey/5 pt-2 flex items-center justify-center gap-1">
+                                ⚡ Active Real-time Tracker
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
