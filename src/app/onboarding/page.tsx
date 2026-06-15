@@ -17,7 +17,7 @@ const COMMUNITY_GUIDELINES = [
         content: "We encourage regular engagement with God's Word. Share what you read, record your notes, and use the Selah Timer to dedicate quiet time to study and listen to the Holy Spirit."
     },
     {
-        title: "📌 Lily Pad & Gratitude Wall",
+        title: "𐙚 Lily Pad & Gratitude Wall",
         content: "Our Lily Pad feed and Gratitude Wall are places of celebration and encouragement. Share scriptures, digital scrapbook memories, and gingham notes of thanksgiving to testify of God's goodness."
     },
     {

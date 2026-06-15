@@ -159,7 +159,7 @@ export function Navbar() {
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-green-50 text-warm-grey/80 hover:text-green-700 transition-colors"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
-                                    <span className="text-lg">🌿</span> Selah Garden
+                                    <span className="text-lg">❀</span> Selah Garden
                                 </Link>
 
                                 <Link
@@ -167,7 +167,7 @@ export function Navbar() {
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-rose-50 text-warm-grey/80 hover:text-muted-rose transition-colors"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
-                                    <span className="text-lg">🌸</span> Grace Inhale
+                                    <span className="text-lg">‹𝟹</span> Grace Inhale
                                 </Link>
 
                                 <Link
@@ -175,7 +175,7 @@ export function Navbar() {
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-amber-50 text-warm-grey/80 hover:text-amber-800 transition-colors"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
-                                    <span className="text-lg">📌</span> Gratitude Wall
+                                    <span className="text-lg">𐙚</span> Gratitude Wall
                                 </Link>
 
 
@@ -187,7 +187,7 @@ export function Navbar() {
                                     }}
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-rose-50 text-warm-grey/80 hover:text-muted-rose transition-colors text-left w-full cursor-pointer"
                                 >
-                                    <span className="text-lg">💖</span> Support Selahly
+                                    <span className="text-lg">⛀⛁</span> Support Selahly
                                 </button>
 
                                 <div className="h-px bg-warm-grey/5 my-1" />

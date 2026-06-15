@@ -114,7 +114,7 @@ export default async function UserHome(props: {
                                 href="/gratitude"
                                 className="w-full bg-warm-cocoa text-white py-2.5 px-4 rounded-2xl font-serif text-xs font-medium tracking-wide shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-95 transition-all text-center flex items-center justify-center gap-1 cursor-pointer font-bold"
                             >
-                                Visit Bulletin Board 📌
+                                Visit Bulletin Board 𐙚
                             </Link>
                         </div>
 
