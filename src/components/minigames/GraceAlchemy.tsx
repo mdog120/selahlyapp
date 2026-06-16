@@ -414,10 +414,10 @@ export function GraceAlchemy() {
     });
 
     return (
-        <div className="flex flex-col md:flex-row gap-6 w-full max-h-[calc(100vh-12rem)] md:h-[580px] bg-white/40 border border-warm-grey/5 p-4 rounded-3xl shadow-sm relative overflow-hidden select-none">
+        <div className="flex flex-col gap-4 w-full h-[calc(100vh-12rem)] bg-white/40 border border-warm-grey/5 p-4 rounded-3xl shadow-sm relative overflow-hidden select-none">
             
             {/* 1. SIDEBAR (Left / Top) */}
-            <div className="w-full md:w-72 flex flex-col gap-3 border-b md:border-b-0 md:border-r border-stone-200/50 pb-4 md:pb-0 md:pr-4 min-w-0">
+            <div className="w-full flex flex-col gap-2 border-b border-stone-200/50 pb-3 shrink-0">
                 <div className="flex items-center justify-between">
                     <h3 className="font-serif text-sm font-bold text-warm-cocoa flex items-center gap-1.5">
                         🏺 Grace Elements
@@ -441,25 +441,25 @@ export function GraceAlchemy() {
                 </div>
 
                 {/* Elements list - styled with NO white background block and vertical layout */}
-                <div className="flex-1 overflow-y-auto grid grid-cols-4 md:grid-cols-3 gap-2 pr-1 max-h-[140px] md:max-h-none">
+                <div className="overflow-x-auto flex gap-2 pb-1 scrollbar-none">
                     {filteredDiscovered.map(id => {
                         const el = ELEMENTS[id];
                         return (
                             <button
                                 key={id}
                                 onClick={() => spawnElement(id)}
-                                className="flex flex-col items-center justify-center p-2 rounded-2xl transition-all hover:bg-stone-150/40 active:scale-95 duration-200 text-center cursor-pointer group w-full aspect-square"
+                                className="flex flex-col items-center justify-center p-1.5 rounded-xl transition-all hover:bg-stone-150/40 active:scale-95 duration-200 text-center cursor-pointer group shrink-0 w-16 h-16"
                             >
-                                <span className="text-3xl group-hover:animate-bounce leading-none">{el.emoji}</span>
-                                <span className="text-[9px] font-bold text-warm-cocoa/90 mt-1.5 text-center w-full truncate leading-tight">{el.name}</span>
+                                <span className="text-xl group-hover:animate-bounce leading-none">{el.emoji}</span>
+                                <span className="text-[8px] font-bold text-warm-cocoa/90 mt-1 text-center w-full truncate leading-tight">{el.name}</span>
                             </button>
                         );
                     })}
                 </div>
             </div>
 
-            {/* 2. CANVAS WORKSPACE (Right / Bottom) */}
-            <div className="flex-1 flex flex-col gap-3 min-w-0 h-[300px] md:h-full relative">
+            {/* 2. CANVAS WORKSPACE — takes all remaining space */}
+            <div className="flex-1 flex flex-col gap-2 min-w-0 min-h-[300px] relative">
                 {/* Toolbar */}
                 <div className="flex items-center justify-between border-b border-stone-200/20 pb-2 z-10">
                     <span className="text-[9px] text-warm-grey/50 italic">
