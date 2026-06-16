@@ -154,14 +154,34 @@ export function GraceAlchemy() {
     const clickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const hasDraggedRef = useRef<boolean>(false);
 
+    // Lock page scroll when Grace Alchemy is mounted (prevents screen shifting on mobile drag)
+    useEffect(() => {
+        const originalOverflow = document.body.style.overflow;
+        const originalPosition = document.body.style.position;
+        const originalWidth = document.body.style.width;
+        const originalTop = document.body.style.top;
+        const scrollY = window.scrollY;
+
+        document.body.style.overflow = "hidden";
+        document.body.style.position = "fixed";
+        document.body.style.width = "100%";
+        document.body.style.top = `-${scrollY}px`;
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+            document.body.style.position = originalPosition;
+            document.body.style.width = originalWidth;
+            document.body.style.top = originalTop;
+            window.scrollTo(0, scrollY);
+        };
+    }, []);
+
     // Block native touch scrolling on the canvas so pointer drag works on mobile/iOS
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const preventScroll = (e: TouchEvent) => {
-            if (activeDragRef.current) {
-                e.preventDefault();
-            }
+            e.preventDefault();
         };
         canvas.addEventListener("touchmove", preventScroll, { passive: false });
         return () => canvas.removeEventListener("touchmove", preventScroll);
@@ -414,7 +434,7 @@ export function GraceAlchemy() {
     });
 
     return (
-        <div className="flex flex-col gap-4 w-full h-[calc(100vh-12rem)] bg-white/40 border border-warm-grey/5 p-4 rounded-3xl shadow-sm relative overflow-hidden select-none">
+        <div className="flex flex-col gap-4 w-full h-[calc(100vh-12rem)] bg-white/40 border border-warm-grey/5 p-4 rounded-3xl shadow-sm relative overflow-hidden select-none" style={{ touchAction: "none" }}>
             
             {/* 1. SIDEBAR (Left / Top) */}
             <div className="w-full flex flex-col gap-2 border-b border-stone-200/50 pb-3 shrink-0">
