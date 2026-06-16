@@ -334,7 +334,7 @@ export default function MultiplayerGamesPage() {
     // ─── Derived state ──────────────────────────────────────
     const otherSisters = onlineSisters.filter(sister => sister.user_id !== currentUserProfile?.id);
     const currentUserPresence = onlineSisters.find(sister => sister.user_id === currentUserProfile?.id);
-    const waitingRooms = gameRooms.filter((r) => r.status === "waiting");
+    const activeRooms = gameRooms.filter((r) => r.status === "waiting" || r.status === "playing");
 
     return (
         <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
@@ -403,11 +403,11 @@ export default function MultiplayerGamesPage() {
                                     Open Game Rooms
                                 </h3>
                                 <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/30 shadow-sm">
-                                    {waitingRooms.length} {waitingRooms.length === 1 ? "room" : "rooms"}
+                                    {activeRooms.length} {activeRooms.length === 1 ? "room" : "rooms"}
                                 </span>
                             </div>
 
-                            {waitingRooms.length === 0 ? (
+                            {activeRooms.length === 0 ? (
                                 <div
                                     className="flex flex-col items-center justify-center py-14 px-6 text-center rounded-2xl border border-dashed border-stone-200/60 relative overflow-hidden"
                                     style={{
@@ -436,7 +436,7 @@ export default function MultiplayerGamesPage() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-3">
-                                    {waitingRooms.map((room) => (
+                                    {activeRooms.map((room) => (
                                         <GameRoomCard
                                             key={room.id}
                                             room={room}

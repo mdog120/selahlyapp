@@ -195,9 +195,12 @@ export function GameRoomCard({
     buttonLabel = "Room Full";
     buttonIcon = "✕";
     disabled = true;
-  } else if (!isWaiting) {
-    buttonLabel = room.status === "playing" ? "In Progress" : "Finished";
-    buttonIcon = room.status === "playing" ? "⏳" : "✓";
+  } else if (room.status === "playing") {
+    buttonLabel = "Watch & Wait";
+    buttonIcon = "👀";
+  } else if (room.status === "finished") {
+    buttonLabel = "Finished";
+    buttonIcon = "✓";
     disabled = true;
   }
 

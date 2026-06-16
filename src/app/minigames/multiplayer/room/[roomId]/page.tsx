@@ -74,6 +74,7 @@ export default function GameRoomPage() {
     const [chatInput, setChatInput] = useState("");
     const chatEndRef = useRef<HTMLDivElement>(null);
     const chatChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+    const joinedDuringGame = useRef(false);
 
     // Fetch current user
     useEffect(() => {
@@ -106,6 +107,10 @@ export default function GameRoomPage() {
             }
 
             setRoom(data as GameRoom);
+            // If the room is already playing when we join, mark as spectator
+            if (data.status === "playing") {
+                joinedDuringGame.current = true;
+            }
             setLoading(false);
         };
 
@@ -128,7 +133,12 @@ export default function GameRoomPage() {
                         setRoom(null);
                         setError("The host closed this room.");
                     } else if (payload.eventType === "UPDATE") {
-                        setRoom(payload.new as GameRoom);
+                        const updated = payload.new as GameRoom;
+                        // If game just ended (went back to waiting), clear spectator flag
+                        if (updated.status === "waiting") {
+                            joinedDuringGame.current = false;
+                        }
+                        setRoom(updated);
                     }
                 }
             )
@@ -322,7 +332,136 @@ export default function GameRoomPage() {
         );
     }
 
-    // If playing, render a fullscreen game container
+    // If playing, check if user is spectating (joined mid-game)
+    const isSpectating = isPlaying && joinedDuringGame.current;
+
+    // If spectating, show waiting screen
+    if (isSpectating) {
+        return (
+            <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
+                <Navbar />
+                <div className="container mx-auto px-4 pt-24 max-w-2xl">
+                    <button
+                        onClick={handleLeave}
+                        disabled={isLeaving}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/60 hover:bg-white border border-stone-200/40 text-xs text-warm-cocoa font-bold transition-all shadow-sm hover:scale-[1.02] active:scale-95 duration-200 cursor-pointer mb-6"
+                    >
+                        {isLeaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowLeft className="w-3 h-3" />}
+                        Leave Room
+                    </button>
+
+                    {/* Game in Progress Card */}
+                    <div className="bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center relative overflow-hidden mb-6">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100/10 rounded-bl-full pointer-events-none" />
+
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center text-4xl mx-auto mb-4 shadow-md border border-amber-100 relative">
+                            <span className="relative z-10">{gameInfo?.emoji}</span>
+                            <span className="absolute inset-0 rounded-full bg-emerald-100/20 blur-md animate-pulse" />
+                        </div>
+
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200/50 mb-4">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Game in Progress
+                        </span>
+
+                        <h1 className="font-serif text-2xl text-warm-cocoa font-bold mb-2">{gameInfo?.name}</h1>
+                        <p className="text-xs text-warm-grey/50 italic mb-4">
+                            A game is currently being played. You&apos;ll join the next round!
+                        </p>
+
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-50 border border-stone-100 text-xs font-bold text-warm-cocoa">
+                            <Users className="w-3.5 h-3.5" />
+                            {memberCount} / {room.max_players} Players
+                        </div>
+
+                        {/* Waiting animation */}
+                        <div className="mt-6 flex items-center justify-center gap-1.5">
+                            <div className="w-2 h-2 bg-emerald-400/50 rounded-full animate-bounce [animation-delay:0ms]" />
+                            <div className="w-2 h-2 bg-emerald-400/50 rounded-full animate-bounce [animation-delay:150ms]" />
+                            <div className="w-2 h-2 bg-emerald-400/50 rounded-full animate-bounce [animation-delay:300ms]" />
+                        </div>
+                        <p className="text-[10px] text-warm-grey/40 mt-2">Waiting for the current game to finish...</p>
+                    </div>
+
+                    {/* Chat while waiting */}
+                    <div className="bg-white/50 border border-warm-grey/5 rounded-3xl p-5 shadow-sm mb-6">
+                        <h3 className="font-serif text-sm font-bold text-warm-cocoa mb-3 flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4 text-muted-rose" />
+                            Room Chat
+                        </h3>
+
+                        <div className="bg-warm-paper/50 rounded-2xl border border-stone-100 p-3 mb-3 max-h-[200px] min-h-[100px] overflow-y-auto">
+                            {chatMessages.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-6 text-center">
+                                    <span className="text-2xl mb-1">💬</span>
+                                    <p className="text-[10px] text-warm-grey/40 italic">Chat while you wait for the game to finish!</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    {chatMessages.map((msg) => {
+                                        const isMe = msg.userId === currentUserId;
+                                        return (
+                                            <div key={msg.id} className={`flex items-start gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
+                                                <div className="flex-shrink-0">
+                                                    {msg.avatarUrl ? (
+                                                        <img src={msg.avatarUrl} alt={msg.name} className="w-6 h-6 rounded-full object-cover border border-stone-200" />
+                                                    ) : (
+                                                        <div className={`w-6 h-6 rounded-full ${getAvatarBg(msg.userId)} flex items-center justify-center text-[8px] font-bold border`}>
+                                                            {msg.name[0]?.toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className={`max-w-[70%] px-3 py-1.5 rounded-2xl ${
+                                                    isMe ? "bg-warm-cocoa text-white rounded-br-md" : "bg-white border border-stone-100 text-warm-cocoa rounded-bl-md"
+                                                }`}>
+                                                    {!isMe && <p className="text-[8px] font-bold opacity-60 mb-0.5">{msg.name}</p>}
+                                                    <p className="text-[11px] leading-snug">{msg.text}</p>
+                                                    <p className={`text-[7px] mt-0.5 ${isMe ? "text-white/40" : "text-warm-grey/30"}`}>
+                                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div ref={chatEndRef} />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
+                                placeholder="Type a message..."
+                                className="flex-1 px-4 py-2.5 rounded-2xl bg-white border border-stone-200/60 text-xs text-warm-cocoa placeholder:text-warm-grey/30 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-300/50 transition-all"
+                                maxLength={200}
+                            />
+                            <button
+                                onClick={handleSendChat}
+                                disabled={!chatInput.trim()}
+                                className="flex items-center justify-center w-9 h-9 rounded-full bg-warm-cocoa text-white transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-warm-cocoa/90 shadow-sm"
+                            >
+                                <Send className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleLeave}
+                        disabled={isLeaving}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95"
+                    >
+                        {isLeaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                        Leave Room
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // If playing (and NOT spectating), render fullscreen game container
     if (isPlaying) {
         return (
             <div
