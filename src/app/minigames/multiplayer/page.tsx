@@ -157,11 +157,14 @@ export default function MultiplayerGamesPage() {
     // ─── Fetch game rooms + realtime subscription ───────────
     useEffect(() => {
         // Fetch existing waiting rooms
+        // Fetch existing active rooms (exclude stale ones older than 4 hours)
         const fetchRooms = async () => {
+            const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
             const { data } = await supabase
                 .from("game_rooms")
                 .select("*")
                 .in("status", ["waiting", "playing"])
+                .gte("created_at", fourHoursAgo)
                 .order("created_at", { ascending: false });
 
             if (data) {
