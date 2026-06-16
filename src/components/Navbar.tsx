@@ -74,8 +74,25 @@ export function Navbar() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isMenuOpen]);
+    // Detect mobile keyboard open via visualViewport
+    const [keyboardOpen, setKeyboardOpen] = useState(false);
+    useEffect(() => {
+        if (typeof window === "undefined" || !window.visualViewport) return;
+
+        const vv = window.visualViewport;
+        const threshold = 0.75; // If viewport is less than 75% of window height, keyboard is likely open
+
+        const handleResize = () => {
+            const ratio = vv.height / window.innerHeight;
+            setKeyboardOpen(ratio < threshold);
+        };
+
+        vv.addEventListener("resize", handleResize);
+        return () => vv.removeEventListener("resize", handleResize);
+    }, []);
 
     if (isPublicPage) return null;
+    if (keyboardOpen) return null;
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top,0px)]">
