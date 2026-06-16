@@ -206,10 +206,8 @@ export function Spyfall({ room, currentUserId, isHost, onGameEnd, onCloseRoom }:
         timerIntervalRef.current = setInterval(() => {
             t -= 1;
             setTimeLeft(t);
-            // Broadcast time every 5 seconds to keep clients in sync
-            if (t % 5 === 0) {
-                broadcast("sf_timer", { timeLeft: t });
-            }
+            // Broadcast time every second to keep clients in sync
+            broadcast("sf_timer", { timeLeft: t });
             if (t <= 0) {
                 if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
                 hostStartVoting();
@@ -307,10 +305,13 @@ export function Spyfall({ room, currentUserId, isHost, onGameEnd, onCloseRoom }:
             voteCounts[v] = (voteCounts[v] || 0) + 1;
         });
 
-        // Find who got the most votes
+        // Find who got the most votes — ties mean spy escapes
         const maxVotes = Math.max(...Object.values(voteCounts));
-        const mostVoted = Object.keys(voteCounts).find((id) => voteCounts[id] === maxVotes) || "";
-        const spyCaught = mostVoted === spy;
+        const topVoted = Object.keys(voteCounts).filter((id) => voteCounts[id] === maxVotes);
+        // If there's a tie (multiple people with the same top votes), spy is NOT caught
+        const isTie = topVoted.length > 1;
+        const mostVoted = topVoted[0] || "";
+        const spyCaught = !isTie && mostVoted === spy;
 
         const resultPayload = {
             spyId: spy,
