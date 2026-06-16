@@ -88,7 +88,6 @@ function Crazy8CardView({
 
     const isWild = card.type === "wild";
     const isPlus4 = card.type === "plus4";
-    const isAction = card.type === "skip" || card.type === "reverse" || card.type === "draw2";
 
     let bgGradient = "";
     if (isWild) bgGradient = "bg-gradient-to-br from-purple-50 to-violet-50";
@@ -110,14 +109,11 @@ function Crazy8CardView({
                 ${isPlus4 ? "border-red-300" : ""}
             `}
         >
-            {/* Suit symbol (top-left) */}
             {card.suit && (
                 <span className={`absolute top-0.5 left-1 ${rankSize} leading-none`}>
                     {SUITS[card.suit].symbol}
                 </span>
             )}
-
-            {/* Main content */}
             <span className={emojiSize}>{card.emoji}</span>
             <span className={`${textSize} font-bold ${getCardColor(card)} leading-tight text-center`}>
                 {card.type === "number" ? card.rank : card.label}
@@ -125,8 +121,6 @@ function Crazy8CardView({
             <span className={`${rankSize} ${getCardColor(card)}/60 leading-none truncate max-w-full`}>
                 {card.character}
             </span>
-
-            {/* Wild/+4 rainbow strip */}
             {(isWild || isPlus4) && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-400 via-amber-400 via-emerald-400 to-blue-400" />
             )}
@@ -190,12 +184,17 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
     const supabase = createClient();
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-    // Host state
+    // ─── ALL mutable game state lives in refs (no stale closures) ──
     const allHandsRef = useRef<Record<string, GameCard[]>>({});
     const drawPileRef = useRef<GameCard[]>([]);
-    const directionRef = useRef<1 | -1>(1); // 1 = clockwise, -1 = counter
+    const directionRef = useRef<1 | -1>(1);
+    const turnOrderRef = useRef<string[]>([]);
+    const currentTurnRef = useRef<string>("");
+    const discardTopRef = useRef<GameCard | null>(null);
+    const currentSuitRef = useRef<Suit>("love");
+    const processingRef = useRef(false);
 
-    // Display state
+    // ─── Display state (for rendering only) ──
     const [phase, setPhase] = useState<"dealing" | "playing" | "ended">("dealing");
     const [turnOrder, setTurnOrder] = useState<string[]>([]);
     const [currentTurn, setCurrentTurn] = useState("");
@@ -214,11 +213,30 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
 
     const isMyTurn = currentTurn === currentUserId;
 
-    // ─── Channel Setup ──────────────────────────────────────
+    // ─── Ref-based next player (reads from refs, no stale closure) ──
+    function getNextPlayerRef(fromId: string, skip = false): string {
+        const order = turnOrderRef.current;
+        const dir = directionRef.current;
+        const idx = order.indexOf(fromId);
+        if (idx === -1 || order.length === 0) return fromId;
+        const step = skip ? 2 : 1;
+        const nextIdx = ((idx + dir * step) % order.length + order.length) % order.length;
+        return order[nextIdx];
+    }
+
+    // ─── Stable broadcast (uses ref so channel is always current) ──
+    const broadcast = useCallback((event: string, payload: any) => {
+        channelRef.current?.send({ type: "broadcast", event, payload });
+    }, []);
+
+    // ═══════════════════════════════════════════════════════
+    // SINGLE CHANNEL SETUP — ALL listeners registered ONCE
+    // ═══════════════════════════════════════════════════════
     useEffect(() => {
         const channel = supabase.channel(`crazy8_game:${room.id}`);
 
         channel
+            // ─── All clients: display state updates ─────
             .on("broadcast", { event: "game_start" }, ({ payload }) => {
                 setPhase("playing");
                 setTurnOrder(payload.turnOrder);
@@ -229,6 +247,12 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                 setDrawPileCount(payload.drawPileCount);
                 setDirection(payload.direction || 1);
                 setLastAction("Game started! 🃏");
+                // Sync refs
+                turnOrderRef.current = payload.turnOrder;
+                currentTurnRef.current = payload.currentTurn;
+                discardTopRef.current = payload.discardTop;
+                currentSuitRef.current = payload.currentSuit;
+                directionRef.current = payload.direction || 1;
             })
             .on("broadcast", { event: "deal_hand" }, ({ payload }) => {
                 if (payload.playerId === currentUserId) {
@@ -243,12 +267,18 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                 setDrawPileCount(payload.drawPileCount);
                 setDirection(payload.direction);
                 setLastAction(payload.action);
+                // Sync refs
+                discardTopRef.current = payload.discardTop;
+                currentSuitRef.current = payload.currentSuit;
+                currentTurnRef.current = payload.currentTurn;
+                directionRef.current = payload.direction;
             })
             .on("broadcast", { event: "card_drawn" }, ({ payload }) => {
                 setCurrentTurn(payload.currentTurn);
                 setPlayerCardCounts(payload.playerCardCounts);
                 setDrawPileCount(payload.drawPileCount);
                 setLastAction(payload.action);
+                currentTurnRef.current = payload.currentTurn;
             })
             .on("broadcast", { event: "update_hand" }, ({ payload }) => {
                 if (payload.playerId === currentUserId) {
@@ -264,20 +294,173 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                 setWinnerId(payload.winnerId);
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             })
+
+            // ─── HOST ONLY: process play requests ───────
+            .on("broadcast", { event: "play_card_request" }, ({ payload }) => {
+                if (!isHost || processingRef.current) return;
+                processingRef.current = true;
+
+                try {
+                    const { playerId, card, chosenSuit } = payload;
+
+                    // ★ TURN VALIDATION — reject if not this player's turn
+                    if (playerId !== currentTurnRef.current) return;
+
+                    const hands = allHandsRef.current;
+
+                    // Remove card from player's hand
+                    if (hands[playerId]) {
+                        hands[playerId] = hands[playerId].filter((c: GameCard) => c.id !== card.id);
+                    }
+
+                    const counts: Record<string, number> = {};
+                    Object.keys(hands).forEach((id) => { counts[id] = hands[id]?.length || 0; });
+
+                    let nextPlayer: string;
+                    const newSuit = chosenSuit as Suit;
+
+                    switch (card.type) {
+                        case "skip":
+                            nextPlayer = getNextPlayerRef(playerId, true);
+                            break;
+                        case "reverse":
+                            directionRef.current = (directionRef.current * -1) as 1 | -1;
+                            nextPlayer = getNextPlayerRef(playerId);
+                            break;
+                        case "draw2": {
+                            const victim = getNextPlayerRef(playerId);
+                            for (let i = 0; i < 2; i++) {
+                                const c = drawPileRef.current.shift();
+                                if (c && hands[victim]) hands[victim] = [...hands[victim], c];
+                            }
+                            counts[victim] = hands[victim]?.length || 0;
+                            channel.send({ type: "broadcast", event: "update_hand", payload: { playerId: victim, cards: hands[victim] } });
+                            if (victim === currentUserId) setMyHand([...hands[victim]]);
+                            nextPlayer = getNextPlayerRef(playerId, true);
+                            break;
+                        }
+                        case "plus4": {
+                            const victim4 = getNextPlayerRef(playerId);
+                            for (let i = 0; i < 4; i++) {
+                                const c = drawPileRef.current.shift();
+                                if (c && hands[victim4]) hands[victim4] = [...hands[victim4], c];
+                            }
+                            counts[victim4] = hands[victim4]?.length || 0;
+                            channel.send({ type: "broadcast", event: "update_hand", payload: { playerId: victim4, cards: hands[victim4] } });
+                            if (victim4 === currentUserId) setMyHand([...hands[victim4]]);
+                            nextPlayer = getNextPlayerRef(playerId, true);
+                            break;
+                        }
+                        default:
+                            nextPlayer = getNextPlayerRef(playerId);
+                    }
+
+                    // ★ Update refs BEFORE broadcasting
+                    currentTurnRef.current = nextPlayer;
+                    discardTopRef.current = card;
+                    currentSuitRef.current = newSuit;
+
+                    const charLabel = card.character;
+                    const actionText = card.type === "wild"
+                        ? `${getMemberName(room.members, playerId)} played Wild ${charLabel}! Chose ${SUITS[newSuit].name} ${SUITS[newSuit].symbol}`
+                        : card.type === "plus4"
+                            ? `${getMemberName(room.members, playerId)} played ${card.label}! +4! Chose ${SUITS[newSuit].name}`
+                            : card.type === "skip"
+                                ? `${getMemberName(room.members, playerId)} played ${charLabel} — Skip! ⏭️`
+                                : card.type === "reverse"
+                                    ? `${getMemberName(room.members, playerId)} played ${charLabel} — Reverse! 🔄`
+                                    : card.type === "draw2"
+                                        ? `${getMemberName(room.members, playerId)} played ${charLabel} — +2!`
+                                        : `${getMemberName(room.members, playerId)} played ${charLabel}`;
+
+                    channel.send({
+                        type: "broadcast", event: "card_played", payload: {
+                            discardTop: card, currentSuit: newSuit, currentTurn: nextPlayer,
+                            playerCardCounts: counts, drawPileCount: drawPileRef.current.length,
+                            direction: directionRef.current, action: actionText,
+                        }
+                    });
+
+                    // Host display update
+                    setDiscardTop(card);
+                    setCurrentSuit(newSuit);
+                    setCurrentTurn(nextPlayer);
+                    setPlayerCardCounts(counts);
+                    setDrawPileCount(drawPileRef.current.length);
+                    setDirection(directionRef.current);
+                    setLastAction(actionText);
+
+                    // One card alert
+                    if (counts[playerId] === 1) {
+                        const name = getMemberName(room.members, playerId);
+                        channel.send({ type: "broadcast", event: "one_card", payload: { playerName: name } });
+                        setOneCardAlert(name);
+                        setTimeout(() => setOneCardAlert(null), 3000);
+                    }
+
+                    // Win check
+                    if (counts[playerId] === 0) {
+                        channel.send({ type: "broadcast", event: "game_over", payload: { winnerId: playerId } });
+                        setPhase("ended");
+                        setWinnerId(playerId);
+                        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    }
+                } finally {
+                    processingRef.current = false;
+                }
+            })
+
+            // ─── HOST ONLY: process draw requests ───────
+            .on("broadcast", { event: "draw_request" }, ({ payload }) => {
+                if (!isHost || processingRef.current) return;
+                processingRef.current = true;
+
+                try {
+                    const { playerId } = payload;
+
+                    // ★ TURN VALIDATION
+                    if (playerId !== currentTurnRef.current) return;
+
+                    const hands = allHandsRef.current;
+                    const drawn = drawPileRef.current.shift();
+                    if (!drawn) return;
+
+                    if (hands[playerId]) hands[playerId] = [...hands[playerId], drawn];
+
+                    const counts: Record<string, number> = {};
+                    Object.keys(hands).forEach((id) => { counts[id] = hands[id]?.length || 0; });
+
+                    channel.send({ type: "broadcast", event: "update_hand", payload: { playerId, cards: hands[playerId] } });
+                    if (playerId === currentUserId) setMyHand([...(hands[playerId] || [])]);
+
+                    const nextPlayer = getNextPlayerRef(playerId);
+                    currentTurnRef.current = nextPlayer;
+
+                    const action = `${getMemberName(room.members, playerId)} drew a card`;
+
+                    channel.send({
+                        type: "broadcast", event: "card_drawn", payload: {
+                            currentTurn: nextPlayer, playerCardCounts: counts,
+                            drawPileCount: drawPileRef.current.length, action,
+                        }
+                    });
+
+                    setCurrentTurn(nextPlayer);
+                    setPlayerCardCounts(counts);
+                    setDrawPileCount(drawPileRef.current.length);
+                    setLastAction(action);
+                } finally {
+                    processingRef.current = false;
+                }
+            })
             .subscribe();
 
         channelRef.current = channel;
         return () => { supabase.removeChannel(channel); };
-    }, [room.id, currentUserId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [room.id, currentUserId, isHost]);
 
-    const broadcast = useCallback(
-        (event: string, payload: any) => {
-            channelRef.current?.send({ type: "broadcast", event, payload });
-        },
-        []
-    );
-
-    // ─── Host: Deal Cards ───────────────────────────────────
+    // ─── Host: Deal Cards on mount ──────────────────────────
     useEffect(() => {
         if (!isHost) return;
 
@@ -288,41 +471,35 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
 
             const handsMap: Record<string, GameCard[]> = {};
             const counts: Record<string, number> = {};
-            order.forEach((id, i) => {
-                handsMap[id] = hands[i];
-                counts[id] = hands[i].length;
-            });
+            order.forEach((id, i) => { handsMap[id] = hands[i]; counts[id] = hands[i].length; });
 
+            // Set ALL refs
             allHandsRef.current = handsMap;
             drawPileRef.current = drawPile;
             directionRef.current = 1;
+            turnOrderRef.current = order;
+            currentTurnRef.current = order[0];
+            discardTopRef.current = firstDiscard;
+            currentSuitRef.current = (firstDiscard.suit || "love") as Suit;
 
             const startSuit = firstDiscard.suit || "love";
 
-            // Send hands to each player
             order.forEach((id) => {
                 broadcast("deal_hand", { playerId: id, cards: handsMap[id] });
             });
-
-            if (handsMap[currentUserId]) {
-                setMyHand(handsMap[currentUserId]);
-            }
+            if (handsMap[currentUserId]) setMyHand(handsMap[currentUserId]);
 
             broadcast("game_start", {
-                turnOrder: order,
-                currentTurn: order[0],
-                discardTop: firstDiscard,
-                currentSuit: startSuit,
-                playerCardCounts: counts,
-                drawPileCount: drawPile.length,
-                direction: 1,
+                turnOrder: order, currentTurn: order[0], discardTop: firstDiscard,
+                currentSuit: startSuit, playerCardCounts: counts,
+                drawPileCount: drawPile.length, direction: 1,
             });
 
             setPhase("playing");
             setTurnOrder(order);
             setCurrentTurn(order[0]);
             setDiscardTop(firstDiscard);
-            setCurrentSuit(startSuit);
+            setCurrentSuit(startSuit as Suit);
             setPlayerCardCounts(counts);
             setDrawPileCount(drawPile.length);
         }, 1500);
@@ -330,36 +507,22 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
         return () => clearTimeout(timer);
     }, [isHost, room.members, currentUserId, broadcast]);
 
-    // ─── Get next player ────────────────────────────────────
-    const getNextPlayer = useCallback(
-        (fromId: string, skip = false) => {
-            const dir = directionRef.current;
-            const idx = turnOrder.indexOf(fromId);
-            const step = skip ? 2 : 1;
-            const nextIdx = ((idx + dir * step) % turnOrder.length + turnOrder.length) % turnOrder.length;
-            return turnOrder[nextIdx];
-        },
-        [turnOrder]
-    );
-
-    // ─── Play a card ────────────────────────────────────────
+    // ─── Play a card (client side) ──────────────────────────
     const handlePlayCard = useCallback(
         (card: GameCard) => {
             if (!isMyTurn || !discardTop) return;
 
-            // Wild or +4: need to pick suit
             if (card.type === "wild" || card.type === "plus4") {
                 setPendingWildCard(card);
                 setShowSuitPicker(true);
                 return;
             }
 
-            // Check if playable
             if (!canPlay(card, discardTop, currentSuit)) return;
 
-            // Remove from hand
-            const newHand = myHand.filter((c) => c.id !== card.id);
-            setMyHand(newHand);
+            // Optimistically remove from hand & disable further plays
+            setMyHand((prev) => prev.filter((c) => c.id !== card.id));
+            setCurrentTurn(""); // ★ Prevent double-play on client
 
             broadcast("play_card_request", {
                 playerId: currentUserId,
@@ -367,7 +530,7 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                 chosenSuit: card.suit,
             });
         },
-        [isMyTurn, discardTop, currentSuit, myHand, currentUserId, broadcast]
+        [isMyTurn, discardTop, currentSuit, currentUserId, broadcast]
     );
 
     const handleSuitPicked = useCallback(
@@ -375,8 +538,8 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
             setShowSuitPicker(false);
             if (!pendingWildCard) return;
 
-            const newHand = myHand.filter((c) => c.id !== pendingWildCard.id);
-            setMyHand(newHand);
+            setMyHand((prev) => prev.filter((c) => c.id !== pendingWildCard.id));
+            setCurrentTurn(""); // ★ Prevent double-play on client
 
             broadcast("play_card_request", {
                 playerId: currentUserId,
@@ -386,173 +549,19 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
 
             setPendingWildCard(null);
         },
-        [pendingWildCard, myHand, currentUserId, broadcast]
+        [pendingWildCard, currentUserId, broadcast]
     );
 
-    // ─── Draw a card ────────────────────────────────────────
+    // ─── Draw a card (client side) ──────────────────────────
     const handleDraw = useCallback(() => {
         if (!isMyTurn || isDrawing) return;
         setIsDrawing(true);
+        setCurrentTurn(""); // ★ Prevent double-play on client
 
         broadcast("draw_request", { playerId: currentUserId });
 
         setTimeout(() => setIsDrawing(false), 500);
     }, [isMyTurn, isDrawing, currentUserId, broadcast]);
-
-    // ─── Host: Process requests ─────────────────────────────
-    useEffect(() => {
-        if (!isHost || !channelRef.current) return;
-
-        const handlePlayRequest = ({ payload }: any) => {
-            const { playerId, card, chosenSuit } = payload;
-            const hands = allHandsRef.current;
-
-            // Remove card from player's hand
-            if (hands[playerId]) {
-                hands[playerId] = hands[playerId].filter((c: GameCard) => c.id !== card.id);
-            }
-
-            // Update counts
-            const counts: Record<string, number> = {};
-            Object.keys(hands).forEach((id) => { counts[id] = hands[id]?.length || 0; });
-
-            // Determine effects
-            let nextPlayer: string;
-            const newSuit = chosenSuit as Suit;
-
-            switch (card.type) {
-                case "skip":
-                    nextPlayer = getNextPlayer(playerId, true);
-                    break;
-                case "reverse":
-                    directionRef.current = (directionRef.current * -1) as 1 | -1;
-                    nextPlayer = getNextPlayer(playerId);
-                    break;
-                case "draw2": {
-                    const victim = getNextPlayer(playerId);
-                    const drawn: GameCard[] = [];
-                    for (let i = 0; i < 2; i++) {
-                        const c = drawPileRef.current.shift();
-                        if (c) drawn.push(c);
-                    }
-                    if (hands[victim]) {
-                        hands[victim] = [...hands[victim], ...drawn];
-                    }
-                    counts[victim] = hands[victim]?.length || 0;
-                    // Send updated hand to victim
-                    broadcast("update_hand", { playerId: victim, cards: hands[victim] });
-                    if (victim === currentUserId) setMyHand(hands[victim]);
-                    nextPlayer = getNextPlayer(playerId, true); // skip the victim
-                    break;
-                }
-                case "plus4": {
-                    const victim4 = getNextPlayer(playerId);
-                    const drawn4: GameCard[] = [];
-                    for (let i = 0; i < 4; i++) {
-                        const c = drawPileRef.current.shift();
-                        if (c) drawn4.push(c);
-                    }
-                    if (hands[victim4]) {
-                        hands[victim4] = [...hands[victim4], ...drawn4];
-                    }
-                    counts[victim4] = hands[victim4]?.length || 0;
-                    broadcast("update_hand", { playerId: victim4, cards: hands[victim4] });
-                    if (victim4 === currentUserId) setMyHand(hands[victim4]);
-                    nextPlayer = getNextPlayer(playerId, true);
-                    break;
-                }
-                default:
-                    nextPlayer = getNextPlayer(playerId);
-            }
-
-            const charLabel = card.character;
-            const actionText = card.type === "wild"
-                ? `${getMemberName(room.members, playerId)} played Wild ${charLabel}! Chose ${SUITS[newSuit].name} ${SUITS[newSuit].symbol}`
-                : card.type === "plus4"
-                    ? `${getMemberName(room.members, playerId)} played ${card.label}! +4 to ${getMemberName(room.members, getNextPlayer(playerId))}! Chose ${SUITS[newSuit].name}`
-                    : card.type === "skip"
-                        ? `${getMemberName(room.members, playerId)} played ${charLabel} — Skip! ⏭️`
-                        : card.type === "reverse"
-                            ? `${getMemberName(room.members, playerId)} played ${charLabel} — Reverse! 🔄`
-                            : card.type === "draw2"
-                                ? `${getMemberName(room.members, playerId)} played ${charLabel} — +2 to ${getMemberName(room.members, getNextPlayer(playerId))}!`
-                                : `${getMemberName(room.members, playerId)} played ${charLabel}`;
-
-            broadcast("card_played", {
-                discardTop: card,
-                currentSuit: newSuit,
-                currentTurn: nextPlayer,
-                playerCardCounts: counts,
-                drawPileCount: drawPileRef.current.length,
-                direction: directionRef.current,
-                action: actionText,
-            });
-
-            setDiscardTop(card);
-            setCurrentSuit(newSuit);
-            setCurrentTurn(nextPlayer);
-            setPlayerCardCounts(counts);
-            setDrawPileCount(drawPileRef.current.length);
-            setDirection(directionRef.current);
-            setLastAction(actionText);
-
-            // One card alert!
-            if (counts[playerId] === 1) {
-                const name = getMemberName(room.members, playerId);
-                broadcast("one_card", { playerName: name });
-                setOneCardAlert(name);
-                setTimeout(() => setOneCardAlert(null), 3000);
-            }
-
-            // Check win
-            if (counts[playerId] === 0) {
-                broadcast("game_over", { winnerId: playerId });
-                setPhase("ended");
-                setWinnerId(playerId);
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            }
-        };
-
-        const handleDrawRequest = ({ payload }: any) => {
-            const { playerId } = payload;
-            const hands = allHandsRef.current;
-            const drawn = drawPileRef.current.shift();
-
-            if (!drawn) {
-                // Reshuffle discard into draw pile (keep top card)
-                // For simplicity, skip this edge case
-                return;
-            }
-
-            if (hands[playerId]) {
-                hands[playerId] = [...hands[playerId], drawn];
-            }
-
-            const counts: Record<string, number> = {};
-            Object.keys(hands).forEach((id) => { counts[id] = hands[id]?.length || 0; });
-
-            // Send updated hand
-            broadcast("update_hand", { playerId, cards: hands[playerId] });
-            if (playerId === currentUserId) setMyHand(hands[playerId] || []);
-
-            const nextPlayer = getNextPlayer(playerId);
-
-            broadcast("card_drawn", {
-                currentTurn: nextPlayer,
-                playerCardCounts: counts,
-                drawPileCount: drawPileRef.current.length,
-                action: `${getMemberName(room.members, playerId)} drew a card`,
-            });
-
-            setCurrentTurn(nextPlayer);
-            setPlayerCardCounts(counts);
-            setDrawPileCount(drawPileRef.current.length);
-            setLastAction(`${getMemberName(room.members, playerId)} drew a card`);
-        };
-
-        channelRef.current.on("broadcast", { event: "play_card_request" }, handlePlayRequest);
-        channelRef.current.on("broadcast", { event: "draw_request" }, handleDrawRequest);
-    }, [isHost, turnOrder, currentUserId, room.members, broadcast, getNextPlayer]);
 
     // ─── Play again ─────────────────────────────────────────
     const handlePlayAgain = useCallback(() => {
@@ -574,11 +583,15 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
             allHandsRef.current = handsMap;
             drawPileRef.current = drawPile;
             directionRef.current = 1;
+            turnOrderRef.current = order;
+            currentTurnRef.current = order[0];
+            discardTopRef.current = firstDiscard;
+            currentSuitRef.current = (firstDiscard.suit || "love") as Suit;
+
+            const startSuit = firstDiscard.suit || "love";
 
             order.forEach((id) => broadcast("deal_hand", { playerId: id, cards: handsMap[id] }));
             if (handsMap[currentUserId]) setMyHand(handsMap[currentUserId]);
-
-            const startSuit = firstDiscard.suit || "love";
 
             broadcast("game_start", {
                 turnOrder: order, currentTurn: order[0], discardTop: firstDiscard,
@@ -590,7 +603,7 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
             setTurnOrder(order);
             setCurrentTurn(order[0]);
             setDiscardTop(firstDiscard);
-            setCurrentSuit(startSuit);
+            setCurrentSuit(startSuit as Suit);
             setPlayerCardCounts(counts);
             setDrawPileCount(drawPile.length);
         }, 1500);
