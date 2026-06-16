@@ -630,11 +630,19 @@ export function PostCard({ post }: { post: Post }) {
                 setActiveSlide(index);
             };
 
+            const scrollToSlide = (index: number) => {
+                const container = document.getElementById(`carousel-${post.id}`);
+                if (container) {
+                    container.scrollTo({ left: index * container.clientWidth, behavior: "smooth" });
+                }
+            };
+
             return (
                 <div className="relative mb-4 group cursor-pointer" onClick={handleDoubleTap}>
                     <div 
+                        id={`carousel-${post.id}`}
                         onScroll={handleScroll}
-                        className="flex overflow-x-auto snap-x snap-mandatory gap-0 rounded-2xl scrollbar-hide"
+                        className="flex overflow-x-auto snap-x snap-mandatory gap-0 rounded-2xl scrollbar-hide scroll-smooth"
                     >
                         {post.media_urls.map((url, idx) => (
                             <div key={idx} className="w-full flex-shrink-0 snap-center aspect-square bg-stone-100 relative">
@@ -656,14 +664,18 @@ export function PostCard({ post }: { post: Post }) {
                             </div>
                         ))}
                     </div>
-                    {/* Carousel slide indicators */}
-                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-30 pointer-events-none">
+                    {/* Carousel slide indicators — clickable dots */}
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-30">
                         {post.media_urls.map((_, idx) => (
-                            <div 
+                            <button 
                                 key={idx}
-                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                                    activeSlide === idx ? "bg-white scale-125 shadow-sm" : "bg-white/40"
+                                onClick={(e) => { e.stopPropagation(); scrollToSlide(idx); }}
+                                className={`rounded-full transition-all duration-300 ${
+                                    activeSlide === idx 
+                                        ? "w-5 h-2 bg-white shadow-sm" 
+                                        : "w-2 h-2 bg-white/50 hover:bg-white/80"
                                 }`}
+                                aria-label={`Go to slide ${idx + 1}`}
                             />
                         ))}
                     </div>
