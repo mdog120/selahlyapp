@@ -184,11 +184,12 @@ export default function GameRoomPage() {
     // Change game (host only)
     const handleChangeGame = useCallback(async (newGameType: string) => {
         if (!room || !isHost) return;
+        setRoom((prev) => prev ? { ...prev, game_type: newGameType, status: "waiting" } : prev);
+        setShowGamePicker(false);
         await supabase
             .from("game_rooms")
             .update({ game_type: newGameType, status: "waiting" })
             .eq("id", room.id);
-        setShowGamePicker(false);
     }, [room, isHost]);
 
     // ─── RENDER ─────────────────────────────────────────────
@@ -437,6 +438,49 @@ export default function GameRoomPage() {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+                        </div>
+                    )}
+
+                    {/* Host: Floating Switch Game button during active gameplay */}
+                    {isHost && room.status === "playing" && (
+                        <div className="w-full flex justify-end mb-2">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowGamePicker(!showGamePicker)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50/80 hover:bg-amber-100 border border-amber-200/50 text-[10px] font-bold text-amber-800 transition-all active:scale-95 backdrop-blur-sm"
+                                >
+                                    <Shuffle className="w-3 h-3" />
+                                    {showGamePicker ? "Cancel" : "Switch Game"}
+                                </button>
+                                <AnimatePresence>
+                                    {showGamePicker && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                                            className="absolute right-0 top-full mt-1 z-50 w-64"
+                                        >
+                                            <div className="bg-white border border-stone-200/60 rounded-2xl p-2 shadow-xl flex flex-col gap-1">
+                                                {Object.entries(GAME_INFO)
+                                                    .filter(([key]) => key !== room.game_type)
+                                                    .map(([key, info]) => (
+                                                    <button
+                                                        key={key}
+                                                        onClick={() => handleChangeGame(key)}
+                                                        className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-stone-50 cursor-pointer"
+                                                    >
+                                                        <span className="text-lg">{info.emoji}</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[11px] font-bold text-warm-cocoa">{info.name}</p>
+                                                            <p className="text-[9px] text-warm-grey/50 truncate">{info.description}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     )}
 

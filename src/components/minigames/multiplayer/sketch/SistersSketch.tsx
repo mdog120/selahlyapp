@@ -210,6 +210,9 @@ export function SistersSketch({ room, currentUserId, isHost, onGameEnd, onCloseR
                     },
                 ]);
             })
+            .on("broadcast", { event: "timer_tick" }, ({ payload }) => {
+                setTimeRemaining(payload.t);
+            })
             .subscribe();
 
         channelRef.current = channel;
@@ -366,12 +369,12 @@ export function SistersSketch({ room, currentUserId, isHost, onGameEnd, onCloseR
             time--;
             setTimeRemaining(time);
 
-            // Broadcast time every 5 seconds to keep clients synced
-            if (time % 5 === 0) {
-                const gs = gameStateRef.current;
-                if (gs) {
-                    gs.timeRemaining = time;
-                }
+            // Broadcast time every second so all clients stay synced
+            broadcast("timer_tick", { t: time });
+
+            const gs = gameStateRef.current;
+            if (gs) {
+                gs.timeRemaining = time;
             }
 
             if (time <= 0) {
@@ -379,7 +382,7 @@ export function SistersSketch({ room, currentUserId, isHost, onGameEnd, onCloseR
                 endGame();
             }
         }, 1000);
-    }, []);
+    }, [broadcast]);
 
     const endGame = useCallback(() => {
         if (timerRef.current) clearInterval(timerRef.current);
