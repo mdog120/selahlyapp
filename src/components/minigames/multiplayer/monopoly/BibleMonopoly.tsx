@@ -1093,226 +1093,293 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 </div>
             </div>
 
-            {/* ─── 2. Board View — Horizontal Strip ─── */}
-            <div className="bg-white/50 border border-warm-grey/5 rounded-2xl p-3 shadow-sm">
-                <p className="text-[9px] text-warm-grey/40 uppercase tracking-wider font-bold mb-2 text-center">
-                    Board
-                </p>
-                <div className="overflow-x-auto scrollbar-hide">
-                    <div className="flex gap-1.5 pb-2" style={{ minWidth: `${BOARD_SIZE * 56}px` }}>
-                        {BOARD.map((space, idx) => {
-                            const playersOnSpace = Object.values(players).filter(
-                                (p) => p.position === idx && !p.bankrupt
-                            );
-                            const isCurrentPos =
-                                currentPlayerState && currentPlayerState.position === idx;
-                            const isProp = isPropertySpace(space);
-                            const owner = isProp ? propertyOwners[space.name] : null;
-                            const ownerPlayer = owner ? players[owner] : null;
+            {/* ─── 2. Square Monopoly Board with Embedded Action Panel ─── */}
+            {(() => {
+                // Grid: 9 columns × 8 rows
+                // Top row (row 1, cols 1-9):  indices 14,15,16,17,18,19,20,21,22
+                // Left col (rows 2-7, col 1): indices 13,12,11,10,9,8
+                // Right col (rows 2-7, col 9): indices 23,24,25,26,27,28
+                // Bottom row (row 8, cols 1-9): indices 7,6,5,4,3,2,1,0,29
+                // Center area: rows 2-7, cols 2-8 (action panel)
 
-                            return (
-                                <motion.div
-                                    key={idx}
-                                    className={`relative flex-shrink-0 w-[52px] rounded-xl border overflow-hidden ${
-                                        isCurrentPos
-                                            ? "border-amber-400 ring-2 ring-amber-300/50 bg-amber-50/80"
-                                            : "border-warm-grey/10 bg-white/60"
-                                    }`}
-                                    animate={isCurrentPos ? { scale: [1, 1.05, 1] } : {}}
-                                    transition={{ repeat: Infinity, duration: 2 }}
-                                >
-                                    {/* Color bar for properties */}
-                                    {isProp && (
-                                        <div
-                                            className="w-full h-2 rounded-t-xl"
-                                            style={{ backgroundColor: space.colorHex }}
-                                        />
-                                    )}
-                                    {!isProp && <div className="w-full h-2 bg-stone-200/50 rounded-t-xl" />}
+                type EdgeSide = "top" | "bottom" | "left" | "right";
 
-                                    <div className="px-1 py-1 flex flex-col items-center gap-0.5">
-                                        <span className="text-sm leading-none">{space.emoji}</span>
-                                        <span className="text-[7px] text-warm-cocoa font-bold text-center leading-tight truncate w-full">
-                                            {space.name}
-                                        </span>
+                const boardLayout: { idx: number; row: number; col: number; side: EdgeSide }[] = [];
 
-                                        {/* Owner indicator */}
-                                        {ownerPlayer && (
-                                            <span className="text-[8px] leading-none">
-                                                {PLAYER_TOKENS[ownerPlayer.token]?.emoji}
-                                            </span>
-                                        )}
+                // Top row
+                const topIndices = [14, 15, 16, 17, 18, 19, 20, 21, 22];
+                topIndices.forEach((idx, c) => boardLayout.push({ idx, row: 1, col: c + 1, side: "top" }));
 
-                                        {/* Price for properties */}
-                                        {isProp && !owner && (
-                                            <span className="text-[6px] text-warm-grey/40 font-bold">
-                                                {space.cost}₪
-                                            </span>
-                                        )}
+                // Left column (rows 2-7)
+                const leftIndices = [13, 12, 11, 10, 9, 8];
+                leftIndices.forEach((idx, r) => boardLayout.push({ idx, row: r + 2, col: 1, side: "left" }));
 
-                                        {/* Players on this space */}
-                                        {playersOnSpace.length > 0 && (
-                                            <div className="flex items-center gap-0.5 flex-wrap justify-center">
-                                                {playersOnSpace.map((pp) => (
-                                                    <motion.span
-                                                        key={pp.id}
-                                                        className="text-[10px] leading-none"
-                                                        initial={{ scale: 0 }}
-                                                        animate={{ scale: 1 }}
-                                                        transition={{ type: "spring" }}
-                                                    >
-                                                        {PLAYER_TOKENS[pp.token]?.emoji}
-                                                    </motion.span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
+                // Right column (rows 2-7)
+                const rightIndices = [23, 24, 25, 26, 27, 28];
+                rightIndices.forEach((idx, r) => boardLayout.push({ idx, row: r + 2, col: 9, side: "right" }));
 
-            {/* ─── 3. Action Panel ─── */}
-            <div className="bg-white/50 border border-warm-grey/5 rounded-2xl p-4 shadow-sm">
-                {/* Dice Display */}
-                <div className="flex items-center justify-center gap-3 mb-3">
-                    <AnimatePresence mode="wait">
-                        {[dice[0], dice[1]].map((d, i) => {
-                            const DiceIcon = DICE_ICONS[Math.max(0, Math.min(5, d - 1))];
-                            return (
-                                <motion.div
-                                    key={`die-${i}-${d}`}
-                                    initial={diceRolling ? { rotate: 0, scale: 0.5 } : {}}
-                                    animate={
-                                        diceRolling
-                                            ? {
-                                                  rotate: [0, 180, 360, 540, 720],
-                                                  scale: [0.5, 1.2, 0.8, 1.1, 1],
-                                              }
-                                            : { rotate: 0, scale: 1 }
-                                    }
-                                    transition={{ duration: 0.6, ease: "easeOut" }}
-                                    className="w-12 h-12 bg-white rounded-xl border-2 border-stone-200 flex items-center justify-center shadow-sm"
-                                >
-                                    <DiceIcon className="w-8 h-8 text-warm-cocoa" />
-                                </motion.div>
-                            );
-                        })}
-                    </AnimatePresence>
-                </div>
+                // Bottom row
+                const bottomIndices = [7, 6, 5, 4, 3, 2, 1, 0, 29];
+                bottomIndices.forEach((idx, c) => boardLayout.push({ idx, row: 8, col: c + 1, side: "bottom" }));
 
-                {/* Roll Button */}
-                {isMyTurn && phase === "rolling" && !myPlayerState?.bankrupt && (
-                    <motion.button
-                        onClick={handleRollDice}
-                        className="w-full py-3 rounded-xl bg-warm-cocoa text-white font-serif text-sm font-bold transition-all active:scale-95 shadow-lg shadow-warm-cocoa/20 mb-3"
-                        whileTap={{ scale: 0.95 }}
-                        animate={{ scale: [1, 1.03, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                    >
-                        🎲 Roll Dice
-                    </motion.button>
-                )}
+                const renderBoardCell = (
+                    idx: number,
+                    row: number,
+                    col: number,
+                    side: EdgeSide,
+                ) => {
+                    const space = BOARD[idx];
+                    if (!space) return null;
+                    const playersOnSpace = Object.values(players).filter(
+                        (p) => p.position === idx && !p.bankrupt
+                    );
+                    const isCurrentPos = currentPlayerState && currentPlayerState.position === idx;
+                    const isProp = isPropertySpace(space);
+                    const owner = isProp ? propertyOwners[space.name] : null;
+                    const ownerPlayer = owner ? players[owner] : null;
 
-                {/* Waiting for other player */}
-                {!isMyTurn && phase === "rolling" && (
-                    <div className="text-center mb-3">
-                        <motion.p
-                            animate={{ opacity: [0.5, 1, 0.5] }}
-                            transition={{ repeat: Infinity, duration: 2 }}
-                            className="text-xs font-bold text-warm-grey/50"
-                        >
-                            Waiting for {getMemberName(room.members, currentTurnPlayerId)} to roll...
-                        </motion.p>
-                    </div>
-                )}
+                    // Color bar position: inner edge of the board
+                    const colorBarClass =
+                        side === "top"    ? "absolute bottom-0 left-0 right-0 h-[4px]" :
+                        side === "bottom" ? "absolute top-0 left-0 right-0 h-[4px]" :
+                        side === "left"   ? "absolute top-0 right-0 bottom-0 w-[4px]" :
+                                            "absolute top-0 left-0 bottom-0 w-[4px]";
 
-                {/* Buy/Pass Prompt */}
-                <AnimatePresence>
-                    {showBuyPrompt && buyPropertyInfo && (
+                    const isCorner = (row === 1 || row === 8) && (col === 1 || col === 9);
+
+                    return (
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="bg-amber-50 border border-amber-200/50 rounded-2xl p-4 mb-3"
+                            key={`cell-${idx}`}
+                            className={`relative overflow-hidden flex flex-col items-center justify-center ${
+                                isCorner ? "rounded-sm" : "rounded-[2px]"
+                            } ${
+                                isCurrentPos
+                                    ? "ring-2 ring-yellow-400 bg-yellow-50 z-10"
+                                    : "bg-white/95"
+                            }`}
+                            style={{
+                                gridRow: `${row} / ${row + 1}`,
+                                gridColumn: `${col} / ${col + 1}`,
+                            }}
+                            animate={isCurrentPos ? { scale: [1, 1.06, 1] } : {}}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
                         >
-                            <div className="text-center mb-3">
-                                <span className="text-2xl">{buyPropertyInfo.emoji}</span>
-                                <p className="font-serif text-sm font-bold text-warm-cocoa mt-1">
-                                    {buyPropertyInfo.name}
-                                </p>
-                                <div className="flex items-center justify-center gap-1 mt-1">
-                                    <div
-                                        className="w-3 h-3 rounded-full"
-                                        style={{ backgroundColor: buyPropertyInfo.colorHex }}
-                                    />
-                                    <span className="text-[10px] text-warm-grey/60">
-                                        {buyPropertyInfo.verse}
-                                    </span>
+                            {/* Color bar on inner edge for properties */}
+                            {isProp && (
+                                <div
+                                    className={colorBarClass}
+                                    style={{ backgroundColor: space.colorHex }}
+                                />
+                            )}
+
+                            <span className="text-[9px] sm:text-xs leading-none">
+                                {space.emoji}
+                            </span>
+                            <span className="text-[4px] sm:text-[6px] text-stone-700 font-bold text-center leading-tight px-[1px] truncate w-full">
+                                {space.name.length > 9 ? space.name.slice(0, 8) + "…" : space.name}
+                            </span>
+
+                            {/* Owner token */}
+                            {ownerPlayer && (
+                                <span className="text-[6px] leading-none">
+                                    {PLAYER_TOKENS[ownerPlayer.token]?.emoji}
+                                </span>
+                            )}
+
+                            {/* Price for unowned properties */}
+                            {isProp && !owner && (
+                                <span className="text-[4px] sm:text-[5px] text-stone-400 font-bold">
+                                    {space.cost}₪
+                                </span>
+                            )}
+
+                            {/* Player tokens on this space */}
+                            {playersOnSpace.length > 0 && (
+                                <div className="absolute bottom-[1px] left-0 right-0 flex items-center justify-center gap-[1px]">
+                                    {playersOnSpace.map((pp) => (
+                                        <motion.span
+                                            key={pp.id}
+                                            className="text-[7px] sm:text-[8px] leading-none drop-shadow-sm"
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ type: "spring" }}
+                                        >
+                                            {PLAYER_TOKENS[pp.token]?.emoji}
+                                        </motion.span>
+                                    ))}
                                 </div>
-                                <p className="text-xs text-warm-cocoa mt-1">
-                                    Cost: <span className="font-bold">{buyPropertyInfo.cost} ₪</span>
-                                    {" · "}
-                                    Rent: <span className="font-bold">{buyPropertyInfo.rent} ₪</span>
-                                </p>
-                                <p className="text-[10px] text-warm-grey/50 mt-0.5">
-                                    You have: {myPlayerState?.money || 0} ₪
-                                </p>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleBuyProperty}
-                                    className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs transition-all active:scale-95"
-                                >
-                                    Buy 🏠
-                                </button>
-                                <button
-                                    onClick={handlePassProperty}
-                                    className="flex-1 py-2.5 rounded-xl bg-stone-200 text-warm-cocoa font-bold text-xs transition-all active:scale-95"
-                                >
-                                    Pass ✋
-                                </button>
-                            </div>
+                            )}
                         </motion.div>
-                    )}
-                </AnimatePresence>
+                    );
+                };
 
-                {/* Scripture Card Reveal */}
-                <AnimatePresence>
-                    {showScriptureCard && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ type: "spring", damping: 15 }}
-                            className="bg-gradient-to-b from-amber-50 to-white border border-amber-200/50 rounded-2xl p-4 mb-3 text-center"
+                return (
+                    <div className="bg-emerald-800 rounded-2xl p-1.5 shadow-lg border border-emerald-900/50">
+                        <div
+                            className="grid gap-[2px] w-full"
+                            style={{
+                                gridTemplateColumns: "repeat(9, 1fr)",
+                                gridTemplateRows: "repeat(8, 1fr)",
+                                aspectRatio: "9 / 8",
+                            }}
                         >
-                            <span className="text-3xl">{showScriptureCard.emoji}</span>
-                            <p className="font-serif text-xs text-warm-cocoa mt-2 font-bold leading-relaxed">
-                                {showScriptureCard.text}
-                            </p>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            {/* Perimeter board cells */}
+                            {boardLayout.map(({ idx, row, col, side }) =>
+                                renderBoardCell(idx, row, col, side)
+                            )}
 
-                {/* Status Message */}
-                <AnimatePresence>
-                    {statusMessage && !showBuyPrompt && !showScriptureCard && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            className="text-center"
-                        >
-                            <p className="text-xs font-bold text-warm-cocoa bg-stone-50 rounded-xl px-3 py-2 border border-stone-200/30">
-                                {statusMessage}
-                            </p>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                            {/* ─── Center Area: Action Panel ─── */}
+                            <div
+                                className="bg-emerald-700/60 rounded-lg flex flex-col items-center justify-center p-2 gap-1 overflow-hidden"
+                                style={{
+                                    gridRow: "2 / 8",
+                                    gridColumn: "2 / 9",
+                                }}
+                            >
+                                {/* Game Title */}
+                                <p className="text-[10px] sm:text-xs text-emerald-200/80 font-bold tracking-wide uppercase">
+                                    🫒 Bible Monopoly 🫒
+                                </p>
+
+                                {/* Dice Display */}
+                                <div className="flex items-center justify-center gap-2">
+                                    <AnimatePresence mode="wait">
+                                        {[dice[0], dice[1]].map((d, i) => {
+                                            const DiceIcon = DICE_ICONS[Math.max(0, Math.min(5, d - 1))];
+                                            return (
+                                                <motion.div
+                                                    key={`die-${i}-${d}`}
+                                                    initial={diceRolling ? { rotate: 0, scale: 0.5 } : {}}
+                                                    animate={
+                                                        diceRolling
+                                                            ? {
+                                                                  rotate: [0, 180, 360, 540, 720],
+                                                                  scale: [0.5, 1.2, 0.8, 1.1, 1],
+                                                              }
+                                                            : { rotate: 0, scale: 1 }
+                                                    }
+                                                    transition={{ duration: 0.6, ease: "easeOut" }}
+                                                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg border-2 border-stone-200 flex items-center justify-center shadow-sm"
+                                                >
+                                                    <DiceIcon className="w-5 h-5 sm:w-7 sm:h-7 text-warm-cocoa" />
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Roll Button */}
+                                {isMyTurn && phase === "rolling" && !myPlayerState?.bankrupt && (
+                                    <motion.button
+                                        onClick={handleRollDice}
+                                        className="px-6 py-2 rounded-xl bg-amber-500 text-white font-serif text-xs font-bold transition-all active:scale-95 shadow-lg shadow-amber-600/30"
+                                        whileTap={{ scale: 0.95 }}
+                                        animate={{ scale: [1, 1.04, 1] }}
+                                        transition={{ repeat: Infinity, duration: 2 }}
+                                    >
+                                        🎲 Roll Dice
+                                    </motion.button>
+                                )}
+
+                                {/* Waiting for other player */}
+                                {!isMyTurn && phase === "rolling" && (
+                                    <motion.p
+                                        animate={{ opacity: [0.5, 1, 0.5] }}
+                                        transition={{ repeat: Infinity, duration: 2 }}
+                                        className="text-[10px] font-bold text-emerald-300/70"
+                                    >
+                                        Waiting for {getMemberName(room.members, currentTurnPlayerId)} to roll…
+                                    </motion.p>
+                                )}
+
+                                {/* Buy/Pass Prompt */}
+                                <AnimatePresence>
+                                    {showBuyPrompt && buyPropertyInfo && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -12 }}
+                                            className="bg-amber-50/95 border border-amber-200/50 rounded-xl p-2.5 w-full max-w-[240px]"
+                                        >
+                                            <div className="text-center mb-2">
+                                                <span className="text-xl">{buyPropertyInfo.emoji}</span>
+                                                <p className="font-serif text-xs font-bold text-warm-cocoa mt-0.5">
+                                                    {buyPropertyInfo.name}
+                                                </p>
+                                                <div className="flex items-center justify-center gap-1 mt-0.5">
+                                                    <div
+                                                        className="w-2.5 h-2.5 rounded-full"
+                                                        style={{ backgroundColor: buyPropertyInfo.colorHex }}
+                                                    />
+                                                    <span className="text-[9px] text-warm-grey/60">
+                                                        {buyPropertyInfo.verse}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-warm-cocoa mt-0.5">
+                                                    Cost: <span className="font-bold">{buyPropertyInfo.cost} ₪</span>
+                                                    {" · "}
+                                                    Rent: <span className="font-bold">{buyPropertyInfo.rent} ₪</span>
+                                                </p>
+                                                <p className="text-[9px] text-warm-grey/50">
+                                                    You have: {myPlayerState?.money || 0} ₪
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                <button
+                                                    onClick={handleBuyProperty}
+                                                    className="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[10px] transition-all active:scale-95"
+                                                >
+                                                    Buy 🏠
+                                                </button>
+                                                <button
+                                                    onClick={handlePassProperty}
+                                                    className="flex-1 py-1.5 rounded-lg bg-stone-200 text-warm-cocoa font-bold text-[10px] transition-all active:scale-95"
+                                                >
+                                                    Pass ✋
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Scripture Card Reveal */}
+                                <AnimatePresence>
+                                    {showScriptureCard && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
+                                            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                                            exit={{ opacity: 0, scale: 0.8 }}
+                                            transition={{ type: "spring", damping: 15 }}
+                                            className="bg-gradient-to-b from-amber-50 to-white border border-amber-200/50 rounded-xl p-2.5 text-center w-full max-w-[240px]"
+                                        >
+                                            <span className="text-2xl">{showScriptureCard.emoji}</span>
+                                            <p className="font-serif text-[10px] text-warm-cocoa mt-1 font-bold leading-relaxed">
+                                                {showScriptureCard.text}
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Status Message */}
+                                <AnimatePresence>
+                                    {statusMessage && !showBuyPrompt && !showScriptureCard && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 6 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0 }}
+                                            className="text-center"
+                                        >
+                                            <p className="text-[10px] font-bold text-emerald-100 bg-emerald-800/60 rounded-lg px-3 py-1.5 border border-emerald-600/30">
+                                                {statusMessage}
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ─── 4. Player Dashboard ─── */}
             <div className="bg-white/50 border border-warm-grey/5 rounded-2xl p-3 shadow-sm">
