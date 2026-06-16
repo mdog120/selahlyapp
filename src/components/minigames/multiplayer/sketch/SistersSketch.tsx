@@ -139,6 +139,12 @@ export function SistersSketch({ room, currentUserId, isHost, onGameEnd, onCloseR
     const [incomingStroke, setIncomingStroke] = useState<Stroke | null>(null);
     const [incomingClear, setIncomingClear] = useState(0);
 
+    // Refs for broadcast listener (avoids stale closures)
+    const modeRef = useRef(mode);
+    modeRef.current = mode;
+    const teamARef = useRef(teamA);
+    teamARef.current = teamA;
+
     // Determine if current user is a drawer
     const amIDrawer = mode === "together"
         ? currentDrawer === currentUserId
@@ -183,9 +189,20 @@ export function SistersSketch({ room, currentUserId, isHost, onGameEnd, onCloseR
                 }
             })
             .on("broadcast", { event: "draw_stroke" }, ({ payload }) => {
-                setIncomingStroke(payload as Stroke);
+                const stroke = payload as Stroke & { team?: string };
+                // In verses mode, only show strokes from your own team
+                if (modeRef.current === "verses" && stroke.team) {
+                    const myTeam = teamARef.current.members.includes(currentUserId) ? "A" : "B";
+                    if (stroke.team !== myTeam) return; // ignore other team's strokes
+                }
+                setIncomingStroke(stroke as Stroke);
             })
-            .on("broadcast", { event: "draw_clear" }, () => {
+            .on("broadcast", { event: "draw_clear" }, ({ payload }) => {
+                // In verses mode, only clear if it's from your own team
+                if (modeRef.current === "verses" && payload?.team) {
+                    const myTeam = teamARef.current.members.includes(currentUserId) ? "A" : "B";
+                    if (payload.team !== myTeam) return;
+                }
                 setIncomingClear((c) => c + 1);
             })
             .on("broadcast", { event: "guess" }, ({ payload }) => {
@@ -633,14 +650,24 @@ export function SistersSketch({ room, currentUserId, isHost, onGameEnd, onCloseR
     // ─── Drawing events ─────────────────────────────────────
     const handleStroke = useCallback(
         (stroke: Stroke) => {
-            broadcast("draw_stroke", stroke);
+            if (mode === "verses") {
+                const myTeam = teamA.members.includes(currentUserId) ? "A" : "B";
+                broadcast("draw_stroke", { ...stroke, team: myTeam });
+            } else {
+                broadcast("draw_stroke", stroke);
+            }
         },
-        [broadcast]
+        [broadcast, mode, teamA.members, currentUserId]
     );
 
     const handleClear = useCallback(() => {
-        broadcast("draw_clear", {});
-    }, [broadcast]);
+        if (mode === "verses") {
+            const myTeam = teamA.members.includes(currentUserId) ? "A" : "B";
+            broadcast("draw_clear", { team: myTeam });
+        } else {
+            broadcast("draw_clear", {});
+        }
+    }, [broadcast, mode, teamA.members, currentUserId]);
 
     // ─── Play again ─────────────────────────────────────────
     const handlePlayAgain = useCallback(() => {
