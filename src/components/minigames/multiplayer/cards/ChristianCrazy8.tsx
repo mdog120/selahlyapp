@@ -14,7 +14,7 @@ import {
     getCardBg,
     getCardBorder,
 } from "./crazy8Cards";
-import { Trophy, RotateCcw, ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { Trophy, RotateCcw, ArrowLeft, AlertCircle, Loader2, Shuffle, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
@@ -43,6 +43,7 @@ interface ChristianCrazy8Props {
     currentUserId: string;
     isHost: boolean;
     onGameEnd: () => void;
+    onCloseRoom: () => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -180,7 +181,7 @@ function SuitPicker({ onPick }: { onPick: (suit: Suit) => void }) {
 // MAIN COMPONENT
 // ═════════════════════════════════════════════════════════════
 
-export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: ChristianCrazy8Props) {
+export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd, onCloseRoom }: ChristianCrazy8Props) {
     const supabase = createClient();
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -688,8 +689,11 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                         <button onClick={handlePlayAgain} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-warm-cocoa text-white font-serif text-sm font-bold transition-all active:scale-95 shadow-lg shadow-warm-cocoa/20">
                             <RotateCcw className="w-4 h-4" /> Play Again
                         </button>
-                        <button onClick={onGameEnd} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-stone-100 text-warm-grey text-xs font-bold transition-all active:scale-95">
-                            <ArrowLeft className="w-3.5 h-3.5" /> Back to Room
+                        <button onClick={onGameEnd} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/50 text-xs font-bold text-amber-800 transition-all active:scale-95">
+                            <Shuffle className="w-3.5 h-3.5" /> Choose Another Game
+                        </button>
+                        <button onClick={onCloseRoom} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95">
+                            <LogOut className="w-3.5 h-3.5" /> Close Room
                         </button>
                     </div>
                 ) : (

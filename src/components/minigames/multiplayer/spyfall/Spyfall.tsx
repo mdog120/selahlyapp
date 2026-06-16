@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getRandomScenario, type SpyfallScenario, type SpyfallRole } from "./spyfallScenarios";
-import { Trophy, RotateCcw, ArrowLeft, Send, Eye, EyeOff, Vote, Timer, MessageCircle, UserX, Users } from "lucide-react";
+import { Trophy, RotateCcw, ArrowLeft, Send, Eye, EyeOff, Vote, Timer, MessageCircle, UserX, Users, Shuffle, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
@@ -32,6 +32,7 @@ interface SpyfallProps {
     currentUserId: string;
     isHost: boolean;
     onGameEnd: () => void;
+    onCloseRoom: () => void;
 }
 
 interface QAEntry {
@@ -66,7 +67,7 @@ const GAME_DURATION = 10 * 60; // 10 minutes in seconds
 
 // ─── Component ──────────────────────────────────────────────
 
-export function Spyfall({ room, currentUserId, isHost, onGameEnd }: SpyfallProps) {
+export function Spyfall({ room, currentUserId, isHost, onGameEnd, onCloseRoom }: SpyfallProps) {
     const supabase = createClient();
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -615,13 +616,14 @@ export function Spyfall({ room, currentUserId, isHost, onGameEnd }: SpyfallProps
 
                 {isHost && (
                     <div className="flex flex-col gap-2 mt-4">
-                        <button onClick={handlePlayAgain}
-                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-warm-cocoa text-white font-serif text-sm font-bold transition-all active:scale-95 shadow-lg shadow-warm-cocoa/20">
+                        <button onClick={handlePlayAgain} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-warm-cocoa text-white font-serif text-sm font-bold transition-all active:scale-95 shadow-lg shadow-warm-cocoa/20">
                             <RotateCcw className="w-4 h-4" /> Play Again
                         </button>
-                        <button onClick={onGameEnd}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-stone-100 text-warm-grey text-xs font-bold transition-all active:scale-95">
-                            <ArrowLeft className="w-3.5 h-3.5" /> Back to Room
+                        <button onClick={onGameEnd} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/50 text-xs font-bold text-amber-800 transition-all active:scale-95">
+                            <Shuffle className="w-3.5 h-3.5" /> Choose Another Game
+                        </button>
+                        <button onClick={onCloseRoom} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95">
+                            <LogOut className="w-3.5 h-3.5" /> Close Room
                         </button>
                     </div>
                 )}

@@ -449,6 +449,7 @@ export default function GameRoomPage() {
                             onGameEnd={() => {
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
+                            onCloseRoom={handleLeave}
                         />
                     )}
 
@@ -461,6 +462,7 @@ export default function GameRoomPage() {
                             onGameEnd={() => {
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
+                            onCloseRoom={handleLeave}
                         />
                     )}
 
@@ -473,6 +475,7 @@ export default function GameRoomPage() {
                             onGameEnd={() => {
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
+                            onCloseRoom={handleLeave}
                         />
                     )}
 
@@ -485,6 +488,7 @@ export default function GameRoomPage() {
                             onGameEnd={() => {
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
+                            onCloseRoom={handleLeave}
                         />
                     )}
 
@@ -497,6 +501,7 @@ export default function GameRoomPage() {
                             onGameEnd={() => {
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
+                            onCloseRoom={handleLeave}
                         />
                     )}
 
