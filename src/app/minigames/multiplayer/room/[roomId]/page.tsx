@@ -523,64 +523,21 @@ export default function GameRoomPage() {
                         </div>
                     )}
 
-                    {/* Host: Switch Game (visible during playing state) */}
-                    {isHost && room.status === "playing" && (
-                        <div className="w-full max-w-xs">
-                            <button
-                                onClick={() => setShowGamePicker(!showGamePicker)}
-                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/50 text-xs font-bold text-amber-800 transition-all active:scale-95"
-                            >
-                                <Shuffle className="w-3.5 h-3.5" />
-                                {showGamePicker ? "Cancel" : "Switch Game"}
-                            </button>
-
-                            <AnimatePresence>
-                                {showGamePicker && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="overflow-hidden mt-2"
-                                    >
-                                        <div className="bg-white/60 border border-stone-200/40 rounded-2xl p-3 flex flex-col gap-2">
-                                            <p className="text-[9px] text-warm-grey/40 uppercase tracking-wider font-bold text-center mb-1">
-                                                Switch to a different game
-                                            </p>
-                                            {Object.entries(GAME_INFO)
-                                                .filter(([key]) => key !== room.game_type)
-                                                .map(([key, info]) => (
-                                                <button
-                                                    key={key}
-                                                    onClick={() => handleChangeGame(key)}
-                                                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left transition-all active:scale-[0.98] bg-white hover:bg-stone-50 border border-stone-200/30 cursor-pointer"
-                                                >
-                                                    <span className="text-2xl">{info.emoji}</span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-bold text-warm-cocoa">{info.name}</p>
-                                                        <p className="text-[9px] text-warm-grey/50 truncate">{info.description}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                    {/* Leave Button — hidden when a game component is actively rendered (it has its own end-screen buttons) */}
+                    {room.status !== "playing" && (
+                        <button
+                            onClick={handleLeave}
+                            disabled={isLeaving}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95"
+                        >
+                            {isLeaving ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                                <LogOut className="w-3.5 h-3.5" />
+                            )}
+                            {isHost ? "Close Room" : "Leave Room"}
+                        </button>
                     )}
-
-                    {/* Leave Button */}
-                    <button
-                        onClick={handleLeave}
-                        disabled={isLeaving}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95"
-                    >
-                        {isLeaving ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                            <LogOut className="w-3.5 h-3.5" />
-                        )}
-                        {isHost ? "Close Room" : "Leave Room"}
-                    </button>
                 </div>
             </div>
         </div>
