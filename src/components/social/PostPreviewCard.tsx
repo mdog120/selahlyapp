@@ -40,6 +40,7 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
     const [liked, setLiked] = useState(post.user_has_liked || false);
     const [likesCount, setLikesCount] = useState(post.likes_count || 0);
     const [showHeartOverlay, setShowHeartOverlay] = useState(false);
+    const [activeSlide, setActiveSlide] = useState(0);
     const lastTap = useRef<number>(0);
     const supabase = createClient();
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -187,12 +188,49 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
         // 1. Image, Carousel, Video, or Song with Image
         if (imgUrl && post.type !== 'poll') {
             const isVideo = post.type === 'video';
+            const hasMultipleMedia = post.media_urls && post.media_urls.length > 1;
+
+            const handleCarouselScroll = (e: React.UIEvent<HTMLDivElement>) => {
+                const container = e.currentTarget;
+                const index = Math.round(container.scrollLeft / container.clientWidth);
+                setActiveSlide(index);
+            };
+
+            const scrollToSlide = (index: number) => {
+                const container = document.getElementById(`preview-carousel-${post.id}`);
+                if (container) {
+                    container.scrollTo({ left: index * container.clientWidth, behavior: "smooth" });
+                }
+            };
+
             return (
                 <div 
                     className="relative w-full aspect-[4/5] overflow-hidden bg-stone-50 select-none cursor-pointer"
-                    onClick={handleMediaClick}
+                    onClick={hasMultipleMedia ? undefined : handleMediaClick}
                 >
-                    {isVideo ? (
+                    {hasMultipleMedia ? (
+                        /* Scrollable carousel for multi-image posts */
+                        <div
+                            id={`preview-carousel-${post.id}`}
+                            onScroll={handleCarouselScroll}
+                            className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth"
+                        >
+                            {post.media_urls!.map((url, idx) => (
+                                <div
+                                    key={idx}
+                                    className="w-full h-full flex-shrink-0 snap-center"
+                                    onClick={handleMediaClick}
+                                >
+                                    <img
+                                        src={url}
+                                        alt={`Slide ${idx + 1}`}
+                                        className="w-full h-full object-cover"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ) : isVideo ? (
                         <video 
                             ref={videoRef}
                             src={imgUrl || undefined} 
@@ -213,10 +251,10 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
                     )}
 
                     {/* Top-Right Badges */}
-                    {(post.type === 'carousel' || (post.media_urls && post.media_urls.length > 1)) && post.media_urls && post.media_urls.length > 1 && (
+                    {hasMultipleMedia && (
                         <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-sm select-none">
                             <Layers className="w-2.5 h-2.5" />
-                            <span>1/{post.media_urls.length}</span>
+                            <span>{activeSlide + 1}/{post.media_urls!.length}</span>
                         </div>
                     )}
                     {post.type === 'video' && (
@@ -228,6 +266,24 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
                         <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-sm select-none">
                             <Music className="w-2.5 h-2.5 text-pink-400 fill-pink-300/10" />
                             <span>Audio</span>
+                        </div>
+                    )}
+
+                    {/* Carousel dots */}
+                    {hasMultipleMedia && (
+                        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-30">
+                            {post.media_urls!.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={(e) => { e.stopPropagation(); scrollToSlide(idx); }}
+                                    className={`rounded-full transition-all duration-300 ${
+                                        activeSlide === idx
+                                            ? "w-4 h-1.5 bg-white shadow-sm"
+                                            : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
+                                    }`}
+                                    aria-label={`Go to slide ${idx + 1}`}
+                                />
+                            ))}
                         </div>
                     )}
 
