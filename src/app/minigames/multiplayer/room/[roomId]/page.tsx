@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Users, Crown, LogOut, Play, Loader2, ArrowLeft, Gamepad2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SistersSketch } from "@/components/minigames/multiplayer/sketch/SistersSketch";
+import { EgyptianRatScrew } from "@/components/minigames/multiplayer/cards/EgyptianRatScrew";
 
 interface RoomMember {
     user_id: string;
@@ -381,8 +382,20 @@ export default function GameRoomPage() {
                         />
                     )}
 
-                    {/* Playing state placeholder for other games */}
-                    {room.status === "playing" && room.game_type !== "sisters_sketch" && (
+                    {/* Playing state — Egyptian Rat Screw (Card Rooms) */}
+                    {room.status === "playing" && room.game_type === "card_rooms" && (
+                        <EgyptianRatScrew
+                            room={room}
+                            currentUserId={currentUserId!}
+                            isHost={isHost}
+                            onGameEnd={() => {
+                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
+                            }}
+                        />
+                    )}
+
+                    {/* Playing state placeholder for unimplemented games */}
+                    {room.status === "playing" && room.game_type !== "sisters_sketch" && room.game_type !== "card_rooms" && (
                         <div className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center">
                             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-100">
                                 <Gamepad2 className="w-8 h-8 text-emerald-600" />
