@@ -42,6 +42,7 @@ const GAME_META: Record<string, { emoji: string; label: string }> = {
   card_rooms: { emoji: "🃏", label: "Egyptian Rat Screw" },
   crazy_8s: { emoji: "🎴", label: "Christian Crazy 8s" },
   spyfall: { emoji: "🕵️", label: "Bible Spyfall" },
+  bible_monopoly: { emoji: "🎲", label: "Bible Monopoly Lite" },
 };
 
 const getAvatarBg = (id: string) => {

@@ -52,6 +52,12 @@ const GAMES = [
     game_type: "spyfall",
     description: "Find the spy among Bible characters",
   },
+  {
+    emoji: "🎲",
+    label: "Bible Monopoly Lite",
+    game_type: "bible_monopoly",
+    description: "Buy Bible lands and collect rent",
+  },
 ];
 
 const MAX_INVITES = 4;
