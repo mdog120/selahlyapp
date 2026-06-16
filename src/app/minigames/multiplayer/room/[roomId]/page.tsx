@@ -330,7 +330,7 @@ export default function GameRoomPage() {
                 style={{ touchAction: "manipulation", overscrollBehavior: "none" }}
             >
                 {/* Minimal top bar during gameplay */}
-                <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-white/80 backdrop-blur-sm border-b border-stone-200/30">
+                <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-white/80 backdrop-blur-sm border-b border-stone-200/30 relative z-20">
                     <button
                         onClick={handleLeave}
                         disabled={isLeaving}
@@ -354,27 +354,34 @@ export default function GameRoomPage() {
                             </button>
                             <AnimatePresence>
                                 {showGamePicker && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                                        className="absolute right-0 top-full mt-1 z-50 w-56"
-                                    >
-                                        <div className="bg-white border border-stone-200/60 rounded-2xl p-2 shadow-xl flex flex-col gap-1">
-                                            {Object.entries(GAME_INFO)
-                                                .filter(([key]) => key !== room.game_type)
-                                                .map(([key, info]) => (
-                                                <button
-                                                    key={key}
-                                                    onClick={() => handleChangeGame(key)}
-                                                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-stone-50 cursor-pointer"
-                                                >
-                                                    <span className="text-base">{info.emoji}</span>
-                                                    <p className="text-[11px] font-bold text-warm-cocoa">{info.name}</p>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
+                                    <>
+                                        {/* Backdrop to catch taps outside */}
+                                        <div
+                                            className="fixed inset-0 z-[998]"
+                                            onClick={() => setShowGamePicker(false)}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                                            className="absolute right-0 top-full mt-1 z-[999] w-56"
+                                        >
+                                            <div className="bg-white border border-stone-200/60 rounded-2xl p-2 shadow-xl flex flex-col gap-1">
+                                                {Object.entries(GAME_INFO)
+                                                    .filter(([key]) => key !== room.game_type)
+                                                    .map(([key, info]) => (
+                                                    <button
+                                                        key={key}
+                                                        onClick={() => handleChangeGame(key)}
+                                                        className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-stone-50 cursor-pointer"
+                                                    >
+                                                        <span className="text-base">{info.emoji}</span>
+                                                        <p className="text-[11px] font-bold text-warm-cocoa">{info.name}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    </>
                                 )}
                             </AnimatePresence>
                         </div>
@@ -384,7 +391,7 @@ export default function GameRoomPage() {
 
                 {/* Game area — fills remaining space, scrollable only internally */}
                 <div
-                    className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3"
+                    className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 relative z-10"
                     style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
                 >
                     {room.game_type === "sisters_sketch" && (
