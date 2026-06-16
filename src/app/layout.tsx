@@ -5,6 +5,7 @@ import { BadgeProvider } from "@/context/BadgeContext";
 import { GlobalAlertProvider } from "@/components/ui/GlobalAlertProvider";
 import { StoryAuraProvider } from "@/context/StoryAuraContext";
 import { FCMProvider } from "@/components/FCMProvider";
+import { KeyboardProvider } from "@/components/KeyboardProvider";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -60,6 +61,7 @@ export default function RootLayout({
           <GlobalAlertProvider>
             <StoryAuraProvider>
               <FCMProvider>
+                <KeyboardProvider />
                 <LayoutContent>
                   {children}
                 </LayoutContent>

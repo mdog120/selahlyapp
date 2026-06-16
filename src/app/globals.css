@@ -355,3 +355,9 @@ body.theme-night button:hover {
 .animate-wobble {
   animation: wobble 0.6s ease-in-out;
 }
+
+/* ─── Global: Hide navigation when mobile keyboard is open ─── */
+html.keyboard-open nav[class*="fixed top-0"],
+html.keyboard-open .bottom-nav-bar {
+  display: none !important;
+}

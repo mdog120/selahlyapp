@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, BookOpen, Heart, Lock, User } from "lucide-react";
@@ -19,25 +18,7 @@ export function BottomNav() {
         pathname?.startsWith("/legal") ||
         pathname === "/grace-inhale"; // Grace Inhale has its own custom full-screen flow
 
-    // Detect mobile keyboard open via visualViewport
-    const [keyboardOpen, setKeyboardOpen] = useState(false);
-    useEffect(() => {
-        if (typeof window === "undefined" || !window.visualViewport) return;
-
-        const vv = window.visualViewport;
-        const threshold = 0.75;
-
-        const handleResize = () => {
-            const ratio = vv.height / window.innerHeight;
-            setKeyboardOpen(ratio < threshold);
-        };
-
-        vv.addEventListener("resize", handleResize);
-        return () => vv.removeEventListener("resize", handleResize);
-    }, []);
-
     if (isPublicPage) return null;
-    if (keyboardOpen) return null;
 
     const navItems = [
         {
@@ -68,7 +49,7 @@ export function BottomNav() {
     ];
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-[env(safe-area-inset-bottom,0px)] bg-warm-paper/95 backdrop-blur-lg border-t border-warm-grey/5 transition-all duration-300">
+        <div className="bottom-nav-bar fixed bottom-0 left-0 right-0 z-50 md:hidden pb-[env(safe-area-inset-bottom,0px)] bg-warm-paper/95 backdrop-blur-lg border-t border-warm-grey/5 transition-all duration-300">
             <div className="flex items-center justify-around h-14 px-2">
                 {navItems.map((item) => {
                     const Icon = item.icon;
