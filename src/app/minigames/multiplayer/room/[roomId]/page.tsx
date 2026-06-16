@@ -447,6 +447,7 @@ export default function GameRoomPage() {
                             currentUserId={currentUserId!}
                             isHost={isHost}
                             onGameEnd={() => {
+                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
                             onCloseRoom={handleLeave}
@@ -460,6 +461,7 @@ export default function GameRoomPage() {
                             currentUserId={currentUserId!}
                             isHost={isHost}
                             onGameEnd={() => {
+                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
                             onCloseRoom={handleLeave}
@@ -473,6 +475,7 @@ export default function GameRoomPage() {
                             currentUserId={currentUserId!}
                             isHost={isHost}
                             onGameEnd={() => {
+                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
                             onCloseRoom={handleLeave}
@@ -486,6 +489,7 @@ export default function GameRoomPage() {
                             currentUserId={currentUserId!}
                             isHost={isHost}
                             onGameEnd={() => {
+                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
                             onCloseRoom={handleLeave}
@@ -499,6 +503,7 @@ export default function GameRoomPage() {
                             currentUserId={currentUserId!}
                             isHost={isHost}
                             onGameEnd={() => {
+                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
                                 supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
                             }}
                             onCloseRoom={handleLeave}

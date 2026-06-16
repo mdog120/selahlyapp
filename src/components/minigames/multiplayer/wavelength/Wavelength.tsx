@@ -427,11 +427,12 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
     const nonPsychicCount = room.members.filter((m) => m.user_id !== psychicId).length;
 
     // ─── End Screen ──
-    if (phase === "ended" && winnerId) {
-        const winnerName = getMemberName(room.members, winnerId);
-        const isWinner = winnerId === currentUserId;
+    if (phase === "ended") {
         const sortedScores = Object.entries(scores)
             .sort(([, a], [, b]) => b - a);
+        const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+        const maxPossible = TOTAL_ROUNDS * 4; // max 4 pts per round
+        const rating = totalScore >= maxPossible * 0.8 ? "🌟 Amazing!" : totalScore >= maxPossible * 0.5 ? "✨ Great job!" : "💪 Good effort!";
 
         return (
             <motion.div
@@ -443,11 +444,12 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
                     <Trophy className="w-8 h-8 text-amber-600" />
                 </div>
 
-                <h2 className="font-serif text-2xl text-warm-cocoa font-bold mb-2">
-                    {isWinner ? "You Win! 🎉" : `${winnerName} Wins!`}
+                <h2 className="font-serif text-2xl text-warm-cocoa font-bold mb-1">
+                    Game Complete! 🎉
                 </h2>
+                <p className="text-sm font-bold text-amber-700 mb-1">{rating}</p>
                 <p className="text-xs text-warm-grey/50 mb-6">
-                    After {TOTAL_ROUNDS} rounds of tuning in! 📡
+                    Team scored {totalScore} points across {TOTAL_ROUNDS} rounds! 📡
                 </p>
 
                 {/* Scoreboard */}
