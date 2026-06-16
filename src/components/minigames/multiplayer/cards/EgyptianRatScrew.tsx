@@ -16,7 +16,7 @@ import {
     getSlapReasonText,
     type ChallengeState,
 } from "./ersLogic";
-import { Trophy, RotateCcw, ArrowLeft, Hand, Loader2 } from "lucide-react";
+import { Trophy, RotateCcw, ArrowLeft, Hand, Loader2, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
@@ -91,10 +91,15 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
     const supabase = createClient();
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-    // Host-side state (source of truth)
+    // ─── ALL mutable game state in refs (no stale closures) ──
     const playerHandsRef = useRef<Record<string, Card[]>>({});
+    const pileRef = useRef<Card[]>([]);
+    const turnOrderRef = useRef<string[]>([]);
+    const currentTurnRef = useRef<string>("");
+    const challengeRef = useRef<ChallengeState | null>(null);
+    const processingRef = useRef(false);
 
-    // Client-side display state
+    // ─── Display state (for rendering only) ──
     const [phase, setPhase] = useState<"dealing" | "playing" | "ended">("dealing");
     const [turnOrder, setTurnOrder] = useState<string[]>([]);
     const [currentTurn, setCurrentTurn] = useState<string>("");
@@ -107,7 +112,14 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
     const [myCards, setMyCards] = useState<Card[]>([]);
     const [isPlayingCard, setIsPlayingCard] = useState(false);
 
-    // ─── Channel setup ──────────────────────────────────────
+    // ─── Broadcast helper (uses ref) ──
+    const broadcast = useCallback((event: string, payload: any) => {
+        channelRef.current?.send({ type: "broadcast", event, payload });
+    }, []);
+
+    // ═══════════════════════════════════════════════════════
+    // SINGLE CHANNEL SETUP — ALL listeners registered ONCE
+    // ═══════════════════════════════════════════════════════
     useEffect(() => {
         const channel = supabase.channel(`card_game:${room.id}`);
 
@@ -122,21 +134,28 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                 setChallenge(gs.challenge);
                 setWinnerId(gs.winnerId);
                 setLastAction(gs.lastAction);
+                // Sync refs
+                turnOrderRef.current = gs.turnOrder;
+                currentTurnRef.current = gs.currentTurn;
+                pileRef.current = gs.pile;
+                challengeRef.current = gs.challenge;
             })
             .on("broadcast", { event: "deal_hand" }, ({ payload }) => {
-                // Each player receives their own hand privately
                 if (payload.playerId === currentUserId) {
                     setMyCards(payload.cards as Card[]);
                 }
             })
             .on("broadcast", { event: "card_played" }, ({ payload }) => {
-                // A card was played — update pile display
                 setPile(payload.pile as Card[]);
                 setCurrentTurn(payload.nextTurn);
                 setPlayerCardCounts(payload.playerCardCounts);
                 setChallenge(payload.challenge || null);
                 setLastAction(payload.action);
                 setLastSlapResult(null);
+                // Sync refs
+                pileRef.current = payload.pile;
+                currentTurnRef.current = payload.nextTurn;
+                challengeRef.current = payload.challenge || null;
             })
             .on("broadcast", { event: "slap_result" }, ({ payload }) => {
                 setLastSlapResult({
@@ -149,13 +168,14 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                 setCurrentTurn(payload.currentTurn);
                 setChallenge(payload.challenge || null);
                 setLastAction(payload.action);
+                // Sync refs
+                pileRef.current = payload.pile;
+                currentTurnRef.current = payload.currentTurn;
+                challengeRef.current = payload.challenge || null;
 
-                // Update my cards if I was affected
                 if (payload.updatedHand && payload.targetPlayerId === currentUserId) {
                     setMyCards(payload.updatedHand as Card[]);
                 }
-
-                // Clear slap result after 2 seconds
                 setTimeout(() => setLastSlapResult(null), 2000);
             })
             .on("broadcast", { event: "pile_collected" }, ({ payload }) => {
@@ -164,8 +184,11 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                 setCurrentTurn(payload.currentTurn);
                 setChallenge(null);
                 setLastAction(payload.action);
+                // Sync refs
+                pileRef.current = [];
+                currentTurnRef.current = payload.currentTurn;
+                challengeRef.current = null;
 
-                // Update my cards if I collected
                 if (payload.collectorId === currentUserId && payload.collectorHand) {
                     setMyCards(payload.collectorHand as Card[]);
                 }
@@ -180,59 +203,57 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                     setMyCards(payload.cards as Card[]);
                 }
             })
+
+            // ─── HOST ONLY: process play requests (from OTHER players) ───
+            .on("broadcast", { event: "play_card_request" }, ({ payload }) => {
+                if (!isHost) return;
+                processPlayCardOnHost(payload.playerId, payload.card);
+            })
+
+            // ─── HOST ONLY: process slap requests (from OTHER players) ───
+            .on("broadcast", { event: "slap_request" }, ({ payload }) => {
+                if (!isHost) return;
+                processSlapOnHost(payload.playerId);
+            })
             .subscribe();
 
         channelRef.current = channel;
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [room.id, currentUserId]);
-
-    // ─── Broadcast helper ───────────────────────────────────
-    const broadcast = useCallback(
-        (event: string, payload: any) => {
-            channelRef.current?.send({ type: "broadcast", event, payload });
-        },
-        []
-    );
+        return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [room.id, currentUserId, isHost]);
 
     // ─── Host: Deal and start game ──────────────────────────
     useEffect(() => {
         if (!isHost) return;
 
-        // Small delay for dealing animation feel
         const timer = setTimeout(() => {
             const deck = createDeck();
             const order = room.members.map((m) => m.user_id);
             const hands = dealCards(deck, order.length);
 
-            // Store hands on host
             const handsMap: Record<string, Card[]> = {};
             const counts: Record<string, number> = {};
             order.forEach((id, i) => {
                 handsMap[id] = hands[i];
                 counts[id] = hands[i].length;
             });
-            playerHandsRef.current = handsMap;
 
-            // Send each player their hand privately
+            // Set ALL refs
+            playerHandsRef.current = handsMap;
+            turnOrderRef.current = order;
+            currentTurnRef.current = order[0];
+            pileRef.current = [];
+            challengeRef.current = null;
+
             order.forEach((id) => {
                 broadcast("deal_hand", { playerId: id, cards: handsMap[id] });
             });
+            if (handsMap[currentUserId]) setMyCards(handsMap[currentUserId]);
 
-            // If host is a player, set own hand
-            if (handsMap[currentUserId]) {
-                setMyCards(handsMap[currentUserId]);
-            }
-
-            const firstPlayer = order[0];
-
-            // Broadcast initial game state
             broadcast("game_state", {
                 phase: "playing",
                 turnOrder: order,
-                currentTurn: firstPlayer,
+                currentTurn: order[0],
                 pile: [],
                 playerCardCounts: counts,
                 challenge: null,
@@ -242,7 +263,7 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
 
             setPhase("playing");
             setTurnOrder(order);
-            setCurrentTurn(firstPlayer);
+            setCurrentTurn(order[0]);
             setPlayerCardCounts(counts);
             setPile([]);
             setLastAction("Cards dealt! Game on! 🃏");
@@ -251,73 +272,48 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
         return () => clearTimeout(timer);
     }, [isHost, room.members, currentUserId, broadcast]);
 
-    // ─── Play a card ────────────────────────────────────────
-    const handlePlayCard = useCallback(() => {
-        if (myCards.length === 0 || isPlayingCard) return;
+    // ═══════════════════════════════════════════════════════
+    // HOST PROCESSING FUNCTIONS
+    // ═══════════════════════════════════════════════════════
 
-        // In a challenge, only the defender can play
-        if (challenge && challenge.defenderId !== currentUserId) return;
-        // Otherwise, must be your turn
-        if (!challenge && currentTurn !== currentUserId) return;
+    function processPlayCardOnHost(playerId: string, card: Card) {
+        if (processingRef.current) return;
+        processingRef.current = true;
 
-        setIsPlayingCard(true);
-
-        const cardToPlay = myCards[0];
-        const remainingCards = myCards.slice(1);
-        setMyCards(remainingCards);
-
-        // Send to host for processing
-        broadcast("play_card_request", {
-            playerId: currentUserId,
-            card: cardToPlay,
-        });
-
-        setTimeout(() => setIsPlayingCard(false), 300);
-    }, [myCards, currentTurn, currentUserId, challenge, isPlayingCard, broadcast]);
-
-    // ─── Host: Process play card requests ───────────────────
-    useEffect(() => {
-        if (!isHost || !channelRef.current) return;
-
-        const channel = channelRef.current;
-
-        // We need to listen for play_card_request on the channel
-        // Since we can't add listeners after subscribe easily,
-        // we'll use a workaround via the existing channel
-        const handlePlayCardRequest = ({ payload }: any) => {
-            const { playerId, card } = payload;
+        try {
             const hands = playerHandsRef.current;
+            const currentChallenge = challengeRef.current;
+            const order = turnOrderRef.current;
 
-            // Remove card from player's hand on host side
+            // Remove card from player's hand
             if (hands[playerId]) {
                 hands[playerId] = hands[playerId].filter((c) => c.id !== card.id);
             }
 
             // Add to pile
-            const newPile = [...pile, card];
+            const newPile = [...pileRef.current, card];
+            pileRef.current = newPile;
 
-            // Update counts
             const counts: Record<string, number> = {};
             Object.keys(hands).forEach((id) => {
                 counts[id] = hands[id]?.length || 0;
             });
 
             // Process challenge if active
-            let newChallenge = challenge;
+            let newChallenge = currentChallenge;
             let pileWinnerId: string | null = null;
 
-            if (challenge && challenge.active) {
+            if (currentChallenge && currentChallenge.active) {
                 const result = processChallenge(
-                    challenge,
+                    currentChallenge,
                     card,
                     playerId,
-                    (id) => getNextActivePlayer(id, turnOrder, counts)
+                    (id) => getNextActivePlayer(id, order, counts)
                 );
                 newChallenge = result.challenge;
                 pileWinnerId = result.pileWinnerId;
             } else if (isFaceCard(card.rank)) {
-                // New challenge started
-                const nextPlayer = getNextActivePlayer(playerId, turnOrder, counts);
+                const nextPlayer = getNextActivePlayer(playerId, order, counts);
                 newChallenge = {
                     active: true,
                     challengerId: playerId,
@@ -331,53 +327,60 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                 // Challenger wins the pile
                 const collectorHand = [...(hands[pileWinnerId] || []), ...newPile];
                 hands[pileWinnerId] = collectorHand;
+                pileRef.current = [];
+
                 const updatedCounts: Record<string, number> = {};
                 Object.keys(hands).forEach((id) => {
                     updatedCounts[id] = hands[id]?.length || 0;
                 });
 
-                const nextTurn = getNextActivePlayer(pileWinnerId, turnOrder, updatedCounts);
+                const nextTurn = getNextActivePlayer(pileWinnerId, order, updatedCounts);
+                currentTurnRef.current = nextTurn;
+                challengeRef.current = null;
+
+                const action = `${getMemberName(room.members, pileWinnerId)} takes the pile! (${newPile.length} cards)`;
 
                 broadcast("pile_collected", {
                     collectorId: pileWinnerId,
                     collectorHand: pileWinnerId === currentUserId ? collectorHand : undefined,
                     playerCardCounts: updatedCounts,
                     currentTurn: nextTurn,
-                    action: `${getMemberName(room.members, pileWinnerId)} takes the pile! (${newPile.length} cards)`,
+                    action,
                 });
 
-                // Send updated hand to collector if not host
                 if (pileWinnerId !== currentUserId) {
                     broadcast("update_my_hand", { playerId: pileWinnerId, cards: collectorHand });
                 } else {
                     setMyCards(collectorHand);
                 }
 
+                // Host display
                 setPile([]);
                 setPlayerCardCounts(updatedCounts);
                 setCurrentTurn(nextTurn);
                 setChallenge(null);
-                setLastAction(`${getMemberName(room.members, pileWinnerId)} takes the pile!`);
+                setLastAction(action);
 
-                // Check for winner
-                const winner = checkWinner(turnOrder, updatedCounts, 52);
+                const winner = checkWinner(order, updatedCounts, 52);
                 if (winner) {
                     broadcast("game_over", { winnerId: winner });
                     setPhase("ended");
                     setWinnerId(winner);
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 }
-
                 return;
             }
 
-            // Determine next turn
+            // Determine next turn — skip eliminated players
             let nextTurn: string;
             if (newChallenge && newChallenge.active) {
                 nextTurn = newChallenge.defenderId;
             } else {
-                nextTurn = getNextActivePlayer(playerId, turnOrder, counts);
+                nextTurn = getNextActivePlayer(playerId, order, counts);
             }
+
+            currentTurnRef.current = nextTurn;
+            challengeRef.current = newChallenge;
 
             const characterName = card.character
                 ? `${card.character} (${card.rank})`
@@ -392,14 +395,14 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                 action: actionText,
             });
 
+            // Host display
             setPile(newPile);
             setCurrentTurn(nextTurn);
             setPlayerCardCounts(counts);
             setChallenge(newChallenge);
             setLastAction(actionText);
 
-            // Check for winner
-            const winner = checkWinner(turnOrder, counts, 52);
+            const winner = checkWinner(order, counts, 52);
             if (winner) {
                 setTimeout(() => {
                     broadcast("game_over", { winnerId: winner });
@@ -408,43 +411,36 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 }, 500);
             }
-        };
+        } finally {
+            processingRef.current = false;
+        }
+    }
 
-        // Listen for play requests
-        channel.on("broadcast", { event: "play_card_request" }, handlePlayCardRequest);
+    function processSlapOnHost(playerId: string) {
+        if (processingRef.current) return;
+        processingRef.current = true;
 
-        // Cleanup — we can't easily remove individual broadcast listeners,
-        // but the channel cleanup in the main effect handles it
-    }, [isHost, pile, challenge, turnOrder, currentUserId, room.members, broadcast]);
-
-    // ─── Slap the pile ──────────────────────────────────────
-    const handleSlap = useCallback(() => {
-        broadcast("slap_request", {
-            playerId: currentUserId,
-            timestamp: Date.now(),
-        });
-    }, [currentUserId, broadcast]);
-
-    // ─── Host: Process slap requests ────────────────────────
-    useEffect(() => {
-        if (!isHost || !channelRef.current) return;
-
-        const handleSlapRequest = ({ payload }: any) => {
-            const { playerId } = payload;
+        try {
             const hands = playerHandsRef.current;
-            const slapResult = canSlap(pile);
+            const currentPile = pileRef.current;
+            const order = turnOrderRef.current;
+            const slapResult = canSlap(currentPile);
 
             if (slapResult.valid) {
-                // Valid slap — player takes the pile
-                const collectorHand = [...(hands[playerId] || []), ...pile];
+                const collectorHand = [...(hands[playerId] || []), ...currentPile];
                 hands[playerId] = collectorHand;
+                pileRef.current = [];
 
                 const counts: Record<string, number> = {};
                 Object.keys(hands).forEach((id) => {
                     counts[id] = hands[id]?.length || 0;
                 });
 
-                const nextTurn = getNextActivePlayer(playerId, turnOrder, counts);
+                const nextTurn = getNextActivePlayer(playerId, order, counts);
+                currentTurnRef.current = nextTurn;
+                challengeRef.current = null;
+
+                const action = `${getMemberName(room.members, playerId)} slapped — ${getSlapReasonText(slapResult.reason)} Takes ${currentPile.length} cards!`;
 
                 broadcast("slap_result", {
                     valid: true,
@@ -454,7 +450,7 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                     playerCardCounts: counts,
                     currentTurn: nextTurn,
                     challenge: null,
-                    action: `${getMemberName(room.members, playerId)} slapped — ${getSlapReasonText(slapResult.reason)} Takes ${pile.length} cards!`,
+                    action,
                     targetPlayerId: playerId,
                     updatedHand: playerId === currentUserId ? undefined : collectorHand,
                 });
@@ -465,13 +461,14 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                     broadcast("update_my_hand", { playerId, cards: collectorHand });
                 }
 
+                // Host display
                 setPile([]);
                 setPlayerCardCounts(counts);
                 setCurrentTurn(nextTurn);
                 setChallenge(null);
+                setLastAction(action);
 
-                // Check winner
-                const winner = checkWinner(turnOrder, counts, 52);
+                const winner = checkWinner(order, counts, 52);
                 if (winner) {
                     setTimeout(() => {
                         broadcast("game_over", { winnerId: winner });
@@ -483,13 +480,16 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                 // Wrong slap — penalty
                 const playerHand = hands[playerId] || [];
                 const penaltyCards = playerHand.splice(0, Math.min(WRONG_SLAP_PENALTY, playerHand.length));
-                const newPile = [...penaltyCards, ...pile];
+                const newPile = [...penaltyCards, ...currentPile];
                 hands[playerId] = playerHand;
+                pileRef.current = newPile;
 
                 const counts: Record<string, number> = {};
                 Object.keys(hands).forEach((id) => {
                     counts[id] = hands[id]?.length || 0;
                 });
+
+                const action = `${getMemberName(room.members, playerId)} slapped wrong! Penalty: ${penaltyCards.length} cards to the pile.`;
 
                 broadcast("slap_result", {
                     valid: false,
@@ -497,26 +497,68 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                     reason: "Wrong slap! ❌",
                     pile: newPile,
                     playerCardCounts: counts,
-                    currentTurn: currentTurn,
-                    challenge,
-                    action: `${getMemberName(room.members, playerId)} slapped wrong! Penalty: ${penaltyCards.length} cards to the pile.`,
+                    currentTurn: currentTurnRef.current,
+                    challenge: challengeRef.current,
+                    action,
                     targetPlayerId: playerId,
                     updatedHand: playerHand,
                 });
 
                 if (playerId === currentUserId) {
-                    setMyCards(playerHand);
+                    setMyCards([...playerHand]);
                 } else {
                     broadcast("update_my_hand", { playerId, cards: playerHand });
                 }
 
+                // Host display
                 setPile(newPile);
                 setPlayerCardCounts(counts);
+                setLastAction(action);
             }
-        };
+        } finally {
+            processingRef.current = false;
+        }
+    }
 
-        channelRef.current.on("broadcast", { event: "slap_request" }, handleSlapRequest);
-    }, [isHost, pile, challenge, turnOrder, currentTurn, currentUserId, room.members, broadcast]);
+    // ─── Play a card (client side) ──────────────────────────
+    const handlePlayCard = useCallback(() => {
+        if (myCards.length === 0 || isPlayingCard) return;
+
+        // In a challenge, only the defender can play
+        if (challenge && challenge.defenderId !== currentUserId) return;
+        // Otherwise, must be your turn
+        if (!challenge && currentTurn !== currentUserId) return;
+
+        setIsPlayingCard(true);
+
+        const cardToPlay = myCards[0];
+        setMyCards(prev => prev.slice(1));
+
+        if (isHost) {
+            // ★ Host: process directly (broadcast won't echo back)
+            processPlayCardOnHost(currentUserId, cardToPlay);
+        } else {
+            broadcast("play_card_request", {
+                playerId: currentUserId,
+                card: cardToPlay,
+            });
+        }
+
+        setTimeout(() => setIsPlayingCard(false), 300);
+    }, [myCards, currentTurn, currentUserId, challenge, isPlayingCard, broadcast, isHost]);
+
+    // ─── Slap the pile (client side) ────────────────────────
+    const handleSlap = useCallback(() => {
+        if (isHost) {
+            // ★ Host: process directly
+            processSlapOnHost(currentUserId);
+        } else {
+            broadcast("slap_request", {
+                playerId: currentUserId,
+                timestamp: Date.now(),
+            });
+        }
+    }, [currentUserId, broadcast, isHost]);
 
     // ─── Play again ─────────────────────────────────────────
     const handlePlayAgain = useCallback(() => {
@@ -528,6 +570,8 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
         setLastAction("");
         setLastSlapResult(null);
         playerHandsRef.current = {};
+        pileRef.current = [];
+        challengeRef.current = null;
 
         broadcast("game_state", {
             phase: "dealing",
@@ -540,7 +584,6 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
             lastAction: "Shuffling cards... 🃏",
         });
 
-        // Re-deal after short delay
         setTimeout(() => {
             const deck = createDeck();
             const order = room.members.map((m) => m.user_id);
@@ -552,15 +595,17 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                 handsMap[id] = hands[i];
                 counts[id] = hands[i].length;
             });
+
             playerHandsRef.current = handsMap;
+            turnOrderRef.current = order;
+            currentTurnRef.current = order[0];
+            pileRef.current = [];
+            challengeRef.current = null;
 
             order.forEach((id) => {
                 broadcast("deal_hand", { playerId: id, cards: handsMap[id] });
             });
-
-            if (handsMap[currentUserId]) {
-                setMyCards(handsMap[currentUserId]);
-            }
+            if (handsMap[currentUserId]) setMyCards(handsMap[currentUserId]);
 
             broadcast("game_state", {
                 phase: "playing",
@@ -586,8 +631,9 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
 
     const isMyTurn = currentTurn === currentUserId;
     const amDefender = challenge?.defenderId === currentUserId;
-    const canPlay = (isMyTurn && !challenge) || amDefender;
+    const canPlayCard = (isMyTurn && !challenge) || amDefender;
     const canSlapPile = pile.length >= 2;
+    const isEliminated = myCards.length === 0 && phase === "playing" && Object.keys(playerCardCounts).length > 0;
 
     // ─── Dealing Phase ──────────────────────────────────────
     if (phase === "dealing") {
@@ -679,9 +725,29 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                     {lastAction}
                 </div>
                 <div className="text-[10px] font-bold text-warm-grey/40">
-                    Your cards: {myCards.length}
+                    {isEliminated ? "👁️ Spectating" : `Your cards: ${myCards.length}`}
                 </div>
             </div>
+
+            {/* Spectator Banner */}
+            <AnimatePresence>
+                {isEliminated && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="bg-stone-100 border border-stone-200/50 rounded-2xl px-4 py-3 text-center"
+                    >
+                        <div className="flex items-center justify-center gap-2 text-xs font-bold text-warm-grey">
+                            <Eye className="w-4 h-4" />
+                            You&apos;re out of cards! Spectating the game...
+                        </div>
+                        <p className="text-[9px] text-warm-grey/50 mt-1">
+                            Watch the action unfold! 👀
+                        </p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Challenge Info */}
             <AnimatePresence>
@@ -739,56 +805,50 @@ export function EgyptianRatScrew({ room, currentUserId, isHost, onGameEnd }: Egy
                         name={getMemberName(room.members, currentUserId)}
                         avatarUrl={getMemberAvatar(room.members, currentUserId)}
                         cardCount={myCards.length}
-                        isActive={canPlay}
+                        isActive={canPlayCard}
                         isCurrentUser={true}
-                        isEliminated={myCards.length === 0}
+                        isEliminated={isEliminated}
                         position="bottom"
                     />
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3">
-                        {/* Play Card Button */}
-                        <button
-                            onClick={handlePlayCard}
-                            disabled={!canPlay || myCards.length === 0 || isPlayingCard}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
-                                canPlay && myCards.length > 0
-                                    ? "bg-warm-cocoa text-white shadow-lg shadow-warm-cocoa/20 hover:bg-warm-cocoa/90"
-                                    : "bg-stone-200 text-stone-400 cursor-not-allowed shadow-none"
-                            }`}
-                        >
-                            {isPlayingCard ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <span className="text-lg">🃏</span>
-                            )}
-                            {canPlay ? "Play Card" : "Wait..."}
-                        </button>
+                    {/* Action Buttons — hidden when spectating */}
+                    {!isEliminated && (
+                        <div className="flex items-center gap-3">
+                            {/* Play Card Button */}
+                            <button
+                                onClick={handlePlayCard}
+                                disabled={!canPlayCard || myCards.length === 0 || isPlayingCard}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+                                    canPlayCard && myCards.length > 0
+                                        ? "bg-warm-cocoa text-white shadow-lg shadow-warm-cocoa/20 hover:bg-warm-cocoa/90"
+                                        : "bg-stone-200 text-stone-400 cursor-not-allowed shadow-none"
+                                }`}
+                            >
+                                {isPlayingCard ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <span className="text-lg">🃏</span>
+                                )}
+                                {canPlayCard ? "Play Card" : "Wait..."}
+                            </button>
 
-                        {/* Slap Button */}
-                        <button
-                            onClick={handleSlap}
-                            disabled={!canSlapPile}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
-                                canSlapPile
-                                    ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600 animate-pulse"
-                                    : "bg-stone-200 text-stone-400 cursor-not-allowed shadow-none"
-                            }`}
-                        >
-                            <Hand className="w-4 h-4" />
-                            SLAP!
-                        </button>
-                    </div>
-
-                    {/* Top card preview */}
-                    {myCards.length > 0 && (
-                        <div className="flex items-center gap-2 mt-1">
-                            <p className="text-[9px] text-warm-grey/40 italic">Next card:</p>
-                            <div className="scale-75 origin-left">
-                                <PlayingCard card={myCards[0]} faceUp={canPlay} size="sm" />
-                            </div>
+                            {/* Slap Button — anyone can slap, even when not their turn */}
+                            <button
+                                onClick={handleSlap}
+                                disabled={!canSlapPile}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+                                    canSlapPile
+                                        ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600 animate-pulse"
+                                        : "bg-stone-200 text-stone-400 cursor-not-allowed shadow-none"
+                                }`}
+                            >
+                                <Hand className="w-4 h-4" />
+                                SLAP!
+                            </button>
                         </div>
                     )}
+
+                    {/* No card preview — in ERS you play blind! */}
                 </div>
             </div>
         </div>
