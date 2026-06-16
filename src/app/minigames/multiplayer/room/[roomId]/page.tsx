@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/client";
-import { Users, Crown, LogOut, Play, Loader2, ArrowLeft, Gamepad2 } from "lucide-react";
+import { Users, Crown, LogOut, Play, Loader2, ArrowLeft, Gamepad2, Shuffle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SistersSketch } from "@/components/minigames/multiplayer/sketch/SistersSketch";
 import { EgyptianRatScrew } from "@/components/minigames/multiplayer/cards/EgyptianRatScrew";
@@ -64,6 +64,7 @@ export default function GameRoomPage() {
     const [error, setError] = useState<string | null>(null);
     const [isStarting, setIsStarting] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
+    const [showGamePicker, setShowGamePicker] = useState(false);
 
     // Fetch current user
     useEffect(() => {
@@ -176,6 +177,16 @@ export default function GameRoomPage() {
             .from("game_rooms")
             .update({ status: "playing" })
             .eq("id", room.id);
+    }, [room, isHost]);
+
+    // Change game (host only)
+    const handleChangeGame = useCallback(async (newGameType: string) => {
+        if (!room || !isHost) return;
+        await supabase
+            .from("game_rooms")
+            .update({ game_type: newGameType })
+            .eq("id", room.id);
+        setShowGamePicker(false);
     }, [room, isHost]);
 
     // ─── RENDER ─────────────────────────────────────────────
@@ -355,22 +366,76 @@ export default function GameRoomPage() {
                 <div className="flex flex-col gap-3 items-center">
                     {/* Host: Start Game button */}
                     {isHost && room.status === "waiting" && (
-                        <button
-                            onClick={handleStartGame}
-                            disabled={memberCount < 2 || isStarting}
-                            className={`w-full max-w-xs flex items-center justify-center gap-2 py-3.5 rounded-xl font-serif text-sm font-bold transition-all active:scale-95 shadow-lg ${
-                                memberCount < 2
-                                    ? "bg-stone-200 text-stone-400 cursor-not-allowed shadow-none"
-                                    : "bg-warm-cocoa text-white hover:bg-warm-cocoa/90 shadow-warm-cocoa/20"
-                            }`}
-                        >
-                            {isStarting ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Play className="w-4 h-4" />
-                            )}
-                            {memberCount < 2 ? "Need at least 2 players" : "Start Game"}
-                        </button>
+                        <div className="w-full max-w-xs flex flex-col gap-3">
+                            <button
+                                onClick={handleStartGame}
+                                disabled={memberCount < 2 || isStarting}
+                                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-serif text-sm font-bold transition-all active:scale-95 shadow-lg ${
+                                    memberCount < 2
+                                        ? "bg-stone-200 text-stone-400 cursor-not-allowed shadow-none"
+                                        : "bg-warm-cocoa text-white hover:bg-warm-cocoa/90 shadow-warm-cocoa/20"
+                                }`}
+                            >
+                                {isStarting ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Play className="w-4 h-4" />
+                                )}
+                                {memberCount < 2 ? "Need at least 2 players" : "Start Game"}
+                            </button>
+
+                            {/* Change Game Button */}
+                            <button
+                                onClick={() => setShowGamePicker(!showGamePicker)}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/60 hover:bg-white border border-stone-200/40 text-xs font-bold text-warm-cocoa transition-all active:scale-95"
+                            >
+                                <Shuffle className="w-3.5 h-3.5" />
+                                {showGamePicker ? "Cancel" : "Change Game"}
+                            </button>
+
+                            {/* Game Picker */}
+                            <AnimatePresence>
+                                {showGamePicker && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="bg-white/60 border border-stone-200/40 rounded-2xl p-3 flex flex-col gap-2">
+                                            <p className="text-[9px] text-warm-grey/40 uppercase tracking-wider font-bold text-center mb-1">
+                                                Pick a different game
+                                            </p>
+                                            {Object.entries(GAME_INFO).map(([key, info]) => (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => handleChangeGame(key)}
+                                                    disabled={room.game_type === key}
+                                                    className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left transition-all active:scale-[0.98] ${
+                                                        room.game_type === key
+                                                            ? "bg-amber-50 border border-amber-200/50 ring-2 ring-amber-400/50"
+                                                            : "bg-white hover:bg-stone-50 border border-stone-200/30 cursor-pointer"
+                                                    }`}
+                                                >
+                                                    <span className="text-2xl">{info.emoji}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-bold text-warm-cocoa">
+                                                            {info.name}
+                                                            {room.game_type === key && (
+                                                                <span className="ml-1.5 text-[8px] text-amber-600 font-bold uppercase">
+                                                                    Current
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                        <p className="text-[9px] text-warm-grey/50 truncate">{info.description}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     )}
 
                     {/* Playing state — Sisters Sketch */}
