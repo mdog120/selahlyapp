@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/client";
-import { Users, Crown, LogOut, Play, Loader2, ArrowLeft, Gamepad2, Shuffle } from "lucide-react";
+import { Users, Crown, LogOut, Play, Loader2, ArrowLeft, Gamepad2, Shuffle, MessageCircle, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SistersSketch } from "@/components/minigames/multiplayer/sketch/SistersSketch";
 import { EgyptianRatScrew } from "@/components/minigames/multiplayer/cards/EgyptianRatScrew";
@@ -67,6 +67,13 @@ export default function GameRoomPage() {
     const [isStarting, setIsStarting] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
     const [showGamePicker, setShowGamePicker] = useState(false);
+
+    // Chat state
+    type ChatMessage = { id: string; userId: string; name: string; avatarUrl: string; text: string; timestamp: number };
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [chatInput, setChatInput] = useState("");
+    const chatEndRef = useRef<HTMLDivElement>(null);
+    const chatChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
     // Fetch current user
     useEffect(() => {
@@ -131,6 +138,57 @@ export default function GameRoomPage() {
             supabase.removeChannel(channel);
         };
     }, [currentUserId, roomId]);
+
+    // Chat broadcast channel
+    useEffect(() => {
+        if (!currentUserId || !roomId) return;
+
+        const chatChannel = supabase.channel(`room_chat:${roomId}`);
+        chatChannelRef.current = chatChannel;
+
+        chatChannel
+            .on("broadcast", { event: "chat_message" }, (payload) => {
+                const msg = payload.payload as ChatMessage;
+                setChatMessages((prev) => [...prev, msg]);
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(chatChannel);
+            chatChannelRef.current = null;
+        };
+    }, [currentUserId, roomId]);
+
+    // Auto-scroll chat
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [chatMessages]);
+
+    const handleSendChat = useCallback(() => {
+        if (!chatInput.trim() || !chatChannelRef.current || !room || !currentUserId) return;
+
+        const myProfile = room.members.find((m) => m.user_id === currentUserId);
+        const msg: ChatMessage = {
+            id: `${Date.now()}-${currentUserId}`,
+            userId: currentUserId,
+            name: myProfile?.first_name || "Sister",
+            avatarUrl: myProfile?.avatar_url || "",
+            text: chatInput.trim(),
+            timestamp: Date.now(),
+        };
+
+        // Add locally immediately
+        setChatMessages((prev) => [...prev, msg]);
+
+        // Broadcast to others
+        chatChannelRef.current.send({
+            type: "broadcast",
+            event: "chat_message",
+            payload: msg,
+        });
+
+        setChatInput("");
+    }, [chatInput, room, currentUserId]);
 
     const isHost = room?.host_id === currentUserId;
     const isMember = room?.members?.some((m) => m.user_id === currentUserId) ?? false;
@@ -509,6 +567,81 @@ export default function GameRoomPage() {
                         ))}
                     </div>
                 </div>
+
+                {/* Room Chat */}
+                {room.status === "waiting" && (
+                    <div className="bg-white/50 border border-warm-grey/5 rounded-3xl p-5 shadow-sm mb-6">
+                        <h3 className="font-serif text-sm font-bold text-warm-cocoa mb-3 flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4 text-muted-rose" />
+                            Room Chat
+                        </h3>
+
+                        {/* Messages area */}
+                        <div className="bg-warm-paper/50 rounded-2xl border border-stone-100 p-3 mb-3 max-h-[200px] min-h-[100px] overflow-y-auto">
+                            {chatMessages.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-6 text-center">
+                                    <span className="text-2xl mb-1">💬</span>
+                                    <p className="text-[10px] text-warm-grey/40 italic">Say hi while you wait! Messages are live.</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    {chatMessages.map((msg) => {
+                                        const isMe = msg.userId === currentUserId;
+                                        return (
+                                            <div key={msg.id} className={`flex items-start gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
+                                                {/* Avatar */}
+                                                <div className="flex-shrink-0">
+                                                    {msg.avatarUrl ? (
+                                                        <img src={msg.avatarUrl} alt={msg.name} className="w-6 h-6 rounded-full object-cover border border-stone-200" />
+                                                    ) : (
+                                                        <div className={`w-6 h-6 rounded-full ${getAvatarBg(msg.userId)} flex items-center justify-center text-[8px] font-bold border`}>
+                                                            {msg.name[0]?.toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {/* Bubble */}
+                                                <div className={`max-w-[70%] px-3 py-1.5 rounded-2xl ${
+                                                    isMe
+                                                        ? "bg-warm-cocoa text-white rounded-br-md"
+                                                        : "bg-white border border-stone-100 text-warm-cocoa rounded-bl-md"
+                                                }`}>
+                                                    {!isMe && (
+                                                        <p className="text-[8px] font-bold opacity-60 mb-0.5">{msg.name}</p>
+                                                    )}
+                                                    <p className="text-[11px] leading-snug">{msg.text}</p>
+                                                    <p className={`text-[7px] mt-0.5 ${isMe ? "text-white/40" : "text-warm-grey/30"}`}>
+                                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div ref={chatEndRef} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Input */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
+                                placeholder="Type a message..."
+                                className="flex-1 px-4 py-2.5 rounded-2xl bg-white border border-stone-200/60 text-xs text-warm-cocoa placeholder:text-warm-grey/30 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-300/50 transition-all"
+                                maxLength={200}
+                            />
+                            <button
+                                onClick={handleSendChat}
+                                disabled={!chatInput.trim()}
+                                className="flex items-center justify-center w-9 h-9 rounded-full bg-warm-cocoa text-white transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-warm-cocoa/90 shadow-sm"
+                            >
+                                <Send className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex flex-col gap-3 items-center">

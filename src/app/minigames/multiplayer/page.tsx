@@ -395,32 +395,6 @@ export default function MultiplayerGamesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-7 items-start">
                     {/* ── LEFT: Game Rooms ────────────────────────── */}
                     <div className="md:col-span-8 flex flex-col gap-6">
-                        {/* Create Room Button — large, warm-cocoa→rose gradient, sparkle, glow */}
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="w-full group flex items-center justify-center gap-3 py-5 rounded-[1.6rem] text-white font-serif text-lg font-bold transition-all duration-300 relative overflow-hidden active:scale-[0.97] cursor-pointer"
-                            style={{
-                                background: "linear-gradient(135deg, #6F4E37 0%, #b5838d 60%, #d4a574 100%)",
-                                boxShadow: "0 4px 20px rgba(111,78,55,0.25), 0 0 0 0 rgba(181,131,141,0)",
-                            }}
-                            onMouseEnter={(e) => {
-                                (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                                    "0 8px 32px rgba(111,78,55,0.35), 0 0 24px rgba(181,131,141,0.3)";
-                            }}
-                            onMouseLeave={(e) => {
-                                (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                                    "0 4px 20px rgba(111,78,55,0.25), 0 0 0 0 rgba(181,131,141,0)";
-                            }}
-                        >
-                            {/* Shimmer sweep */}
-                            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                            {/* Subtle inner glow */}
-                            <span className="absolute inset-0 rounded-[1.6rem] ring-1 ring-inset ring-white/10" />
-                            <Sparkles className="w-5 h-5 relative z-10 drop-shadow-sm" />
-                            <span className="relative z-10 drop-shadow-sm">Create a Game Room</span>
-                            <Plus className="w-5 h-5 relative z-10 opacity-60" />
-                        </button>
-
                         {/* Active Rooms List */}
                         <div className="bg-white/60 backdrop-blur-sm border border-warm-grey/5 p-6 rounded-[1.6rem] shadow-sm flex flex-col gap-5">
                             <div className="flex items-center justify-between">
@@ -470,6 +444,15 @@ export default function MultiplayerGamesPage() {
                                             onJoin={handleJoinRoom}
                                         />
                                     ))}
+
+                                    {/* Small link to create your own room */}
+                                    <button
+                                        onClick={() => setShowCreateModal(true)}
+                                        className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-warm-cocoa/50 hover:text-warm-cocoa transition-colors cursor-pointer group"
+                                    >
+                                        <Plus className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                        Create your own room →
+                                    </button>
                                 </div>
                             )}
                         </div>
