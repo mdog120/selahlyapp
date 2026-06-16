@@ -11,6 +11,7 @@ import { SistersSketch } from "@/components/minigames/multiplayer/sketch/Sisters
 import { EgyptianRatScrew } from "@/components/minigames/multiplayer/cards/EgyptianRatScrew";
 import { ChristianCrazy8 } from "@/components/minigames/multiplayer/cards/ChristianCrazy8";
 import { Wavelength } from "@/components/minigames/multiplayer/wavelength/Wavelength";
+import { Spyfall } from "@/components/minigames/multiplayer/spyfall/Spyfall";
 
 interface RoomMember {
     user_id: string;
@@ -35,6 +36,7 @@ const GAME_INFO: Record<string, { emoji: string; name: string; description: stri
     wavelength: { emoji: "📡", name: "Wavelength", description: "Guess where Bible concepts fall on the spectrum" },
     card_rooms: { emoji: "🃏", name: "Egyptian Rat Screw", description: "Bible character card slap game" },
     crazy_8s: { emoji: "🎴", name: "Christian Crazy 8s", description: "Match virtues & Bible characters" },
+    spyfall: { emoji: "🕵️", name: "Bible Spyfall", description: "Find the spy among the Bible characters" },
 };
 
 const getAvatarBg = (id: string) => {
@@ -486,8 +488,20 @@ export default function GameRoomPage() {
                         />
                     )}
 
+                    {/* Playing state — Spyfall */}
+                    {room.status === "playing" && room.game_type === "spyfall" && (
+                        <Spyfall
+                            room={room}
+                            currentUserId={currentUserId!}
+                            isHost={isHost}
+                            onGameEnd={() => {
+                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
+                            }}
+                        />
+                    )}
+
                     {/* Playing state placeholder for unimplemented games */}
-                    {room.status === "playing" && !["sisters_sketch", "card_rooms", "crazy_8s", "wavelength"].includes(room.game_type) && (
+                    {room.status === "playing" && !["sisters_sketch", "card_rooms", "crazy_8s", "wavelength", "spyfall"].includes(room.game_type) && (
                         <div className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center">
                             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-100">
                                 <Gamepad2 className="w-8 h-8 text-emerald-600" />

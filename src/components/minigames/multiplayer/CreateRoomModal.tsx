@@ -46,6 +46,12 @@ const GAMES = [
     game_type: "crazy_8s",
     description: "Match virtues & Bible characters",
   },
+  {
+    emoji: "🕵️",
+    label: "Bible Spyfall",
+    game_type: "spyfall",
+    description: "Find the spy among Bible characters",
+  },
 ];
 
 const MAX_INVITES = 4;
