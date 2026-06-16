@@ -187,6 +187,7 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
     // ─── ALL mutable game state lives in refs (no stale closures) ──
     const allHandsRef = useRef<Record<string, GameCard[]>>({});
     const drawPileRef = useRef<GameCard[]>([]);
+    const discardPileRef = useRef<GameCard[]>([]); // tracks ALL played cards for reshuffle
     const directionRef = useRef<1 | -1>(1);
     const turnOrderRef = useRef<string[]>([]);
     const currentTurnRef = useRef<string>("");
@@ -228,6 +229,28 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
     const broadcast = useCallback((event: string, payload: any) => {
         channelRef.current?.send({ type: "broadcast", event, payload });
     }, []);
+
+    // ─── Reshuffle discard pile into draw pile when empty ──
+    function reshuffleIfNeeded() {
+        if (drawPileRef.current.length > 0) return;
+        // Keep the top discard card, shuffle the rest back
+        const pile = discardPileRef.current;
+        if (pile.length <= 1) return; // nothing to reshuffle
+        const reshuffled = pile.slice(0, -1); // everything except the last (top) card
+        discardPileRef.current = pile.slice(-1); // keep only the top card
+        // Shuffle
+        for (let i = reshuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [reshuffled[i], reshuffled[j]] = [reshuffled[j], reshuffled[i]];
+        }
+        drawPileRef.current = reshuffled;
+    }
+
+    // ─── Safe draw: reshuffle if needed, then draw ──
+    function drawFromPile(): GameCard | undefined {
+        reshuffleIfNeeded();
+        return drawPileRef.current.shift();
+    }
 
     // ═══════════════════════════════════════════════════════
     // SINGLE CHANNEL SETUP — ALL listeners registered ONCE
@@ -329,6 +352,7 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
             // Set ALL refs
             allHandsRef.current = handsMap;
             drawPileRef.current = drawPile;
+            discardPileRef.current = [firstDiscard];
             directionRef.current = 1;
             turnOrderRef.current = order;
             currentTurnRef.current = order[0];
@@ -377,6 +401,9 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                 hands[playerId] = hands[playerId].filter((c: GameCard) => c.id !== card.id);
             }
 
+            // Track the played card in the discard pile
+            discardPileRef.current.push(card);
+
             const counts: Record<string, number> = {};
             Object.keys(hands).forEach((id) => { counts[id] = hands[id]?.length || 0; });
 
@@ -394,7 +421,7 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                 case "draw2": {
                     const victim = getNextPlayerRef(playerId);
                     for (let i = 0; i < 2; i++) {
-                        const c = drawPileRef.current.shift();
+                        const c = drawFromPile();
                         if (c && hands[victim]) hands[victim] = [...hands[victim], c];
                     }
                     counts[victim] = hands[victim]?.length || 0;
@@ -406,7 +433,7 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
                 case "plus4": {
                     const victim4 = getNextPlayerRef(playerId);
                     for (let i = 0; i < 4; i++) {
-                        const c = drawPileRef.current.shift();
+                        const c = drawFromPile();
                         if (c && hands[victim4]) hands[victim4] = [...hands[victim4], c];
                     }
                     counts[victim4] = hands[victim4]?.length || 0;
@@ -478,8 +505,8 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
             if (playerId !== currentTurnRef.current) return;
 
             const hands = allHandsRef.current;
-            const drawn = drawPileRef.current.shift();
-            if (!drawn) return;
+            const drawn = drawFromPile();
+            if (!drawn) return; // truly no cards left at all
 
             if (hands[playerId]) hands[playerId] = [...hands[playerId], drawn];
 
@@ -597,6 +624,7 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd }: Chri
 
             allHandsRef.current = handsMap;
             drawPileRef.current = drawPile;
+            discardPileRef.current = [firstDiscard];
             directionRef.current = 1;
             turnOrderRef.current = order;
             currentTurnRef.current = order[0];
