@@ -31,16 +31,8 @@ export function NotificationDropdown() {
     const supabase = createClient();
     const router = useRouter();
 
-    useEffect(() => {
-        if (typeof window !== "undefined" && "Notification" in window) {
-            const hasPrompted = localStorage.getItem("notification_prompted");
-            if (Notification.permission === "default" && !hasPrompted) {
-                Notification.requestPermission().then(() => {
-                    localStorage.setItem("notification_prompted", "true");
-                });
-            }
-        }
-    }, []);
+    // Note: Push notification permission and FCM registration is handled by FCMProvider.
+    // This component only manages the in-app notification dropdown UI.
 
     useEffect(() => {
         if (isOpen && unreadCount > 0) {
@@ -69,12 +61,6 @@ export function NotificationDropdown() {
                 }, (payload) => {
                     console.log('New notification for current user!', payload);
                     fetchNotifications(user.id); // Refresh list on new item
-
-                    // Trigger local system notification
-                    const newNotif = payload.new as any;
-                    if (newNotif && newNotif.actor_id) {
-                        fetchActorAndNotify(newNotif.actor_id, newNotif.type);
-                    }
                 })
                 .subscribe();
         };
@@ -119,33 +105,7 @@ export function NotificationDropdown() {
         }
     }
 
-    async function fetchActorAndNotify(actorId: string, type: string) {
-        if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
-            return;
-        }
 
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name')
-            .eq('id', actorId)
-            .single();
-
-        const name = profile?.first_name || "Someone";
-        let action = "sent you a notification.";
-        if (type === 'like') action = "liked your post.";
-        else if (type === 'comment') action = "commented on your post.";
-        else if (type === 'reply') action = "replied to your question.";
-        else if (type === 'pray' || type === 'prayer') action = "prayed for you.";
-        else if (type === 'friend_request') action = "sent you a friend request.";
-        else if (type === 'message') action = "sent you a message.";
-        else if (type === 'post') action = "shared a new post.";
-        else if (type === 'mention') action = "mentioned you.";
-
-        new window.Notification("Selahly ౨ৎ", {
-            body: `${name} ${action}`,
-            icon: "/logo-v2.svg"
-        });
-    }
 
     async function handleRead(notificationId: string) {
         const { error } = await supabase

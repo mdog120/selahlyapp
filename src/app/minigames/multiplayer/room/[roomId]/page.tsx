@@ -184,6 +184,7 @@ export default function GameRoomPage() {
     // Change game (host only)
     const handleChangeGame = useCallback(async (newGameType: string) => {
         if (!room || !isHost) return;
+        setIsStarting(false);
         setRoom((prev) => prev ? { ...prev, game_type: newGameType, status: "waiting" } : prev);
         setShowGamePicker(false);
         await supabase
@@ -191,6 +192,44 @@ export default function GameRoomPage() {
             .update({ game_type: newGameType, status: "waiting" })
             .eq("id", room.id);
     }, [room, isHost]);
+
+    // ─── Lock scroll during gameplay (mobile) ───────────────
+    const isPlaying = room?.status === "playing";
+    useEffect(() => {
+        if (!isPlaying) return;
+
+        const html = document.documentElement;
+        const body = document.body;
+
+        // Save original styles
+        const origHtmlOverflow = html.style.overflow;
+        const origBodyOverflow = body.style.overflow;
+        const origBodyPosition = body.style.position;
+        const origBodyWidth = body.style.width;
+        const origBodyHeight = body.style.height;
+        const origTouchAction = body.style.touchAction;
+        const scrollY = window.scrollY;
+
+        // Lock everything
+        html.style.overflow = "hidden";
+        body.style.overflow = "hidden";
+        body.style.position = "fixed";
+        body.style.width = "100%";
+        body.style.height = "100%";
+        body.style.touchAction = "manipulation";
+        body.style.top = `-${scrollY}px`;
+
+        return () => {
+            html.style.overflow = origHtmlOverflow;
+            body.style.overflow = origBodyOverflow;
+            body.style.position = origBodyPosition;
+            body.style.width = origBodyWidth;
+            body.style.height = origBodyHeight;
+            body.style.touchAction = origTouchAction;
+            body.style.top = "";
+            window.scrollTo(0, scrollY);
+        };
+    }, [isPlaying]);
 
     // ─── RENDER ─────────────────────────────────────────────
     if (loading) {
@@ -220,6 +259,112 @@ export default function GameRoomPage() {
                         <ArrowLeft className="w-3.5 h-3.5" />
                         Back to Lobby
                     </Link>
+                </div>
+            </div>
+        );
+    }
+
+    // If playing, render a fullscreen game container
+    if (isPlaying) {
+        return (
+            <div
+                className="fixed inset-0 z-50 bg-warm-paper flex flex-col"
+                style={{ touchAction: "manipulation", overscrollBehavior: "none" }}
+            >
+                {/* Minimal top bar during gameplay */}
+                <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-white/80 backdrop-blur-sm border-b border-stone-200/30">
+                    <button
+                        onClick={handleLeave}
+                        disabled={isLeaving}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/60 hover:bg-white border border-stone-200/40 text-[10px] text-warm-cocoa font-bold transition-all active:scale-95"
+                    >
+                        {isLeaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowLeft className="w-3 h-3" />}
+                        Leave
+                    </button>
+                    <span className="text-xs font-serif font-bold text-warm-cocoa flex items-center gap-1.5">
+                        <span className="text-base">{gameInfo?.emoji}</span>
+                        {gameInfo?.name}
+                    </span>
+                    {isHost && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowGamePicker(!showGamePicker)}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-50/80 hover:bg-amber-100 border border-amber-200/50 text-[10px] font-bold text-amber-800 transition-all active:scale-95"
+                            >
+                                <Shuffle className="w-3 h-3" />
+                                Switch
+                            </button>
+                            <AnimatePresence>
+                                {showGamePicker && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                                        className="absolute right-0 top-full mt-1 z-50 w-56"
+                                    >
+                                        <div className="bg-white border border-stone-200/60 rounded-2xl p-2 shadow-xl flex flex-col gap-1">
+                                            {Object.entries(GAME_INFO)
+                                                .filter(([key]) => key !== room.game_type)
+                                                .map(([key, info]) => (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => handleChangeGame(key)}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-stone-50 cursor-pointer"
+                                                >
+                                                    <span className="text-base">{info.emoji}</span>
+                                                    <p className="text-[11px] font-bold text-warm-cocoa">{info.name}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    )}
+                    {!isHost && <div className="w-14" />}
+                </div>
+
+                {/* Game area — fills remaining space, scrollable only internally */}
+                <div
+                    className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3"
+                    style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+                >
+                    {room.game_type === "sisters_sketch" && (
+                        <SistersSketch room={room} currentUserId={currentUserId!} isHost={isHost}
+                            onGameEnd={() => { setIsStarting(false); setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev); supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id); }}
+                            onCloseRoom={handleLeave} />
+                    )}
+                    {room.game_type === "card_rooms" && (
+                        <EgyptianRatScrew room={room} currentUserId={currentUserId!} isHost={isHost}
+                            onGameEnd={() => { setIsStarting(false); setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev); supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id); }}
+                            onCloseRoom={handleLeave} />
+                    )}
+                    {room.game_type === "crazy_8s" && (
+                        <ChristianCrazy8 room={room} currentUserId={currentUserId!} isHost={isHost}
+                            onGameEnd={() => { setIsStarting(false); setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev); supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id); }}
+                            onCloseRoom={handleLeave} />
+                    )}
+                    {room.game_type === "wavelength" && (
+                        <Wavelength room={room} currentUserId={currentUserId!} isHost={isHost}
+                            onGameEnd={() => { setIsStarting(false); setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev); supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id); }}
+                            onCloseRoom={handleLeave} />
+                    )}
+                    {room.game_type === "spyfall" && (
+                        <Spyfall room={room} currentUserId={currentUserId!} isHost={isHost}
+                            onGameEnd={() => { setIsStarting(false); setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev); supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id); }}
+                            onCloseRoom={handleLeave} />
+                    )}
+                    {!["sisters_sketch", "card_rooms", "crazy_8s", "wavelength", "spyfall"].includes(room.game_type) && (
+                        <div className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center">
+                            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-100">
+                                <Gamepad2 className="w-8 h-8 text-emerald-600" />
+                            </div>
+                            <h3 className="font-serif text-lg font-bold text-warm-cocoa mb-2">Game Starting!</h3>
+                            <p className="text-xs text-warm-grey/50 max-w-xs mx-auto leading-relaxed">
+                                {gameInfo?.name} is loading for all players. The full game experience is coming soon — stay tuned! 🌸
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -484,109 +629,19 @@ export default function GameRoomPage() {
                         </div>
                     )}
 
-                    {/* Playing state — Sisters Sketch */}
-                    {room.status === "playing" && room.game_type === "sisters_sketch" && (
-                        <SistersSketch
-                            room={room}
-                            currentUserId={currentUserId!}
-                            isHost={isHost}
-                            onGameEnd={() => {
-                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
-                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
-                            }}
-                            onCloseRoom={handleLeave}
-                        />
-                    )}
-
-                    {/* Playing state — Egyptian Rat Screw (Card Rooms) */}
-                    {room.status === "playing" && room.game_type === "card_rooms" && (
-                        <EgyptianRatScrew
-                            room={room}
-                            currentUserId={currentUserId!}
-                            isHost={isHost}
-                            onGameEnd={() => {
-                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
-                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
-                            }}
-                            onCloseRoom={handleLeave}
-                        />
-                    )}
-
-                    {/* Playing state — Christian Crazy 8s */}
-                    {room.status === "playing" && room.game_type === "crazy_8s" && (
-                        <ChristianCrazy8
-                            room={room}
-                            currentUserId={currentUserId!}
-                            isHost={isHost}
-                            onGameEnd={() => {
-                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
-                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
-                            }}
-                            onCloseRoom={handleLeave}
-                        />
-                    )}
-
-                    {/* Playing state — Wavelength */}
-                    {room.status === "playing" && room.game_type === "wavelength" && (
-                        <Wavelength
-                            room={room}
-                            currentUserId={currentUserId!}
-                            isHost={isHost}
-                            onGameEnd={() => {
-                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
-                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
-                            }}
-                            onCloseRoom={handleLeave}
-                        />
-                    )}
-
-                    {/* Playing state — Spyfall */}
-                    {room.status === "playing" && room.game_type === "spyfall" && (
-                        <Spyfall
-                            room={room}
-                            currentUserId={currentUserId!}
-                            isHost={isHost}
-                            onGameEnd={() => {
-                                setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev);
-                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
-                            }}
-                            onCloseRoom={handleLeave}
-                        />
-                    )}
-
-                    {/* Playing state placeholder for unimplemented games */}
-                    {room.status === "playing" && !["sisters_sketch", "card_rooms", "crazy_8s", "wavelength", "spyfall"].includes(room.game_type) && (
-                        <div className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center">
-                            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-100">
-                                <Gamepad2 className="w-8 h-8 text-emerald-600" />
-                            </div>
-                            <h3 className="font-serif text-lg font-bold text-warm-cocoa mb-2">Game Starting!</h3>
-                            <p className="text-xs text-warm-grey/50 max-w-xs mx-auto leading-relaxed">
-                                {gameInfo?.name} is loading for all players. The full game experience is coming soon — stay tuned! 🌸
-                            </p>
-                            <div className="mt-4 flex items-center justify-center gap-1.5">
-                                <div className="w-2 h-2 bg-warm-cocoa/30 rounded-full animate-bounce [animation-delay:0ms]" />
-                                <div className="w-2 h-2 bg-warm-cocoa/30 rounded-full animate-bounce [animation-delay:150ms]" />
-                                <div className="w-2 h-2 bg-warm-cocoa/30 rounded-full animate-bounce [animation-delay:300ms]" />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Leave Button — hidden when a game component is actively rendered (it has its own end-screen buttons) */}
-                    {room.status !== "playing" && (
-                        <button
-                            onClick={handleLeave}
-                            disabled={isLeaving}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95"
-                        >
-                            {isLeaving ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                                <LogOut className="w-3.5 h-3.5" />
-                            )}
-                            {isHost ? "Close Room" : "Leave Room"}
-                        </button>
-                    )}
+                    {/* Leave Button */}
+                    <button
+                        onClick={handleLeave}
+                        disabled={isLeaving}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95"
+                    >
+                        {isLeaving ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                            <LogOut className="w-3.5 h-3.5" />
+                        )}
+                        {isHost ? "Close Room" : "Leave Room"}
+                    </button>
                 </div>
             </div>
         </div>

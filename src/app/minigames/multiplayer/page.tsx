@@ -348,56 +348,117 @@ export default function MultiplayerGamesPage() {
             />
 
             <div className="container mx-auto px-4 pt-24 max-w-4xl">
-                <header className="mb-6 flex flex-col items-start gap-4">
+                {/* ── Header ─────────────────────────────────────── */}
+                <header className="mb-8 flex flex-col items-start gap-5">
+                    {/* Back Button — pill with arrow hover-slide */}
                     <Link
                         href="/minigames"
-                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/60 hover:bg-white border border-stone-200/40 text-xs text-warm-cocoa font-bold transition-all shadow-sm hover:scale-[1.02] active:scale-95 duration-200 cursor-pointer"
+                        className="group flex items-center gap-2 px-5 py-2 rounded-full bg-white/70 hover:bg-white border border-stone-200/50 text-xs text-warm-cocoa font-bold transition-all shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 duration-200 cursor-pointer backdrop-blur-sm"
                     >
-                        ← Back to Arcade
+                        <span className="inline-block transition-transform duration-200 group-hover:-translate-x-1">←</span>
+                        Back to Arcade
                     </Link>
-                    
-                    <div className="text-center w-full">
-                        <h1 className="font-serif text-3xl text-warm-cocoa font-bold mb-1 flex items-center justify-center gap-2">
-                            <span className="text-2xl">👥</span> Multiplayer Lobby <span className="text-2xl">👥</span>
+
+                    {/* Title with decorative gradient backdrop */}
+                    <div className="text-center w-full relative py-4">
+                        {/* Decorative background shape */}
+                        <div
+                            className="absolute inset-0 mx-auto rounded-[2rem] opacity-[0.07] pointer-events-none"
+                            style={{
+                                background: "radial-gradient(ellipse at 50% 40%, #b5838d 0%, transparent 70%)",
+                            }}
+                        />
+                        <div
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full opacity-[0.04] pointer-events-none"
+                            style={{
+                                background: "radial-gradient(circle, #d4a574 0%, transparent 70%)",
+                            }}
+                        />
+                        <h1 className="font-serif text-4xl md:text-[2.6rem] text-warm-cocoa font-bold mb-2 flex items-center justify-center gap-3 relative z-10 drop-shadow-sm">
+                            <span className="text-3xl animate-pulse" style={{ animationDuration: "3s" }}>👥</span>
+                            Multiplayer Lobby
+                            <span className="text-3xl animate-pulse" style={{ animationDuration: "3s", animationDelay: "1.5s" }}>👥</span>
                         </h1>
-                        <p className="text-xs text-warm-grey/50 italic">
-                            "Where two or three gather in my name..." — Matthew 18:20
+                        <p className="text-sm text-warm-grey/50 italic relative z-10 font-serif">
+                            &ldquo;Where two or three gather in my name...&rdquo; — Matthew 18:20
                         </p>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start mt-8">
-                    {/* LEFT: Game Rooms */}
+                {/* ── Visual divider ─────────────────────────────── */}
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-warm-cocoa/15 to-transparent" />
+                    <Sparkles className="w-3.5 h-3.5 text-warm-cocoa/20" />
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-warm-cocoa/15 to-transparent" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-7 items-start">
+                    {/* ── LEFT: Game Rooms ────────────────────────── */}
                     <div className="md:col-span-8 flex flex-col gap-6">
-                        {/* Create Room Button */}
+                        {/* Create Room Button — large, warm-cocoa→rose gradient, sparkle, glow */}
                         <button
                             onClick={() => setShowCreateModal(true)}
-                            className="w-full group flex items-center justify-center gap-2 py-4 rounded-3xl bg-gradient-to-r from-warm-cocoa to-warm-cocoa/90 text-white font-serif text-sm font-bold transition-all hover:shadow-lg hover:shadow-warm-cocoa/20 active:scale-[0.98] duration-200 relative overflow-hidden"
+                            className="w-full group flex items-center justify-center gap-3 py-5 rounded-[1.6rem] text-white font-serif text-lg font-bold transition-all duration-300 relative overflow-hidden active:scale-[0.97] cursor-pointer"
+                            style={{
+                                background: "linear-gradient(135deg, #6F4E37 0%, #b5838d 60%, #d4a574 100%)",
+                                boxShadow: "0 4px 20px rgba(111,78,55,0.25), 0 0 0 0 rgba(181,131,141,0)",
+                            }}
+                            onMouseEnter={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                                    "0 8px 32px rgba(111,78,55,0.35), 0 0 24px rgba(181,131,141,0.3)";
+                            }}
+                            onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                                    "0 4px 20px rgba(111,78,55,0.25), 0 0 0 0 rgba(181,131,141,0)";
+                            }}
                         >
-                            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                            <Plus className="w-4 h-4" />
-                            Create a Game Room
+                            {/* Shimmer sweep */}
+                            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                            {/* Subtle inner glow */}
+                            <span className="absolute inset-0 rounded-[1.6rem] ring-1 ring-inset ring-white/10" />
+                            <Sparkles className="w-5 h-5 relative z-10 drop-shadow-sm" />
+                            <span className="relative z-10 drop-shadow-sm">Create a Game Room</span>
+                            <Plus className="w-5 h-5 relative z-10 opacity-60" />
                         </button>
 
                         {/* Active Rooms List */}
-                        <div className="bg-white/50 border border-warm-grey/5 p-5 rounded-3xl shadow-sm flex flex-col gap-4">
+                        <div className="bg-white/60 backdrop-blur-sm border border-warm-grey/5 p-6 rounded-[1.6rem] shadow-sm flex flex-col gap-5">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-serif text-sm font-bold text-warm-cocoa flex items-center gap-2">
+                                <h3 className="font-serif text-base font-bold text-warm-cocoa flex items-center gap-2">
                                     <Sparkles className="w-4 h-4 text-amber-500" />
                                     Open Game Rooms
                                 </h3>
-                                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/30">
+                                <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/30 shadow-sm">
                                     {waitingRooms.length} {waitingRooms.length === 1 ? "room" : "rooms"}
                                 </span>
                             </div>
 
                             {waitingRooms.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-10 px-4 text-center bg-white/40 border border-dashed border-stone-200/60 rounded-2xl">
-                                    <span className="text-3xl mb-2">🏠</span>
-                                    <h5 className="text-xs font-bold text-warm-cocoa/70 font-serif mb-1">No rooms open yet</h5>
-                                    <p className="text-[10px] leading-relaxed text-warm-grey/50 italic max-w-xs">
+                                <div
+                                    className="flex flex-col items-center justify-center py-14 px-6 text-center rounded-2xl border border-dashed border-stone-200/60 relative overflow-hidden"
+                                    style={{
+                                        background: "linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(251,247,243,0.5) 100%)",
+                                    }}
+                                >
+                                    {/* Subtle dot pattern */}
+                                    <div
+                                        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                                        style={{
+                                            backgroundImage: "radial-gradient(circle, #6F4E37 1px, transparent 1px)",
+                                            backgroundSize: "20px 20px",
+                                        }}
+                                    />
+                                    <span className="text-5xl mb-3 relative z-10">🏠</span>
+                                    <h5 className="text-sm font-bold text-warm-cocoa/80 font-serif mb-2 relative z-10">No rooms open yet</h5>
+                                    <p className="text-xs leading-relaxed text-warm-grey/55 italic max-w-xs relative z-10">
                                         Be the first to create a game room and invite your sisters to play together! 🌸
                                     </p>
+                                    <button
+                                        onClick={() => setShowCreateModal(true)}
+                                        className="mt-4 text-xs font-bold text-warm-cocoa/70 hover:text-warm-cocoa underline underline-offset-2 decoration-warm-cocoa/20 hover:decoration-warm-cocoa/40 transition-colors relative z-10 cursor-pointer"
+                                    >
+                                        Create the first room →
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-3">
@@ -414,36 +475,49 @@ export default function MultiplayerGamesPage() {
                         </div>
                     </div>
 
-                    {/* RIGHT: Sisters Online */}
+                    {/* ── RIGHT: Sisters Online ──────────────────── */}
                     <div className="md:col-span-4 flex flex-col gap-6">
-                        {/* Current User Status */}
+                        {/* Current User Status — gradient bg, larger avatar */}
                         {currentUserProfile && (
-                            <div className="bg-white/50 border border-warm-grey/5 p-4 rounded-3xl shadow-sm text-left flex flex-col gap-3">
-                                <h4 className="text-[10px] font-bold tracking-wider text-warm-grey/40 uppercase">Your Status</h4>
-                                <div className="flex items-center gap-3 p-2 rounded-2xl bg-white border border-stone-100 shadow-sm">
-                                    <div className="relative">
+                            <div
+                                className="border border-white/40 p-5 rounded-[1.6rem] shadow-sm text-left flex flex-col gap-3 relative overflow-hidden"
+                                style={{
+                                    background: "linear-gradient(160deg, rgba(255,255,255,0.7) 0%, rgba(212,165,116,0.08) 50%, rgba(181,131,141,0.08) 100%)",
+                                }}
+                            >
+                                {/* Decorative corner glow */}
+                                <div
+                                    className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-[0.08] pointer-events-none"
+                                    style={{ background: "radial-gradient(circle, #b5838d 0%, transparent 70%)" }}
+                                />
+                                <h4 className="text-[10px] font-bold tracking-widest text-warm-cocoa/40 uppercase flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    Your Status
+                                </h4>
+                                <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/80 backdrop-blur-sm border border-stone-100/80 shadow-sm">
+                                    <div className="relative flex-shrink-0">
                                         {currentUserProfile.avatar_url ? (
                                             <img
                                                 src={currentUserProfile.avatar_url}
                                                 alt={currentUserProfile.first_name}
-                                                className="w-10 h-10 rounded-full object-cover border border-stone-200"
+                                                className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
                                             />
                                         ) : (
-                                            <div className={`w-10 h-10 rounded-full ${getAvatarBg(currentUserProfile.id)} flex items-center justify-center text-sm font-bold font-sans border shadow-inner`}>
+                                            <div className={`w-12 h-12 rounded-full ${getAvatarBg(currentUserProfile.id)} flex items-center justify-center text-base font-bold font-sans border-2 border-white shadow-md`}>
                                                 {currentUserProfile.first_name?.[0]?.toUpperCase() || "S"}
                                             </div>
                                         )}
-                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-sm shadow-emerald-200" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h5 className="text-xs font-bold text-warm-cocoa truncate">
+                                        <h5 className="text-sm font-bold text-warm-cocoa truncate">
                                             {currentUserProfile.first_name}
                                         </h5>
-                                        <p className="text-[9px] text-warm-grey/40 truncate">
+                                        <p className="text-[10px] text-warm-grey/45 truncate">
                                             @{currentUserProfile.username}
                                         </p>
-                                        <p className="text-[9px] text-purple-700 font-medium mt-0.5 flex items-center gap-1">
-                                            <Compass className="w-2.5 h-2.5" />
+                                        <p className="text-[10px] text-purple-700 font-semibold mt-1 flex items-center gap-1 bg-purple-50/60 w-fit px-2 py-0.5 rounded-full">
+                                            <Compass className="w-3 h-3" />
                                             {getFriendlyLocation(currentUserPresence?.location || "/minigames/multiplayer")}
                                         </p>
                                     </div>
@@ -451,54 +525,86 @@ export default function MultiplayerGamesPage() {
                             </div>
                         )}
 
+                        {/* Section divider between panels */}
+                        <div className="hidden md:flex items-center gap-2">
+                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-warm-cocoa/10 to-transparent" />
+                        </div>
+
                         {/* Other Sisters Online */}
-                        <div className="bg-white/50 border border-warm-grey/5 p-5 rounded-3xl shadow-sm flex flex-col gap-4 text-left">
-                            <h3 className="font-serif text-sm font-bold text-warm-cocoa border-b border-warm-grey/5 pb-2 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-muted-rose" /> Sisters in Lobby
+                        <div className="bg-white/60 backdrop-blur-sm border border-warm-grey/5 p-5 rounded-[1.6rem] shadow-sm flex flex-col gap-4 text-left">
+                            <h3 className="font-serif text-sm font-bold text-warm-cocoa border-b border-warm-grey/8 pb-3 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-muted-rose" />
+                                Sisters in Lobby
+                                {otherSisters.length > 0 && (
+                                    <span className="ml-auto text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/30">
+                                        {otherSisters.length} online
+                                    </span>
+                                )}
                             </h3>
 
                             {loading ? (
-                                <div className="flex flex-col gap-3 py-4 items-center justify-center">
-                                    <div className="w-5 h-5 border-2 border-warm-grey/20 border-t-warm-grey/80 rounded-full animate-spin" />
-                                    <p className="text-[10px] text-warm-grey/50">Knocking on lobby door...</p>
+                                <div className="flex flex-col gap-3 py-8 items-center justify-center">
+                                    <div className="w-6 h-6 border-2 border-warm-grey/20 border-t-warm-cocoa/70 rounded-full animate-spin" />
+                                    <p className="text-[11px] text-warm-grey/50 font-medium">Knocking on lobby door...</p>
                                 </div>
                             ) : otherSisters.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-6 px-4 text-center bg-white/40 border border-dashed border-stone-200/60 rounded-2xl">
-                                    <span className="text-xl mb-1">🕊️</span>
-                                    <p className="text-[10px] leading-relaxed text-warm-grey/60 italic">
+                                <div
+                                    className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-2xl border border-dashed border-stone-200/60 relative overflow-hidden"
+                                    style={{
+                                        background: "linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(251,247,243,0.4) 100%)",
+                                    }}
+                                >
+                                    {/* Subtle dot pattern */}
+                                    <div
+                                        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                                        style={{
+                                            backgroundImage: "radial-gradient(circle, #6F4E37 1px, transparent 1px)",
+                                            backgroundSize: "16px 16px",
+                                        }}
+                                    />
+                                    <span className="text-4xl mb-2 relative z-10">🕊️</span>
+                                    <h5 className="text-xs font-bold text-warm-cocoa/70 font-serif mb-1 relative z-10">Just you for now</h5>
+                                    <p className="text-[11px] leading-relaxed text-warm-grey/55 italic max-w-[200px] relative z-10">
                                         No other sisters in the lobby right now. A quiet, peaceful moment. 🤍
                                     </p>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-1">
+                                <div className="flex flex-col gap-2.5 max-h-[340px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-warm-cocoa/10">
                                     {otherSisters.map((sister, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 p-2.5 rounded-2xl bg-white border border-stone-100 shadow-sm transition-all hover:scale-[1.01]">
-                                            <div className="relative">
+                                        <div
+                                            key={idx}
+                                            className="flex items-center gap-3 p-3 rounded-2xl bg-white/80 border border-stone-100/80 shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:bg-white cursor-default"
+                                        >
+                                            <div className="relative flex-shrink-0">
                                                 {sister.avatar_url ? (
                                                     <img
                                                         src={sister.avatar_url}
                                                         alt={sister.first_name}
-                                                        className="w-8 h-8 rounded-full object-cover border border-stone-200"
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
                                                     />
                                                 ) : (
-                                                    <div className={`w-8 h-8 rounded-full ${getAvatarBg(sister.user_id)} flex items-center justify-center text-xs font-bold font-sans border shadow-inner`}>
+                                                    <div className={`w-10 h-10 rounded-full ${getAvatarBg(sister.user_id)} flex items-center justify-center text-sm font-bold font-sans border-2 border-white shadow-sm`}>
                                                         {sister.first_name?.[0]?.toUpperCase() || "S"}
                                                     </div>
                                                 )}
-                                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+                                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-sm shadow-emerald-200" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h5 className="text-[11px] font-bold text-warm-cocoa truncate">{sister.first_name}</h5>
-                                                <p className="text-[9px] text-warm-grey/40 truncate">@{sister.username}</p>
-                                                <p className="text-[9px] text-emerald-800 font-medium mt-0.5">{getFriendlyLocation(sister.location)}</p>
+                                                <h5 className="text-xs font-bold text-warm-cocoa truncate">{sister.first_name}</h5>
+                                                <p className="text-[9px] text-warm-grey/45 truncate">@{sister.username}</p>
+                                                <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-semibold text-emerald-800 bg-emerald-50/70 px-2 py-0.5 rounded-full border border-emerald-100/50">
+                                                    <Compass className="w-2.5 h-2.5" />
+                                                    {getFriendlyLocation(sister.location)}
+                                                </span>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             )}
 
-                            <p className="text-[9px] text-warm-grey/40 text-center italic mt-1 border-t border-warm-grey/5 pt-2 flex items-center justify-center gap-1">
-                                ⚡ Active Lobby Tracker
+                            <p className="text-[9px] text-warm-grey/40 text-center italic mt-1 border-t border-warm-grey/5 pt-3 flex items-center justify-center gap-1.5">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse" />
+                                Active Lobby Tracker
                             </p>
                         </div>
                     </div>
@@ -516,3 +622,4 @@ export default function MultiplayerGamesPage() {
         </div>
     );
 }
+

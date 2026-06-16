@@ -82,40 +82,65 @@ function Crazy8CardView({
     onClick?: () => void;
     size?: "sm" | "md";
 }) {
-    const sizeClasses = size === "sm" ? "w-12 h-[68px]" : "w-16 h-[92px]";
+    const sizeClasses = size === "sm" ? "w-14 h-[78px]" : "w-[72px] h-[102px]";
     const textSize = size === "sm" ? "text-[8px]" : "text-[10px]";
-    const emojiSize = size === "sm" ? "text-lg" : "text-2xl";
+    const emojiSize = size === "sm" ? "text-xl" : "text-2xl";
     const rankSize = size === "sm" ? "text-[7px]" : "text-[9px]";
 
     const isWild = card.type === "wild";
     const isPlus4 = card.type === "plus4";
 
     let bgGradient = "";
-    if (isWild) bgGradient = "bg-gradient-to-br from-purple-50 to-violet-50";
-    else if (isPlus4) bgGradient = "bg-gradient-to-br from-red-50 to-rose-50";
+    if (isWild) bgGradient = "bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50";
+    else if (isPlus4) bgGradient = "bg-gradient-to-br from-red-50 via-rose-50 to-orange-50";
     else if (card.suit) bgGradient = SUITS[card.suit].bgColor;
 
-    return (
+    const wildBorderStyle = isWild ? {
+        background: "linear-gradient(135deg, #a855f7, #6366f1, #ec4899, #a855f7)",
+        backgroundSize: "300% 300%",
+        animation: "shimmer 3s ease infinite",
+        padding: "2px",
+        borderRadius: "14px",
+    } : undefined;
+
+    const plus4BorderStyle = isPlus4 ? {
+        background: "linear-gradient(135deg, #ef4444, #f97316, #ef4444)",
+        backgroundSize: "200% 200%",
+        animation: "shimmer 2s ease infinite",
+        padding: "2px",
+        borderRadius: "14px",
+    } : undefined;
+
+    const outerStyle = wildBorderStyle || plus4BorderStyle;
+
+    const cardInner = (
         <button
             onClick={onClick}
             disabled={!playable && !!onClick}
             className={`
-                ${sizeClasses} rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 p-1
-                transition-all relative overflow-hidden shrink-0
+                ${sizeClasses} rounded-xl flex flex-col items-center justify-center gap-0.5 p-1
+                transition-all duration-200 relative overflow-hidden shrink-0
                 ${bgGradient}
-                ${getCardBorder(card)}
-                ${playable ? "cursor-pointer hover:scale-110 hover:-translate-y-2 hover:shadow-lg active:scale-95 hover:z-10" : ""}
-                ${playable === false ? "opacity-50 cursor-not-allowed" : ""}
-                ${isWild ? "border-purple-300" : ""}
-                ${isPlus4 ? "border-red-300" : ""}
+                ${!isWild && !isPlus4 ? `border-2 ${getCardBorder(card)}` : "border-0"}
+                ${playable ? "cursor-pointer hover:scale-110 hover:-translate-y-3 active:scale-95 hover:z-10" : ""}
+                ${playable === false ? "opacity-40 cursor-not-allowed grayscale-[30%]" : ""}
             `}
+            style={{
+                boxShadow: playable
+                    ? "0 4px 20px rgba(0,0,0,0.15), 0 0 15px rgba(168,85,247,0.2)"
+                    : isPlus4
+                        ? "0 2px 12px rgba(239,68,68,0.25), inset 0 1px 0 rgba(255,255,255,0.6)"
+                        : isWild
+                            ? "0 2px 12px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.6)"
+                            : "0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)",
+            }}
         >
             {card.suit && (
-                <span className={`absolute top-0.5 left-1 ${rankSize} leading-none`}>
+                <span className={`absolute top-0.5 left-1 ${rankSize} leading-none opacity-70`}>
                     {SUITS[card.suit].symbol}
                 </span>
             )}
-            <span className={emojiSize}>{card.emoji}</span>
+            <span className={emojiSize} style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.1))" }}>{card.emoji}</span>
             <span className={`${textSize} font-bold ${getCardColor(card)} leading-tight text-center`}>
                 {card.type === "number" ? card.rank : card.label}
             </span>
@@ -123,28 +148,79 @@ function Crazy8CardView({
                 {card.character}
             </span>
             {(isWild || isPlus4) && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-400 via-amber-400 via-emerald-400 to-blue-400" />
+                <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-400 via-amber-400 via-emerald-400 to-blue-400 opacity-80" />
             )}
+            {/* Inner shine */}
+            <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl" />
         </button>
     );
+
+    if (outerStyle) {
+        return <div style={outerStyle} className="shrink-0">{cardInner}</div>;
+    }
+    return cardInner;
 }
 
 // ─── Card Back ──────────────────────────────────────────────
 
 function CardBack({ count }: { count: number }) {
     return (
-        <div className="relative w-12 h-[68px] rounded-xl bg-gradient-to-br from-warm-cocoa to-warm-cocoa/80 border-2 border-warm-cocoa/40 flex items-center justify-center shadow-sm">
-            <span className="text-white/30 text-lg">✝</span>
-            {count > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-warm-cocoa text-white text-[8px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
-                    {count}
-                </span>
-            )}
+        <div className="relative">
+            {/* Stacked cards behind — offset slightly */}
+            <div
+                className="absolute rounded-xl w-14 h-[78px]"
+                style={{
+                    top: "4px",
+                    left: "4px",
+                    background: "linear-gradient(135deg, #3b1d5e 0%, #2d1b4e 100%)",
+                    border: "2px solid rgba(139,92,246,0.15)",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                }}
+            />
+            <div
+                className="absolute rounded-xl w-14 h-[78px]"
+                style={{
+                    top: "2px",
+                    left: "2px",
+                    background: "linear-gradient(135deg, #4a2570 0%, #3b1d5e 100%)",
+                    border: "2px solid rgba(139,92,246,0.2)",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                }}
+            />
+            {/* Top card of deck */}
+            <div
+                className="relative w-14 h-[78px] rounded-xl flex items-center justify-center"
+                style={{
+                    background: "linear-gradient(145deg, #5b2d8e 0%, #3b1d5e 50%, #2d1b4e 100%)",
+                    border: "2px solid rgba(168,85,247,0.3)",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+                }}
+            >
+                {/* Cross pattern */}
+                <div className="absolute inset-2 rounded-lg border border-purple-400/20 flex items-center justify-center">
+                    <span className="text-purple-300/40 text-xl" style={{ textShadow: "0 0 8px rgba(168,85,247,0.3)" }}>✝</span>
+                </div>
+                {count > 0 && (
+                    <span
+                        className="absolute -top-2 -right-2 text-white text-[9px] font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-purple-200"
+                        style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 2px 8px rgba(124,58,237,0.4)" }}
+                    >
+                        {count}
+                    </span>
+                )}
+            </div>
         </div>
     );
 }
 
 // ─── Suit Picker Modal ──────────────────────────────────────
+
+const SUIT_GRADIENTS: Record<Suit, string> = {
+    love: "linear-gradient(135deg, #ffe4e6 0%, #fda4af 50%, #fb7185 100%)",
+    faith: "linear-gradient(135deg, #fef3c7 0%, #fbbf24 50%, #f59e0b 100%)",
+    hope: "linear-gradient(135deg, #dbeafe 0%, #93c5fd 50%, #60a5fa 100%)",
+    grace: "linear-gradient(135deg, #d1fae5 0%, #6ee7b7 50%, #34d399 100%)",
+};
 
 function SuitPicker({ onPick }: { onPick: (suit: Suit) => void }) {
     return (
@@ -152,24 +228,41 @@ function SuitPicker({ onPick }: { onPick: (suit: Suit) => void }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-warm-cocoa/40 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "radial-gradient(ellipse at center, rgba(45,27,78,0.7) 0%, rgba(15,9,32,0.85) 100%)" }}
         >
             <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                className="bg-white rounded-3xl p-6 max-w-xs w-full shadow-2xl border border-stone-150"
+                initial={{ scale: 0.8, y: 30 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                className="rounded-3xl p-6 max-w-xs w-full"
+                style={{
+                    background: "linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(245,240,255,0.95) 100%)",
+                    boxShadow: "0 25px 60px rgba(0,0,0,0.4), 0 0 40px rgba(168,85,247,0.15), inset 0 1px 0 rgba(255,255,255,0.8)",
+                    border: "1px solid rgba(168,85,247,0.15)",
+                }}
             >
-                <h3 className="font-serif text-lg text-warm-cocoa text-center mb-4 font-bold">Choose a Virtue</h3>
+                <div className="text-center mb-1">
+                    <span className="text-3xl">🌟</span>
+                </div>
+                <h3 className="font-serif text-xl text-warm-cocoa text-center mb-5 font-bold">Choose a Virtue</h3>
                 <div className="grid grid-cols-2 gap-3">
-                    {ALL_SUITS.map((suit) => (
-                        <button
+                    {ALL_SUITS.map((suit, i) => (
+                        <motion.button
                             key={suit}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.08 }}
                             onClick={() => onPick(suit)}
-                            className={`${SUITS[suit].bgColor} ${SUITS[suit].borderColor} border-2 rounded-2xl p-4 flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer`}
+                            className="rounded-2xl p-5 flex flex-col items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer border-2 border-white/50"
+                            style={{
+                                background: SUIT_GRADIENTS[suit],
+                                boxShadow: "0 4px 15px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)",
+                            }}
                         >
-                            <span className="text-2xl">{SUITS[suit].symbol}</span>
-                            <span className={`text-xs font-bold ${SUITS[suit].color}`}>{SUITS[suit].name}</span>
-                        </button>
+                            <span className="text-4xl" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" }}>{SUITS[suit].symbol}</span>
+                            <span className={`text-sm font-bold ${SUITS[suit].color}`}>{SUITS[suit].name}</span>
+                        </motion.button>
                     ))}
                 </div>
             </motion.div>
@@ -657,14 +750,60 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd, onClos
     // RENDER
     // ═══════════════════════════════════════════════════════
 
+    // ─── Shimmer keyframe style (injected once) ─────────
+    const shimmerStyle = `
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(168,85,247,0.3), 0 0 40px rgba(168,85,247,0.1); }
+            50% { box-shadow: 0 0 30px rgba(168,85,247,0.5), 0 0 60px rgba(168,85,247,0.2); }
+        }
+        @keyframes floatCards {
+            0%, 100% { transform: translateY(0px) rotateY(0deg); }
+            25% { transform: translateY(-8px) rotateY(90deg); }
+            50% { transform: translateY(0px) rotateY(180deg); }
+            75% { transform: translateY(-4px) rotateY(270deg); }
+        }
+    `;
+
     // ─── Dealing ────────────────────────────────────────────
     if (phase === "dealing") {
         return (
-            <div className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center">
-                <motion.div animate={{ rotateY: [0, 360] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} className="text-5xl mb-4 inline-block">🃏</motion.div>
-                <h3 className="font-serif text-lg font-bold text-warm-cocoa mb-2">Dealing Cards...</h3>
-                <p className="text-xs text-warm-grey/50">Shuffling the virtues ✨</p>
-            </div>
+            <>
+                <style>{shimmerStyle}</style>
+                <div
+                    className="w-full rounded-3xl p-10 text-center relative overflow-hidden"
+                    style={{
+                        background: "radial-gradient(ellipse at center, #2d1b4e 0%, #1a0f30 70%, #0f0920 100%)",
+                        boxShadow: "inset 0 0 60px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.2)",
+                        border: "1px solid rgba(168,85,247,0.15)",
+                    }}
+                >
+                    {/* Ambient glow */}
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 40%, rgba(168,85,247,0.08) 0%, transparent 70%)" }} />
+                    <motion.div
+                        animate={{ rotateY: [0, 360] }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                        className="text-6xl mb-5 inline-block"
+                        style={{ filter: "drop-shadow(0 4px 12px rgba(168,85,247,0.4))" }}
+                    >🃏</motion.div>
+                    <h3 className="font-serif text-xl font-bold text-purple-100 mb-2" style={{ textShadow: "0 2px 10px rgba(168,85,247,0.3)" }}>Dealing Cards...</h3>
+                    <div className="flex justify-center gap-1 mb-3">
+                        {[0,1,2].map(i => (
+                            <motion.div
+                                key={i}
+                                animate={{ opacity: [0.3, 1, 0.3] }}
+                                transition={{ repeat: Infinity, duration: 1.2, delay: i * 0.2 }}
+                                className="w-2 h-2 rounded-full bg-purple-400"
+                            />
+                        ))}
+                    </div>
+                    <p className="text-xs text-purple-300/60">Shuffling the virtues ✨</p>
+                </div>
+            </>
         );
     }
 
@@ -674,32 +813,67 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd, onClos
         const isWinner = winnerId === currentUserId;
 
         return (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-6 shadow-sm text-center">
-                <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-100">
-                    <Trophy className="w-8 h-8 text-amber-600" />
-                </div>
-                <h2 className="font-serif text-2xl text-warm-cocoa font-bold mb-2">
-                    {isWinner ? "You Win! 🎉" : `${winnerName} Wins!`}
-                </h2>
-                <p className="text-xs text-warm-grey/50 mb-6">
-                    {isWinner ? "You played all your cards! Amazing! ✨" : `${winnerName} played all their cards!`}
-                </p>
-                {isHost ? (
-                    <div className="flex flex-col gap-2">
-                        <button onClick={handlePlayAgain} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-warm-cocoa text-white font-serif text-sm font-bold transition-all active:scale-95 shadow-lg shadow-warm-cocoa/20">
-                            <RotateCcw className="w-4 h-4" /> Play Again
-                        </button>
-                        <button onClick={onGameEnd} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/50 text-xs font-bold text-amber-800 transition-all active:scale-95">
-                            <Shuffle className="w-3.5 h-3.5" /> Choose Another Game
-                        </button>
-                        <button onClick={onCloseRoom} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95">
-                            <LogOut className="w-3.5 h-3.5" /> Close Room
-                        </button>
-                    </div>
-                ) : (
-                    <p className="text-[10px] text-warm-grey/40 italic mt-4">Waiting for the host to continue...</p>
-                )}
-            </motion.div>
+            <>
+                <style>{shimmerStyle}</style>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", damping: 20 }}
+                    className="w-full rounded-3xl p-8 text-center relative overflow-hidden"
+                    style={{
+                        background: isWinner
+                            ? "radial-gradient(ellipse at center, #2d1b4e 0%, #1a0f30 70%, #0f0920 100%)"
+                            : "linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(245,240,255,0.9) 100%)",
+                        boxShadow: isWinner
+                            ? "0 0 40px rgba(168,85,247,0.2), inset 0 0 60px rgba(0,0,0,0.3)"
+                            : "0 8px 32px rgba(0,0,0,0.08)",
+                        border: isWinner ? "1px solid rgba(168,85,247,0.2)" : "1px solid rgba(0,0,0,0.05)",
+                    }}
+                >
+                    {/* Celebratory ambient light */}
+                    {isWinner && <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 30%, rgba(251,191,36,0.1) 0%, transparent 60%)" }} />}
+                    <motion.div
+                        animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-5"
+                        style={{
+                            background: isWinner
+                                ? "linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%)"
+                                : "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                            boxShadow: isWinner
+                                ? "0 0 30px rgba(251,191,36,0.4), 0 4px 15px rgba(0,0,0,0.2)"
+                                : "0 4px 12px rgba(251,191,36,0.15)",
+                        }}
+                    >
+                        <Trophy className={`w-10 h-10 ${isWinner ? "text-white" : "text-amber-600"}`} style={{ filter: isWinner ? "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" : undefined }} />
+                    </motion.div>
+                    <h2 className={`font-serif text-3xl font-bold mb-2 ${isWinner ? "text-purple-100" : "text-warm-cocoa"}`} style={isWinner ? { textShadow: "0 2px 15px rgba(251,191,36,0.3)" } : undefined}>
+                        {isWinner ? "🎉 You Win! 🎉" : `${winnerName} Wins!`}
+                    </h2>
+                    <p className={`text-sm mb-8 ${isWinner ? "text-purple-300/70" : "text-warm-grey/50"}`}>
+                        {isWinner ? "You played all your cards! Amazing! ✨" : `${winnerName} played all their cards!`}
+                    </p>
+                    {isHost ? (
+                        <div className="flex flex-col gap-2.5 max-w-[260px] mx-auto">
+                            <button
+                                onClick={handlePlayAgain}
+                                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white font-serif text-sm font-bold transition-all active:scale-95"
+                                style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 4px 15px rgba(124,58,237,0.3)" }}
+                            >
+                                <RotateCcw className="w-4 h-4" /> Play Again
+                            </button>
+                            <button onClick={onGameEnd} className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200/50 text-xs font-bold text-amber-800 transition-all active:scale-95">
+                                <Shuffle className="w-3.5 h-3.5" /> Choose Another Game
+                            </button>
+                            <button onClick={onCloseRoom} className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-xs font-bold text-rose-700 transition-all active:scale-95">
+                                <LogOut className="w-3.5 h-3.5" /> Close Room
+                            </button>
+                        </div>
+                    ) : (
+                        <p className={`text-[11px] italic mt-4 ${isWinner ? "text-purple-400/50" : "text-warm-grey/40"}`}>Waiting for the host to continue...</p>
+                    )}
+                </motion.div>
+            </>
         );
     }
 
@@ -708,17 +882,29 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd, onClos
 
     return (
         <div className="w-full flex flex-col gap-3">
+            <style>{shimmerStyle}</style>
             {/* One Card Alert */}
             <AnimatePresence>
                 {oneCardAlert && (
                     <motion.div
-                        initial={{ opacity: 0, y: -50, scale: 0.8 }}
+                        initial={{ opacity: 0, y: -60, scale: 0.7 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -50, scale: 0.8 }}
-                        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-amber-500 to-rose-500 text-white px-6 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-2"
+                        exit={{ opacity: 0, y: -60, scale: 0.7 }}
+                        transition={{ type: "spring", damping: 15, stiffness: 200 }}
+                        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 text-white px-8 py-4 rounded-2xl text-base font-bold flex items-center gap-3"
+                        style={{
+                            background: "linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%)",
+                            boxShadow: "0 8px 32px rgba(239,68,68,0.4), 0 0 40px rgba(251,191,36,0.2)",
+                            animation: "pulseGlow 1.5s ease-in-out infinite",
+                        }}
                     >
-                        <AlertCircle className="w-5 h-5" />
-                        🚨 {oneCardAlert} has ONE CARD LEFT! 🚨
+                        <motion.span
+                            animate={{ rotate: [0, -10, 10, -10, 0] }}
+                            transition={{ repeat: Infinity, duration: 0.5 }}
+                        >
+                            <AlertCircle className="w-6 h-6" />
+                        </motion.span>
+                        <span className="text-lg">🚨 {oneCardAlert} has ONE CARD LEFT! 🚨</span>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -729,16 +915,34 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd, onClos
             </AnimatePresence>
 
             {/* Status Bar */}
-            <div className="flex items-center justify-between bg-white/50 border border-warm-grey/5 rounded-2xl px-4 py-2.5 shadow-sm flex-wrap gap-2">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-warm-grey/50">
-                    🃏 Crazy 8s
-                    <span className="text-warm-grey/30">•</span>
-                    <span className={direction === 1 ? "" : "scale-x-[-1] inline-block"}>{direction === 1 ? "→" : "←"}</span>
+            <div
+                className="flex items-center justify-between rounded-2xl px-4 py-3 flex-wrap gap-2"
+                style={{
+                    background: "linear-gradient(135deg, #2d1b4e 0%, #3b1d5e 50%, #2d1b4e 100%)",
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(168,85,247,0.15)",
+                }}
+            >
+                <div className="flex items-center gap-2 text-[11px] font-bold text-purple-200">
+                    <span className="text-base" style={{ filter: "drop-shadow(0 0 4px rgba(168,85,247,0.4))" }}>🃏</span>
+                    <span>Crazy 8s</span>
+                    <span className="text-purple-400/40">•</span>
+                    {/* Animated Direction Arrow */}
+                    <motion.span
+                        animate={{ x: direction === 1 ? [0, 4, 0] : [0, -4, 0] }}
+                        transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
+                        className="text-purple-300 text-sm"
+                    >
+                        {direction === 1 ? "→" : "←"}
+                    </motion.span>
                 </div>
-                <div className="text-[10px] text-warm-cocoa font-bold max-w-[180px] truncate">{lastAction}</div>
+                <div className="text-[10px] text-purple-200/70 font-bold max-w-[180px] truncate">{lastAction}</div>
                 <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-warm-grey/40">Current virtue:</span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${SUITS[currentSuit].bgColor} ${SUITS[currentSuit].color} border ${SUITS[currentSuit].borderColor}`}>
+                    <span className="text-[9px] text-purple-400/50">Current virtue:</span>
+                    <span
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${SUITS[currentSuit].bgColor} ${SUITS[currentSuit].color} border ${SUITS[currentSuit].borderColor}`}
+                        style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                    >
                         {SUITS[currentSuit].symbol} {SUITS[currentSuit].name}
                     </span>
                 </div>
@@ -753,13 +957,25 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd, onClos
                     const count = playerCardCounts[id] || 0;
 
                     return (
-                        <div key={id} className={`flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all ${
-                            isActive ? "ring-2 ring-amber-400 bg-amber-50/30 border-amber-200" : "bg-white/60 border-stone-200/40"
-                        }`}>
+                        <motion.div
+                            key={id}
+                            animate={isActive ? { scale: [1, 1.03, 1] } : {}}
+                            transition={isActive ? { repeat: Infinity, duration: 1.5 } : {}}
+                            className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-all`}
+                            style={{
+                                background: isActive
+                                    ? "linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(251,146,60,0.1) 100%)"
+                                    : "rgba(255,255,255,0.6)",
+                                border: isActive ? "2px solid rgba(251,191,36,0.4)" : "1px solid rgba(0,0,0,0.06)",
+                                boxShadow: isActive
+                                    ? "0 0 20px rgba(251,191,36,0.15), 0 2px 8px rgba(0,0,0,0.05)"
+                                    : "0 1px 4px rgba(0,0,0,0.04)",
+                            }}
+                        >
                             {avatar ? (
-                                <img src={avatar} alt={name} className="w-7 h-7 rounded-full border border-stone-200/50 object-cover" />
+                                <img src={avatar} alt={name} className={`w-8 h-8 rounded-full object-cover ${isActive ? "ring-2 ring-amber-400" : "border border-stone-200/50"}`} />
                             ) : (
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${getAvatarBg(id)}`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${getAvatarBg(id)} ${isActive ? "ring-2 ring-amber-400" : ""}`}>
                                     {name.charAt(0).toUpperCase()}
                                 </div>
                             )}
@@ -770,72 +986,138 @@ export function ChristianCrazy8({ room, currentUserId, isHost, onGameEnd, onClos
                                     {count === 1 && " 🔥"}
                                 </p>
                             </div>
-                            {isActive && <span className="text-[8px] text-amber-700 animate-pulse font-bold">🃏</span>}
-                        </div>
+                            {isActive && (
+                                <motion.span
+                                    animate={{ rotate: [0, 15, -15, 0] }}
+                                    transition={{ repeat: Infinity, duration: 1 }}
+                                    className="text-sm"
+                                >🃏</motion.span>
+                            )}
+                        </motion.div>
                     );
                 })}
             </div>
 
             {/* Center Area: Discard + Draw */}
-            <div className="flex items-center justify-center gap-6 py-4">
+            <div
+                className="flex items-center justify-center gap-10 py-6 px-4 rounded-2xl relative"
+                style={{
+                    background: "radial-gradient(ellipse at center, #2d1b4e 0%, #1a0f30 70%, #0f0920 100%)",
+                    boxShadow: "inset 0 0 40px rgba(0,0,0,0.3), inset 0 0 80px rgba(45,27,78,0.5), 0 4px 20px rgba(0,0,0,0.15)",
+                    border: "1px solid rgba(168,85,247,0.12)",
+                }}
+            >
+                {/* Subtle felt texture overlay */}
+                <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ background: "radial-gradient(circle at 30% 40%, rgba(168,85,247,0.05) 0%, transparent 50%)" }} />
+                <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ background: "radial-gradient(circle at 70% 60%, rgba(139,92,246,0.04) 0%, transparent 50%)" }} />
+                {/* Inner border glow */}
+                <div className="absolute inset-[1px] rounded-2xl pointer-events-none" style={{ border: "1px solid rgba(168,85,247,0.06)" }} />
+
                 {/* Draw Pile */}
                 <button
                     onClick={handleDraw}
                     disabled={!isMyTurn || isDrawing}
-                    className={`flex flex-col items-center gap-1.5 transition-all ${
+                    className={`flex flex-col items-center gap-2 transition-all relative z-10 ${
                         isMyTurn && !canIPlay ? "animate-pulse" : ""
                     } ${isMyTurn ? "cursor-pointer hover:scale-105" : "cursor-not-allowed opacity-60"}`}
                 >
                     <CardBack count={drawPileCount} />
-                    <span className="text-[9px] font-bold text-warm-grey/40">
-                        {isMyTurn && !canIPlay ? "Draw!" : "Draw pile"}
+                    <span className={`text-[10px] font-bold ${isMyTurn && !canIPlay ? "text-amber-300" : "text-purple-300/50"}`}>
+                        {isMyTurn && !canIPlay ? "✨ Draw!" : "Draw pile"}
                     </span>
                 </button>
 
                 {/* Discard Pile */}
-                <div className="flex flex-col items-center gap-1.5">
+                <div className="flex flex-col items-center gap-2 relative z-10">
                     {discardTop ? (
-                        <motion.div key={discardTop.id} initial={{ scale: 0.5, rotateZ: -10 }} animate={{ scale: 1, rotateZ: 0 }} transition={{ type: "spring", damping: 15 }}>
+                        <motion.div
+                            key={discardTop.id}
+                            initial={{ scale: 0.4, rotateZ: -15, y: -20 }}
+                            animate={{ scale: 1, rotateZ: 0, y: 0 }}
+                            transition={{ type: "spring", damping: 15, stiffness: 200 }}
+                            style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }}
+                        >
                             <Crazy8CardView card={discardTop} size="md" />
                         </motion.div>
                     ) : (
-                        <div className="w-16 h-[92px] rounded-xl border-2 border-dashed border-stone-200/50 flex items-center justify-center text-[9px] text-warm-grey/30">
+                        <div
+                            className="w-[72px] h-[102px] rounded-xl border-2 border-dashed flex items-center justify-center text-[9px]"
+                            style={{ borderColor: "rgba(168,85,247,0.2)", color: "rgba(168,85,247,0.3)" }}
+                        >
                             Discard
                         </div>
                     )}
-                    <span className="text-[9px] font-bold text-warm-grey/40">Discard</span>
+                    <span className="text-[10px] font-bold text-purple-300/50">Discard</span>
                 </div>
             </div>
 
             {/* Turn Indicator */}
-            <div className="text-center">
+            <div className="text-center py-1">
                 {isMyTurn ? (
-                    <motion.p animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 1.5 }} className="text-xs font-bold text-amber-700">
-                        ✨ Your turn! {canIPlay ? "Play a card!" : "No matches — draw a card!"}
-                    </motion.p>
+                    <motion.div
+                        animate={{ scale: [1, 1.04, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl"
+                        style={{
+                            background: "linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(251,146,60,0.1) 100%)",
+                            border: "1px solid rgba(251,191,36,0.3)",
+                            boxShadow: "0 0 20px rgba(251,191,36,0.1)",
+                        }}
+                    >
+                        <motion.span
+                            animate={{ rotate: [0, 360] }}
+                            transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                            className="text-base"
+                        >✨</motion.span>
+                        <span className="text-sm font-bold text-amber-700">
+                            Your turn! {canIPlay ? "Play a card!" : "No matches — draw a card!"}
+                        </span>
+                        <motion.span
+                            animate={{ rotate: [0, -360] }}
+                            transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                            className="text-base"
+                        >✨</motion.span>
+                    </motion.div>
                 ) : (
-                    <p className="text-[10px] text-warm-grey/40">
+                    <p className="text-[11px] text-warm-grey/40 flex items-center justify-center gap-1.5">
+                        <Loader2 className="w-3 h-3 animate-spin text-warm-grey/30" />
                         Waiting for {getMemberName(room.members, currentTurn)}...
                     </p>
                 )}
             </div>
 
             {/* My Hand */}
-            <div className="bg-white/50 border border-warm-grey/5 rounded-2xl p-3 shadow-sm">
-                <p className="text-[9px] font-bold text-warm-grey/40 uppercase tracking-wider mb-2 text-center">
-                    Your Hand ({myHand.length} cards)
+            <div
+                className="rounded-2xl p-4"
+                style={{
+                    background: "linear-gradient(145deg, rgba(255,255,255,0.7) 0%, rgba(245,240,255,0.5) 100%)",
+                    boxShadow: "0 -2px 20px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)",
+                    border: "1px solid rgba(168,85,247,0.08)",
+                    backdropFilter: "blur(10px)",
+                }}
+            >
+                <p className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest mb-3 text-center flex items-center justify-center gap-1.5">
+                    <span>🎴</span> Your Hand <span className="text-warm-cocoa/60">({myHand.length})</span>
                 </p>
-                <div className="flex flex-wrap justify-center gap-1.5 max-h-[240px] overflow-y-auto">
+                <div className="flex flex-wrap justify-center gap-1.5 max-h-[260px] overflow-y-auto py-1">
                     {myHand.map((card) => {
                         const playable = isMyTurn && discardTop ? canPlay(card, discardTop, currentSuit) : false;
                         return (
-                            <Crazy8CardView
+                            <motion.div
                                 key={card.id}
-                                card={card}
-                                playable={isMyTurn ? playable : undefined}
-                                onClick={playable ? () => handlePlayCard(card) : undefined}
-                                size="sm"
-                            />
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{ type: "spring", damping: 20 }}
+                            >
+                                <Crazy8CardView
+                                    card={card}
+                                    playable={isMyTurn ? playable : undefined}
+                                    onClick={playable ? () => handlePlayCard(card) : undefined}
+                                    size="sm"
+                                />
+                            </motion.div>
                         );
                     })}
                 </div>

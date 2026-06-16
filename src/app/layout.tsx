@@ -4,6 +4,7 @@ import { LayoutContent } from "@/components/LayoutContent";
 import { BadgeProvider } from "@/context/BadgeContext";
 import { GlobalAlertProvider } from "@/components/ui/GlobalAlertProvider";
 import { StoryAuraProvider } from "@/context/StoryAuraContext";
+import { FCMProvider } from "@/components/FCMProvider";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -58,9 +59,11 @@ export default function RootLayout({
         <BadgeProvider>
           <GlobalAlertProvider>
             <StoryAuraProvider>
-              <LayoutContent>
-                {children}
-              </LayoutContent>
+              <FCMProvider>
+                <LayoutContent>
+                  {children}
+                </LayoutContent>
+              </FCMProvider>
             </StoryAuraProvider>
           </GlobalAlertProvider>
         </BadgeProvider>
