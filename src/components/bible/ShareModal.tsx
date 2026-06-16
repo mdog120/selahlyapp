@@ -45,12 +45,12 @@ export function ShareModal({ data, onClose }: ShareModalProps) {
 
             if (target === 'lilypad') {
                 // Insert into posts
-                // Assuming posts table has content and user_id. 
-                // Previous context said image_url is nullable now.
                 const { error } = await supabase.from('posts').insert({
                     user_id: user.id,
-                    content: textPayload,
-                    // image_url can be null or maybe we generate a quote card later
+                    caption: textPayload,
+                    type: 'text',
+                    media_urls: [],
+                    image_url: null,
                 });
                 if (error) throw error;
             } else if (target === 'public_note') {

@@ -30,6 +30,17 @@ function formatMessageTime(timeStr: string | undefined): string {
     }
 }
 
+// Format raw message content into a human-friendly preview
+function formatPreview(content?: string): string | undefined {
+    if (!content) return content;
+    if (content.startsWith("[media:image:")) return "📷 Photo";
+    if (content.startsWith("[media:video:")) return "🎥 Video";
+    if (content.startsWith("[sticker:")) return "🩷 Sticker";
+    // Truncate long messages
+    if (content.length > 50) return content.slice(0, 50) + "…";
+    return content;
+}
+
 type Friend = {
     id: string;
     username: string;
@@ -89,7 +100,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
 
                     return {
                         ...friend,
-                        lastMessage: lastMsg?.content,
+                        lastMessage: formatPreview(lastMsg?.content),
                         lastMessageTime: lastMsg?.created_at,
                         lastSenderId: lastMsg?.sender_id
                     };
@@ -122,7 +133,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                         name: g.group.name,
                         image_url: g.group.image_url,
                         type: 'group',
-                        lastMessage: lastMsg ? `${(lastMsg.sender as any)?.first_name || "Sister"}: ${lastMsg.content}` : "New Circle",
+                        lastMessage: lastMsg ? `${(lastMsg.sender as any)?.first_name || "Sister"}: ${formatPreview(lastMsg.content)}` : "New Circle",
                         lastMessageTime: lastMsg?.created_at || g.created_at || new Date().toISOString(),
                     };
                 }));
@@ -164,7 +175,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
 
                         const updatedFriend = {
                             ...prev[friendIndex],
-                            lastMessage: newMsg.content,
+                            lastMessage: formatPreview(newMsg.content),
                             lastMessageTime: newMsg.created_at,
                             lastSenderId: newMsg.sender_id
                         };
@@ -205,7 +216,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                         };
 
                         // We can fire a separate fetch to get the nice preview text if needed, but for now:
-                        updatedCircle.lastMessage = `Sister: ${newMsg.content}`;
+                        updatedCircle.lastMessage = `Sister: ${formatPreview(newMsg.content)}`;
 
                         const newCircles = [...prev];
                         newCircles.splice(groupIndex, 1);
