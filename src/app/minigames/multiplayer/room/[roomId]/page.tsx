@@ -138,6 +138,13 @@ export default function GameRoomPage() {
                         if (updated.status === "waiting") {
                             joinedDuringGame.current = false;
                         }
+                        // Check if current user was kicked
+                        const stillMember = updated.members?.some((m: any) => m.user_id === currentUserId);
+                        if (!stillMember && currentUserId) {
+                            // User was removed from the room
+                            router.push("/minigames/multiplayer");
+                            return;
+                        }
                         setRoom(updated);
                     }
                 }
