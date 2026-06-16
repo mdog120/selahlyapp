@@ -19,7 +19,8 @@ interface InviteToastProps {
 const GAME_NAME_MAP: Record<string, string> = {
   sisters_sketch: "🎨 Sisters Sketch",
   table_tennis: "🏓 Selah Table Tennis",
-  card_rooms: "🃏 Cozy Card Rooms",
+  card_rooms: "🃏 Egyptian Rat Screw",
+  crazy_8s: "🎴 Christian Crazy 8s",
 };
 
 const getAvatarBg = (id: string) => {

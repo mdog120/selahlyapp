@@ -36,9 +36,15 @@ const GAMES = [
   },
   {
     emoji: "🃏",
-    label: "Cozy Card Rooms",
+    label: "Egyptian Rat Screw",
     game_type: "card_rooms",
-    description: "Play card games with sisters",
+    description: "Bible character card slap game",
+  },
+  {
+    emoji: "🎴",
+    label: "Christian Crazy 8s",
+    game_type: "crazy_8s",
+    description: "Match virtues & Bible characters",
   },
 ];
 

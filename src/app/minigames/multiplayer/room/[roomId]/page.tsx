@@ -9,6 +9,7 @@ import { Users, Crown, LogOut, Play, Loader2, ArrowLeft, Gamepad2 } from "lucide
 import { motion, AnimatePresence } from "framer-motion";
 import { SistersSketch } from "@/components/minigames/multiplayer/sketch/SistersSketch";
 import { EgyptianRatScrew } from "@/components/minigames/multiplayer/cards/EgyptianRatScrew";
+import { ChristianCrazy8 } from "@/components/minigames/multiplayer/cards/ChristianCrazy8";
 
 interface RoomMember {
     user_id: string;
@@ -31,7 +32,8 @@ interface GameRoom {
 const GAME_INFO: Record<string, { emoji: string; name: string; description: string }> = {
     sisters_sketch: { emoji: "🎨", name: "Sisters Sketch", description: "Draw faith words and guess together in real-time" },
     table_tennis: { emoji: "🏓", name: "Selah Table Tennis", description: "Cozy paddle bounce duels with friends" },
-    card_rooms: { emoji: "🃏", name: "Cozy Card Rooms", description: "Play card games like Crazy Eights together" },
+    card_rooms: { emoji: "🃏", name: "Egyptian Rat Screw", description: "Bible character card slap game" },
+    crazy_8s: { emoji: "🎴", name: "Christian Crazy 8s", description: "Match virtues & Bible characters" },
 };
 
 const getAvatarBg = (id: string) => {
@@ -394,8 +396,20 @@ export default function GameRoomPage() {
                         />
                     )}
 
+                    {/* Playing state — Christian Crazy 8s */}
+                    {room.status === "playing" && room.game_type === "crazy_8s" && (
+                        <ChristianCrazy8
+                            room={room}
+                            currentUserId={currentUserId!}
+                            isHost={isHost}
+                            onGameEnd={() => {
+                                supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id);
+                            }}
+                        />
+                    )}
+
                     {/* Playing state placeholder for unimplemented games */}
-                    {room.status === "playing" && room.game_type !== "sisters_sketch" && room.game_type !== "card_rooms" && (
+                    {room.status === "playing" && !["sisters_sketch", "card_rooms", "crazy_8s"].includes(room.game_type) && (
                         <div className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center">
                             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-100">
                                 <Gamepad2 className="w-8 h-8 text-emerald-600" />

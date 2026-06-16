@@ -38,7 +38,8 @@ interface GameRoomCardProps {
 const GAME_META: Record<string, { emoji: string; label: string }> = {
   sisters_sketch: { emoji: "🎨", label: "Sisters Sketch" },
   table_tennis: { emoji: "🏓", label: "Selah Table Tennis" },
-  card_rooms: { emoji: "🃏", label: "Cozy Card Rooms" },
+  card_rooms: { emoji: "🃏", label: "Egyptian Rat Screw" },
+  crazy_8s: { emoji: "🎴", label: "Christian Crazy 8s" },
 };
 
 const getAvatarBg = (id: string) => {
