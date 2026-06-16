@@ -623,7 +623,7 @@ export function PostCard({ post }: { post: Post }) {
             );
         }
 
-        if (post.type === 'carousel' && post.media_urls && post.media_urls.length > 0) {
+        if ((post.type === 'carousel' || (post.media_urls && post.media_urls.length > 1)) && post.media_urls && post.media_urls.length > 0) {
             const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
                 const container = e.currentTarget;
                 const index = Math.round(container.scrollLeft / container.clientWidth);

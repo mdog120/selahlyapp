@@ -213,7 +213,7 @@ export function PostPreviewCard({ post, onClick, onLikeToggle }: PostPreviewCard
                     )}
 
                     {/* Top-Right Badges */}
-                    {post.type === 'carousel' && post.media_urls && post.media_urls.length > 1 && (
+                    {(post.type === 'carousel' || (post.media_urls && post.media_urls.length > 1)) && post.media_urls && post.media_urls.length > 1 && (
                         <div className="absolute top-2.5 right-2.5 bg-black/45 backdrop-blur-sm text-white px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-sm select-none">
                             <Layers className="w-2.5 h-2.5" />
                             <span>1/{post.media_urls.length}</span>
