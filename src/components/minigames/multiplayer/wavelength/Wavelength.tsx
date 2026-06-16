@@ -283,6 +283,8 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
         timerRef.current = setInterval(() => {
             remaining -= 1;
             setTimer(remaining);
+            // Broadcast timer to all players every second
+            broadcast("wl_timer", { timeLeft: remaining });
             if (remaining <= 0) {
                 clearTimer();
                 onExpire();
@@ -323,6 +325,11 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
                 setGuessCount(0);
                 setLastRoundResult(null);
                 setScores(payload.scores || {});
+            })
+            .on("broadcast", { event: "wl_timer" }, ({ payload }) => {
+                if (!isHost) {
+                    setTimer(payload.timeLeft);
+                }
             })
             .on("broadcast", { event: "wl_clue_given" }, ({ payload }) => {
                 setPhase("guessing");
