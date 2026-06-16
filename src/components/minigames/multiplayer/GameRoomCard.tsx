@@ -10,7 +10,7 @@ interface GameRoomCardProps {
   room: {
     id: string;
     host_id: string;
-    game_type: string; // 'sisters_sketch' | 'table_tennis' | 'card_rooms'
+    game_type: string; // 'sisters_sketch' | 'wavelength' | 'card_rooms'
     status: string; // 'waiting' | 'playing' | 'finished'
     members: Array<{
       user_id: string;
@@ -37,7 +37,7 @@ interface GameRoomCardProps {
 
 const GAME_META: Record<string, { emoji: string; label: string }> = {
   sisters_sketch: { emoji: "🎨", label: "Sisters Sketch" },
-  table_tennis: { emoji: "🏓", label: "Selah Table Tennis" },
+  wavelength: { emoji: "📡", label: "Wavelength" },
   card_rooms: { emoji: "🃏", label: "Egyptian Rat Screw" },
   crazy_8s: { emoji: "🎴", label: "Christian Crazy 8s" },
 };

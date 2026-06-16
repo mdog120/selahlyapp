@@ -29,10 +29,10 @@ const GAMES = [
     description: "Draw faith words and guess together",
   },
   {
-    emoji: "🏓",
-    label: "Selah Table Tennis",
-    game_type: "table_tennis",
-    description: "Cozy paddle bounce duels",
+    emoji: "📡",
+    label: "Wavelength",
+    game_type: "wavelength",
+    description: "Guess where Bible concepts fall on the spectrum",
   },
   {
     emoji: "🃏",

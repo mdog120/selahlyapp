@@ -7,7 +7,7 @@ interface GameInvite {
   room_id: string;
   host_name: string;
   host_avatar_url: string;
-  game_type: string; // 'sisters_sketch' | 'table_tennis' | 'card_rooms'
+  game_type: string; // 'sisters_sketch' | 'wavelength' | 'card_rooms'
 }
 
 interface InviteToastProps {
@@ -18,7 +18,7 @@ interface InviteToastProps {
 
 const GAME_NAME_MAP: Record<string, string> = {
   sisters_sketch: "🎨 Sisters Sketch",
-  table_tennis: "🏓 Selah Table Tennis",
+  wavelength: "📡 Wavelength",
   card_rooms: "🃏 Egyptian Rat Screw",
   crazy_8s: "🎴 Christian Crazy 8s",
 };
