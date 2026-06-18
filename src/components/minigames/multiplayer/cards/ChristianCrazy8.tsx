@@ -84,8 +84,12 @@ function Crazy8CardView({
 }) {
     const sizeClasses = size === "sm" ? "w-14 h-[78px]" : "w-[72px] h-[102px]";
     const textSize = size === "sm" ? "text-[8px]" : "text-[10px]";
-    const emojiSize = size === "sm" ? "text-xl" : "text-2xl";
-    const rankSize = size === "sm" ? "text-[7px]" : "text-[9px]";
+    const emojiSize = size === "sm" ? "text-lg" : "text-2xl";
+    const rankSize = size === "sm" ? "text-[6px]" : "text-[8px]";
+    const characterSize = size === "sm" ? "text-[5px]" : "text-[6px]";
+    const cornerSize = size === "sm" ? "text-[8px]" : "text-[9px]";
+    const cornerSymbolSize = size === "sm" ? "text-[10px]" : "text-[11px]";
+    const paddingClass = size === "sm" ? "p-1" : "p-2";
 
     const isWild = card.type === "wild";
     const isPlus4 = card.type === "plus4";
@@ -117,13 +121,13 @@ function Crazy8CardView({
     const cornerLabel = card.type === "number"
         ? `${card.rank}`
         : card.type === "wild"
-            ? "WILD"
+            ? "W"
             : card.type === "plus4"
                 ? "+4"
                 : card.type === "skip"
-                    ? "SKIP"
+                    ? "S"
                     : card.type === "reverse"
-                        ? "REV"
+                        ? "R"
                         : card.type === "draw2"
                             ? "+2"
                             : card.label;
@@ -133,7 +137,7 @@ function Crazy8CardView({
             onClick={onClick}
             disabled={!playable && !!onClick}
             className={`
-                ${sizeClasses} rounded-[18px] border flex flex-col items-center justify-center gap-1 p-2
+                ${sizeClasses} rounded-[18px] border flex flex-col items-center justify-center ${paddingClass}
                 transition-all duration-200 relative overflow-hidden shrink-0
                 ${playable ? "cursor-pointer hover:scale-105 hover:-translate-y-1 active:scale-95 hover:z-10" : ""}
                 ${playable === false ? "opacity-80 cursor-not-allowed" : ""}
@@ -144,33 +148,33 @@ function Crazy8CardView({
                     ? "0 12px 30px rgba(0,0,0,0.16)"
                     : "0 6px 16px rgba(0,0,0,0.08)",
                 borderColor: cardBorder,
+                gap: size === "sm" ? "2px" : "4px",
             }}
         >
             <div className="absolute inset-0 rounded-[18px] border border-white/70 pointer-events-none" />
-            <div className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 text-left">
+            <div className={`absolute top-1 left-1 ${cornerSize} font-bold uppercase tracking-[0.08em] text-slate-500 text-left leading-none`}>
                 {cornerLabel}
-                {card.suit ? <span className="block mt-1 text-[12px]">{SUITS[card.suit].symbol}</span> : ""}
+                {card.suit && size === "md" && <span className={`block ${cornerSymbolSize}`}>{SUITS[card.suit].symbol}</span>}
             </div>
-            <div className="absolute bottom-2 right-2 rotate-180 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 text-right">
+            <div className={`absolute bottom-1 right-1 rotate-180 ${cornerSize} font-bold uppercase tracking-[0.08em] text-slate-500 text-right leading-none`}>
                 {cornerLabel}
-                {card.suit ? <span className="block mt-1 text-[12px]">{SUITS[card.suit].symbol}</span> : ""}
+                {card.suit && size === "md" && <span className={`block ${cornerSymbolSize}`}>{SUITS[card.suit].symbol}</span>}
             </div>
 
-            <div className="relative z-10 flex flex-col items-center justify-center gap-1">
+            <div className="relative z-10 flex flex-col items-center justify-center">
                 <span className={emojiSize} style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.12))" }}>{card.emoji}</span>
                 <span className={`${textSize} font-bold ${getCardColor(card)} leading-tight text-center`}>
                     {card.type === "number" ? card.rank : card.label}
                 </span>
-                {card.character && (
-                    <span className={`${rankSize} ${getCardColor(card)}/70 leading-none text-center max-w-full`}>
+                {card.character && size === "md" && (
+                    <span className={`${characterSize} ${getCardColor(card)}/70 leading-none text-center max-w-full`}>
                         {card.character}
                     </span>
                 )}
             </div>
 
-            <div className="absolute inset-x-4 bottom-4 h-0.5 rounded-full bg-slate-200/60" />
             {(isWild || isPlus4) && (
-                <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-400 via-amber-400 via-emerald-400 to-blue-400 opacity-80" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-400 via-amber-400 via-emerald-400 to-blue-400 opacity-80" />
             )}
         </button>
     );
