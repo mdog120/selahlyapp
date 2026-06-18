@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { addMilliseconds, differenceInSeconds, differenceInMinutes, differenceInHours } from "date-fns";
 import { FlowerType, FLOWERS, getRandomVerse, GardenVerse } from "@/data/gardenVerses";
 import { Button } from "@/components/ui/Button";
-import { ShoppingBag, Plus, X, Star, Clock, Gift, Users, GiftIcon } from "lucide-react";
+import { ShoppingBag, Plus, X, Clock, Gift, GiftIcon, Sparkles } from "lucide-react";
 import confetti from "canvas-confetti";
 
 type Plant = {
@@ -357,10 +357,14 @@ export function GardenGrid() {
 
         if (plant.status === 'bloomed') {
             return (
-                <div className="w-full h-full flex flex-col items-center justify-center animate-bounce-slow cursor-pointer" title="Click to collect!">
-                    <div className="text-5xl lg:text-6xl drop-shadow-xl z-20 hover:scale-110 transition-transform">
+                <div className="w-full h-full flex flex-col items-center justify-center cursor-pointer" title="Click to collect!">
+                    <div className="absolute w-16 h-16 rounded-full bg-amber-100/60 blur-xl animate-pulse" />
+                    <div className="text-5xl lg:text-6xl drop-shadow-[0_8px_8px_rgba(72,63,38,0.28)] z-20 hover:scale-110 transition-transform garden-flower-sway">
                         {FLOWER_EMOJIS[plant.flower_type]}
                     </div>
+                    <span className="absolute -top-3 z-30 rounded-full border border-amber-200/80 bg-[#fffaf0]/95 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-amber-700 shadow-md">
+                        Pick me
+                    </span>
                 </div>
             );
         }
@@ -383,18 +387,18 @@ export function GardenGrid() {
 
         return (
             <div className={`w-full h-full flex flex-col items-center justify-center ${isReady ? "cursor-pointer" : ""}`}>
-                <div className={`text-4xl lg:text-5xl drop-shadow-md z-10 transition-all ${animationClass}`}>
+                <div className={`text-4xl lg:text-5xl drop-shadow-[0_6px_5px_rgba(59,76,44,0.3)] z-10 transition-all ${animationClass}`}>
                     {currentEmoji}
                 </div>
                 {isReady && (
-                    <div className="absolute -top-4 bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold shadow-md border border-stone-100 text-sage-green z-30 animate-bounce">
-                        Ready!
+                    <div className="absolute -top-3 bg-[#fffaf0]/95 backdrop-blur-sm px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md border border-emerald-200 text-emerald-700 z-30 animate-bounce">
+                        Verse ready
                     </div>
                 )}
                 {!isReady && (
-                    <div className="absolute bottom-1 right-1 w-full flex justify-center z-30 opacity-60">
-                        <div className="w-1/2 bg-black/20 rounded-full h-1 overflow-hidden">
-                            <div className="bg-white h-full" style={{ width: `${progress * 100}%` }} />
+                    <div className="absolute bottom-1.5 w-full flex justify-center z-30">
+                        <div className="w-1/2 bg-[#4c3527]/25 rounded-full h-1 overflow-hidden shadow-inner">
+                            <div className="bg-gradient-to-r from-lime-300 to-emerald-300 h-full rounded-full" style={{ width: `${progress * 100}%` }} />
                         </div>
                     </div>
                 )}
@@ -402,50 +406,154 @@ export function GardenGrid() {
         );
     };
 
+    const plantedCount = plants.filter(Boolean).length;
+    const readyCount = plants.filter((plant) => plant && checkIsReady(plant)).length;
+
     return (
-        <div className="w-full max-w-lg mx-auto pb-24">
-            {/* Header Stats */}
-            <div className="flex justify-between items-center mb-6 px-4">
-                <div className="flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/40 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
-                    <span className="text-xl">✨</span>
-                    <span className="font-serif font-bold text-warm-cocoa tracking-wide">{points} pts</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => { fetchFriends(); setIsGiftingOpen(true); }} className="relative gap-2 rounded-2xl border-warm-grey/20 bg-white/70 backdrop-blur-md hover:bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
-                        <Gift className="w-4 h-4 text-warm-cocoa" /> Collection
-                        {gifts.length > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white animate-pulse">{gifts.length}</span>}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => { setSelectedSlot(null); setIsShopOpen(true); }} className="gap-2 rounded-2xl border-warm-grey/20 bg-white/70 backdrop-blur-md hover:bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
-                        <ShoppingBag className="w-4 h-4 text-sage-green" /> Shop
-                    </Button>
+        <div className="w-full max-w-xl mx-auto pb-24 px-1 sm:px-3">
+            <style>{`
+                @keyframes garden-float {
+                    0%, 100% { transform: translateY(0) scale(1); opacity: .45; }
+                    50% { transform: translateY(-8px) scale(1.15); opacity: 1; }
+                }
+                @keyframes garden-sway {
+                    0%, 100% { transform: rotate(-3deg) translateY(0); }
+                    50% { transform: rotate(3deg) translateY(-3px); }
+                }
+                @keyframes cloud-drift {
+                    from { transform: translateX(-12px); }
+                    to { transform: translateX(12px); }
+                }
+                .garden-firefly { animation: garden-float 2.8s ease-in-out infinite; }
+                .garden-flower-sway { animation: garden-sway 3s ease-in-out infinite; transform-origin: 50% 100%; }
+                .garden-cloud { animation: cloud-drift 7s ease-in-out infinite alternate; }
+            `}</style>
+
+            {/* Storybook garden plaque */}
+            <div className="relative z-20 mx-auto mb-[-14px] w-[82%] max-w-sm text-center">
+                <div className="absolute left-5 right-5 top-4 h-9 rounded-full bg-[#5d412d]/20 blur-lg" />
+                <div className="relative rounded-[1.5rem] border border-[#ead9bb] bg-gradient-to-b from-[#fffdf5] to-[#f7ecd7] px-5 py-3 shadow-[0_10px_30px_rgba(89,67,42,0.16),inset_0_1px_0_white]">
+                    <div className="absolute left-5 top-0 h-3 w-px -translate-y-full bg-[#96775a]" />
+                    <div className="absolute right-5 top-0 h-3 w-px -translate-y-full bg-[#96775a]" />
+                    <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#9a7959]">A quiet place to grow</p>
+                    <h2 className="font-serif text-2xl font-bold text-[#574132]">Selah Garden</h2>
+                    <p className="text-[10px] italic text-[#8b7664]">Plant scripture. Tend faith. Gather joy.</p>
                 </div>
             </div>
 
-            <div className="relative w-full aspect-square max-w-[400px] mx-auto">
-                {/* Premium CSS-based Background Instead of Image */}
-                <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-[#e8f5e9] to-[#c8e6c9] shadow-inner overflow-hidden border-8 border-white/40 backdrop-blur-sm">
-                    {/* Decorative grass patterns */}
-                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#81c784 2px, transparent 2px)', backgroundSize: '20px 20px' }} />
+            {/* Main garden world */}
+            <div className="relative overflow-hidden rounded-[2.75rem] border-[5px] border-[#f8eedb] bg-[#b9ddec] pt-9 shadow-[0_24px_60px_rgba(73,86,57,0.22),inset_0_0_0_1px_rgba(99,73,45,0.2)]">
+                {/* Sky */}
+                <div className="absolute inset-x-0 top-0 h-[58%] bg-gradient-to-b from-[#bfe4f2] via-[#d9edf0] to-[#e8efd4]" />
+                <div className="absolute -right-5 top-8 h-24 w-24 rounded-full bg-[#fff3ad]/80 blur-[1px] shadow-[0_0_45px_rgba(255,226,119,0.7)]" />
+                <div className="garden-cloud absolute left-7 top-16 text-4xl opacity-70">☁️</div>
+                <div className="garden-cloud absolute right-20 top-28 text-2xl opacity-50 [animation-delay:1.5s]">☁️</div>
+
+                {/* Far hills */}
+                <div className="absolute -left-[12%] top-[32%] h-40 w-[72%] rounded-[50%] bg-[#9fc994]" />
+                <div className="absolute -right-[15%] top-[35%] h-44 w-[76%] rounded-[50%] bg-[#86b982]" />
+                <div className="absolute inset-x-0 bottom-0 h-[57%] bg-gradient-to-b from-[#7fb876] via-[#69a764] to-[#4e8a55]" />
+
+                {/* Garden texture */}
+                <div
+                    className="absolute inset-x-0 bottom-0 h-[57%] opacity-30"
+                    style={{
+                        backgroundImage: "radial-gradient(rgba(255,255,255,.8) 1px, transparent 1px), radial-gradient(rgba(39,94,48,.55) 1px, transparent 1px)",
+                        backgroundPosition: "0 0, 9px 9px",
+                        backgroundSize: "18px 18px",
+                    }}
+                />
+
+                {/* Fireflies */}
+                {[
+                    ["12%", "42%", "0s"], ["82%", "48%", ".6s"], ["19%", "72%", "1.2s"],
+                    ["73%", "78%", "1.8s"], ["90%", "66%", "2.1s"], ["45%", "48%", ".9s"],
+                ].map(([left, top, delay], index) => (
+                    <span
+                        key={index}
+                        className="garden-firefly absolute z-10 h-1.5 w-1.5 rounded-full bg-[#fff7a8] shadow-[0_0_9px_3px_rgba(255,244,151,0.8)]"
+                        style={{ left, top, animationDelay: delay }}
+                    />
+                ))}
+
+                {/* Stats and actions */}
+                <div className="relative z-30 mx-3 mb-4 grid grid-cols-[1fr_auto] gap-2 rounded-[1.4rem] border border-white/60 bg-white/55 p-2.5 shadow-[0_8px_25px_rgba(57,79,52,0.13)] backdrop-blur-md sm:mx-5">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200/70 bg-gradient-to-br from-[#fff9d7] to-[#f5dd91] text-lg shadow-inner">
+                            ✨
+                        </div>
+                        <div className="min-w-0">
+                            <p className="truncate font-serif text-base font-bold text-[#574132]">{points} grace points</p>
+                            <p className="text-[9px] font-semibold text-[#6a7f5e]">
+                                {plantedCount}/9 planted · {readyCount} ready
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            onClick={() => { fetchFriends(); setIsGiftingOpen(true); }}
+                            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/70 bg-[#fffaf0]/90 text-[#8b5f4c] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white active:scale-95"
+                            title="Flower collection"
+                        >
+                            <Gift className="h-4 w-4" />
+                            {gifts.length > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[8px] font-bold text-white shadow">{gifts.length}</span>}
+                        </button>
+                        <button
+                            onClick={() => { setSelectedSlot(null); setIsShopOpen(true); }}
+                            className="flex h-10 items-center gap-1.5 rounded-xl border border-white/70 bg-[#fffaf0]/90 px-3 text-[10px] font-black uppercase tracking-wide text-[#557449] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white active:scale-95"
+                        >
+                            <ShoppingBag className="h-4 w-4" />
+                            Shed
+                        </button>
+                    </div>
                 </div>
 
-                {/* Plants Grid */}
-                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 p-[10%] gap-4 z-10">
+                {/* Garden board */}
+                <div className="relative z-20 mx-auto aspect-square w-[94%] max-w-[440px]">
+                    {/* Little fence */}
+                    <div className="absolute inset-x-[4%] top-[8%] flex justify-between opacity-90">
+                        {Array.from({ length: 11 }).map((_, index) => (
+                            <div key={index} className="relative h-16 w-3 rounded-t-full border border-[#9b7047]/30 bg-gradient-to-r from-[#d6ad72] to-[#b98954] shadow-sm">
+                                <div className="absolute left-1/2 top-[-5px] h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-[#9b7047]/30 bg-[#d6ad72]" />
+                            </div>
+                        ))}
+                        <div className="absolute inset-x-0 top-4 h-2 rounded-full bg-[#bd8c56] shadow-sm" />
+                        <div className="absolute inset-x-0 top-11 h-2 rounded-full bg-[#a9794b] shadow-sm" />
+                    </div>
+
+                    {/* Curved stepping-stone path */}
+                    <div className="absolute bottom-[1%] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1">
+                        {[["w-16", "opacity-95"], ["w-14", "opacity-85"], ["w-10", "opacity-75"]].map(([width, opacity], index) => (
+                            <div key={index} className={`${width} ${opacity} h-3 rounded-[50%] border border-stone-400/30 bg-gradient-to-b from-[#e7dcc5] to-[#baa98d] shadow-sm`} />
+                        ))}
+                    </div>
+
+                    {/* Plants Grid */}
+                    <div className="absolute inset-x-[7%] bottom-[12%] top-[22%] grid grid-cols-3 grid-rows-3 gap-3 sm:gap-4">
                     {plants.map((plant, i) => (
-                        <div
+                        <button
                             key={i}
-                            className="relative flex items-center justify-center cursor-pointer group rounded-full max-w-[100px] max-h-[100px] mx-auto w-full h-full"
+                            type="button"
+                            aria-label={plant ? `${FLOWERS[plant.flower_type].name} garden plot` : `Empty garden plot ${i + 1}`}
+                            className="group relative mx-auto flex h-full w-full max-h-[104px] max-w-[104px] items-center justify-center rounded-[44%] transition-transform duration-200 hover:-translate-y-1 active:scale-95"
                             onClick={() => handleSlotClick(i)}
                         >
-                            {/* The "Dirt" plot */}
-                            <div className="absolute inset-2 bg-[#8d6e63] rounded-full shadow-inner opacity-60 group-hover:opacity-80 transition-opacity border-b-4 border-black/10" />
+                            <div className="absolute inset-x-0 bottom-[5%] h-[72%] rounded-[48%] border-[3px] border-[#d1a66c]/75 bg-gradient-to-br from-[#70503a] via-[#5c3d2d] to-[#422b24] shadow-[inset_0_5px_10px_rgba(26,16,12,.48),0_6px_0_#4a713f,0_9px_15px_rgba(34,65,32,.3)] transition-all group-hover:border-[#e1bd83]" />
+                            <div className="absolute inset-x-[13%] bottom-[17%] h-[42%] rounded-[50%] opacity-50" style={{ backgroundImage: "radial-gradient(#aa8060 1px, transparent 1px)", backgroundSize: "7px 7px" }} />
 
                             {plant ? getRenderedPlant(plant) : (
-                                <div className="absolute inset-2 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 backdrop-blur-sm z-20">
-                                    <Plus className="w-6 h-6 text-white" />
+                                <div className="absolute inset-[18%] z-20 flex items-center justify-center rounded-full border border-dashed border-[#ead6b6]/65 bg-[#fff8e7]/10 text-[#f6e6c9]/75 transition-all group-hover:scale-105 group-hover:bg-[#fff8e7]/20 group-hover:text-white">
+                                    <Plus className="h-5 w-5" />
                                 </div>
                             )}
-                        </div>
+                        </button>
                     ))}
+                    </div>
+                </div>
+
+                <div className="relative z-30 mx-auto mb-5 flex w-fit items-center gap-1.5 rounded-full border border-white/45 bg-[#355f3c]/45 px-3 py-1.5 text-[9px] font-bold text-white/90 shadow-sm backdrop-blur-sm">
+                    <Sparkles className="h-3 w-3 text-amber-200" />
+                    Tap an empty soil bed to plant a scripture seed
                 </div>
             </div>
 
