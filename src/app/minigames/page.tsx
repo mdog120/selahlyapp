@@ -9,9 +9,10 @@ import { WordSearch } from "@/components/minigames/WordSearch";
 import { Sudoku } from "@/components/minigames/Sudoku";
 import { GraceAlchemy } from "@/components/minigames/GraceAlchemy";
 import { MemoryMatch } from "@/components/minigames/MemoryMatch";
+import { GardenGrid } from "@/components/garden/GardenGrid";
 
 export default function MiniGamesPage() {
-    const [activeTab, setActiveTab] = useState<"lobby" | "blockblast" | "crosswords" | "wordsearch" | "sudoku" | "gracealchemy" | "memorymatch">("lobby");
+    const [activeTab, setActiveTab] = useState<"lobby" | "blockblast" | "crosswords" | "wordsearch" | "sudoku" | "gracealchemy" | "memorymatch" | "garden">("lobby");
 
     return (
         <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
@@ -23,7 +24,7 @@ export default function MiniGamesPage() {
                         <span className="text-2xl">🂡</span> Mini Games <span className="text-2xl">🂡</span>
                     </h1>
                     <p className="text-xs text-warm-grey/50 italic">
-                        "A cheerful heart is good medicine..." — Proverbs 17:22
+                        &ldquo;A cheerful heart is good medicine...&rdquo; — Proverbs 17:22
                     </p>
                 </header>
 
@@ -46,7 +47,7 @@ export default function MiniGamesPage() {
                         {/* Games Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Block Blast */}
-                            <div 
+                            <div
                                 onClick={() => setActiveTab("blockblast")}
                                 className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
@@ -67,7 +68,7 @@ export default function MiniGamesPage() {
                             </div>
 
                             {/* Sudoku */}
-                            <div 
+                            <div
                                 onClick={() => setActiveTab("sudoku")}
                                 className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-emerald-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
@@ -88,7 +89,7 @@ export default function MiniGamesPage() {
                             </div>
 
                             {/* Word Search */}
-                            <div 
+                            <div
                                 onClick={() => setActiveTab("wordsearch")}
                                 className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-sky-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
@@ -109,7 +110,7 @@ export default function MiniGamesPage() {
                             </div>
 
                             {/* Crosswords */}
-                            <div 
+                            <div
                                 onClick={() => setActiveTab("crosswords")}
                                 className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-purple-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
@@ -130,7 +131,7 @@ export default function MiniGamesPage() {
                             </div>
 
                             {/* Grace Alchemy */}
-                            <div 
+                            <div
                                 onClick={() => setActiveTab("gracealchemy")}
                                 className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-amber-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
@@ -151,7 +152,7 @@ export default function MiniGamesPage() {
                             </div>
 
                             {/* Memory Match */}
-                            <div 
+                            <div
                                 onClick={() => setActiveTab("memorymatch")}
                                 className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-indigo-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
@@ -171,8 +172,29 @@ export default function MiniGamesPage() {
                                 </div>
                             </div>
 
+                            {/* Selah Garden */}
+                            <div
+                                onClick={() => setActiveTab("garden")}
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-pink-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                            >
+                                <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-pink-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                <div>
+                                    <div className="w-10 h-10 rounded-2xl bg-pink-100/60 text-pink-700 flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                        🌸
+                                    </div>
+                                    <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Selah Garden</h5>
+                                    <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                        Plant seeds of scripture and watch them bloom into beautiful flowers. Complete verse challenges to grow your garden.
+                                    </p>
+                                </div>
+                                <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                    <span className="text-[9px] uppercase tracking-wider font-bold text-pink-600/70 bg-pink-50 px-2 py-0.5 rounded-md">Faith Garden</span>
+                                    <span className="text-[10px] font-bold text-warm-cocoa/50 group-hover:text-warm-cocoa transition-colors flex items-center gap-0.5">Play Game →</span>
+                                </div>
+                            </div>
+
                             {/* Multiplayer Games Link Card */}
-                            <Link 
+                            <Link
                                 href="/minigames/multiplayer"
                                 className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left sm:col-span-2"
                             >
@@ -209,6 +231,7 @@ export default function MiniGamesPage() {
                         {activeTab === "sudoku" && <Sudoku />}
                         {activeTab === "gracealchemy" && <GraceAlchemy />}
                         {activeTab === "memorymatch" && <MemoryMatch />}
+                        {activeTab === "garden" && <GardenGrid />}
                     </div>
                 )}
             </div>

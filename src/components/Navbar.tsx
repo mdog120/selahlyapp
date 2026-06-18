@@ -155,14 +155,6 @@ export function Navbar() {
                                 </Link>
 
                                 <Link
-                                    href="/garden"
-                                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-green-50 text-warm-grey/80 hover:text-green-700 transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    <span className="text-lg">❀</span> Selah Garden
-                                </Link>
-
-                                <Link
                                     href="/grace-inhale"
                                     className="flex items-center gap-3 p-2 rounded-xl hover:bg-rose-50 text-warm-grey/80 hover:text-muted-rose transition-colors"
                                     onClick={() => setIsMenuOpen(false)}
