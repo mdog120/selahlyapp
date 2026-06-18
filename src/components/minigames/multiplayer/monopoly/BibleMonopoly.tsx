@@ -66,6 +66,13 @@ const getMemberName = (members: RoomMember[], userId: string) =>
     members.find((m) => m.user_id === userId)?.first_name || "Someone";
 
 const DICE_ICONS = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
+const TURN_TIMER = 45;
+const BUY_TIMER = 25;
+const DICE_ANIMATION_MS = 1200;
+const LANDING_REVEAL_MS = 1650;
+const STANDARD_EVENT_HOLD_MS = 3500;
+const IMPORTANT_EVENT_HOLD_MS = 4500;
+const DECISION_RESULT_HOLD_MS = 2600;
 
 function isPropertySpace(space: BoardSpace): space is PropertySpace {
     return space.type === "property";
@@ -88,8 +95,6 @@ function shuffleArray<T>(arr: T[]): T[] {
     }
     return copy;
 }
-
-const TURN_TIMER = 30;
 
 // ─── Component ──────────────────────────────────────────────
 
@@ -140,7 +145,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
     const [finalStandings, setFinalStandings] = useState<{ id: string; money: number }[]>([]);
 
     // ─── Broadcast helper ──
-    const broadcast = useCallback((event: string, payload: any) => {
+    const broadcast = useCallback((event: string, payload: Record<string, unknown>) => {
         channelRef.current?.send({ type: "broadcast", event, payload });
     }, []);
 
@@ -259,7 +264,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
             setStatusMessage(msg);
             setDice([1, 1]);
 
-            setTimeout(() => hostEndTurn(), 2000);
+            setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
             return;
         }
 
@@ -299,12 +304,12 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         setTimeout(() => {
             setDiceRolling(false);
             setPlayers({ ...playersRef.current });
-        }, 600);
+        }, DICE_ANIMATION_MS);
 
         // Process landing after dice animation
         setTimeout(() => {
             hostProcessLanding(playerId, space, newPos);
-        }, 800);
+        }, LANDING_REVEAL_MS);
     }
 
     function hostProcessLanding(playerId: string, space: BoardSpace, spaceIndex: number) {
@@ -315,7 +320,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
             // Landed exactly on GO — bonus already handled if passed
             const msg = `Landed on GO! ⭐`;
             broadcastLandAction(playerId, msg, false);
-            setTimeout(() => hostEndTurn(), 2000);
+            setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
         } else if (space.type === "property") {
             const owner = propertyOwnersRef.current[space.name];
             if (!owner) {
@@ -343,19 +348,19 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 } else {
                     const msg = `Landed on ${space.emoji} ${space.name} but can't afford it (${space.cost} shekels).`;
                     broadcastLandAction(playerId, msg, false);
-                    setTimeout(() => hostEndTurn(), 2000);
+                    setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
                 }
             } else if (owner === playerId) {
                 const msg = `Landed on your own property: ${space.emoji} ${space.name}.`;
                 broadcastLandAction(playerId, msg, false);
-                setTimeout(() => hostEndTurn(), 2000);
+                setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
             } else {
                 // Pay rent
                 const ownerPlayer = playersRef.current[owner];
                 if (!ownerPlayer || ownerPlayer.bankrupt) {
                     const msg = `Landed on ${space.emoji} ${space.name} (owner is bankrupt — no rent).`;
                     broadcastLandAction(playerId, msg, false);
-                    setTimeout(() => hostEndTurn(), 2000);
+                    setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
                     return;
                 }
 
@@ -397,12 +402,12 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
 
                     // Check if game over
                     if (hostCheckGameOver()) return;
-                    setTimeout(() => hostEndTurn(), 2500);
+                    setTimeout(() => hostEndTurn(), IMPORTANT_EVENT_HOLD_MS);
                 } else {
                     const doubleMsg = ownsFullColorGroup(ownerPlayer.properties, space.color) ? " (doubled!)" : "";
                     const msg = `${payerName} paid ${rent}${doubleMsg} shekels rent to ${ownerName}!`;
                     broadcastLandAction(playerId, msg, false);
-                    setTimeout(() => hostEndTurn(), 2500);
+                    setTimeout(() => hostEndTurn(), IMPORTANT_EVENT_HOLD_MS);
                 }
             }
         } else if (space.type === "scripture_card") {
@@ -436,11 +441,11 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 setPropertyOwners({ ...propertyOwnersRef.current });
 
                 if (hostCheckGameOver()) return;
-                setTimeout(() => hostEndTurn(), 2000);
+                setTimeout(() => hostEndTurn(), IMPORTANT_EVENT_HOLD_MS);
             } else {
                 const msg = `Paid tithe of ${TITHE_AMOUNT} shekels to the pot. 💰`;
                 broadcastLandAction(playerId, msg, false);
-                setTimeout(() => hostEndTurn(), 2000);
+                setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
             }
         } else if (space.type === "free_parking") {
             const collected = potRef.current;
@@ -454,13 +459,13 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 const msg = `Free Parking! Nothing in the pot. 🅿️`;
                 broadcastLandAction(playerId, msg, false);
             }
-            setTimeout(() => hostEndTurn(), 2000);
+            setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
         } else if (space.type === "wilderness") {
             p.skipNextTurn = true;
             playersRef.current[playerId] = { ...p };
             const msg = `Entered the Wilderness. 🏜️ Must rest — skip next turn!`;
             broadcastLandAction(playerId, msg, false);
-            setTimeout(() => hostEndTurn(), 2000);
+            setTimeout(() => hostEndTurn(), IMPORTANT_EVENT_HOLD_MS);
         }
     }
 
@@ -491,7 +496,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         const p = playersRef.current[playerId];
         if (!p) return;
 
-        let msg = `📜 Scripture Card: ${card.text}`;
+        const msg = `📜 Scripture Card: ${card.text}`;
 
         switch (card.action) {
             case "receive": {
@@ -594,13 +599,13 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
             if (hostCheckGameOver()) return;
         }
 
-        setTimeout(() => hostEndTurn(), 3000);
+        setTimeout(() => hostEndTurn(), IMPORTANT_EVENT_HOLD_MS);
     }
 
     function hostStartBuyTimer(playerId: string) {
         hostClearTimer();
-        turnTimerRef.current = 15;
-        setTimer(15);
+        turnTimerRef.current = BUY_TIMER;
+        setTimer(BUY_TIMER);
         timerIntervalRef.current = setInterval(() => {
             turnTimerRef.current -= 1;
             const t = turnTimerRef.current;
@@ -647,7 +652,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         setPlayers({ ...playersRef.current });
         setPropertyOwners({ ...propertyOwnersRef.current });
 
-        setTimeout(() => hostEndTurn(), 1500);
+        setTimeout(() => hostEndTurn(), DECISION_RESULT_HOLD_MS);
     }
 
     function hostProcessPassProperty(playerId: string) {
@@ -667,7 +672,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         setShowBuyPrompt(false);
         setBuyPropertyInfo(null);
 
-        setTimeout(() => hostEndTurn(), 1500);
+        setTimeout(() => hostEndTurn(), DECISION_RESULT_HOLD_MS);
     }
 
     function hostEndTurn() {
@@ -805,7 +810,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                     setDice([payload.die1 || 1, payload.die2 || 1]);
                     if (!payload.skipped) {
                         setDiceRolling(true);
-                        setTimeout(() => setDiceRolling(false), 600);
+                        setTimeout(() => setDiceRolling(false), DICE_ANIMATION_MS);
                     }
                     setPlayers(payload.players);
                     setStatusMessage(payload.message);
@@ -1065,29 +1070,37 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
 
     // ─── Main Game ──
     return (
-        <div className="w-full flex flex-col gap-3">
+        <div className="w-full flex flex-col gap-4 rounded-[2rem] border border-[#d9c6a3]/50 bg-gradient-to-b from-[#fbf4e6]/80 via-[#f5ead7]/60 to-[#e8dcc5]/70 p-2.5 sm:p-4 shadow-[0_18px_50px_rgba(67,48,29,0.12)]">
             {/* ─── 1. Top Info Bar ─── */}
-            <div className="flex items-center justify-between bg-white/50 border border-warm-grey/5 rounded-2xl px-4 py-2.5 shadow-sm">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-warm-grey/50">
-                    🏛️ Bible Monopoly
+            <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#d9c6a3]/70 bg-gradient-to-r from-[#fffaf0]/95 via-white/90 to-[#fff8e8]/95 px-3 py-2.5 shadow-[0_5px_18px_rgba(92,67,37,0.09)]">
+                <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50 to-amber-100 text-sm shadow-inner">
+                        🏛️
+                    </div>
+                    <div>
+                        <p className="font-serif text-[11px] font-bold text-[#5b402c]">Bible Monopoly Lite</p>
+                        <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#9a7b58]">A journey through Scripture</p>
+                    </div>
                 </div>
-                <div className="text-[10px] text-warm-cocoa font-bold">
-                    Round {round}/{MAX_ROUNDS}
+                <div className="hidden rounded-full border border-[#dbc59c]/60 bg-[#f8edd7] px-2.5 py-1 text-[9px] font-black text-[#73583d] sm:block">
+                    Round {round} of {MAX_ROUNDS}
                 </div>
                 <div className="flex items-center gap-2">
                     {currentPlayerState && (
-                        <span className="text-[10px] font-bold text-warm-cocoa">
+                        <span className="max-w-[100px] truncate text-[9px] font-bold text-[#5b402c] sm:max-w-none sm:text-[10px]">
                             {PLAYER_TOKENS[currentPlayerState.token]?.emoji}{" "}
                             {isMyTurn ? "Your turn" : getMemberName(room.members, currentTurnPlayerId)}
                         </span>
                     )}
                     {timer > 0 && (
                         <span
-                            className={`text-xs font-bold ${
-                                timer <= 5 ? "text-rose-500 animate-pulse" : "text-warm-grey/50"
+                            className={`rounded-full border px-2 py-1 text-[10px] font-black tabular-nums ${
+                                timer <= 8
+                                    ? "border-rose-200 bg-rose-50 text-rose-600 animate-pulse"
+                                    : "border-emerald-200/70 bg-emerald-50 text-emerald-700"
                             }`}
                         >
-                            ⏱️ {timer}s
+                            {timer}s
                         </span>
                     )}
                 </div>
@@ -1150,19 +1163,19 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                     return (
                         <motion.div
                             key={`cell-${idx}`}
-                            className={`relative overflow-hidden flex flex-col items-center justify-center ${
-                                isCorner ? "rounded-sm" : "rounded-[2px]"
+                            className={`relative overflow-hidden flex flex-col items-center justify-center border border-[#cbb894]/45 ${
+                                isCorner ? "rounded-[5px]" : "rounded-[3px]"
                             } ${
                                 isCurrentPos
-                                    ? "ring-2 ring-yellow-400 bg-yellow-50 z-10"
-                                    : "bg-white/95"
+                                    ? "ring-2 ring-amber-300 bg-[#fff7d6] z-10 shadow-[0_0_14px_rgba(251,191,36,.7)]"
+                                    : "bg-gradient-to-br from-[#fffdf7] to-[#f4ead6]"
                             }`}
                             style={{
                                 gridRow: `${row} / ${row + 1}`,
                                 gridColumn: `${col} / ${col + 1}`,
                             }}
                             animate={isCurrentPos ? { scale: [1, 1.06, 1] } : {}}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            transition={{ repeat: Infinity, duration: 2.4 }}
                         >
                             {/* Color bar on inner edge for properties */}
                             {isProp && (
@@ -1175,7 +1188,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                             <span className="text-[9px] sm:text-xs leading-none">
                                 {space.emoji}
                             </span>
-                            <span className="text-[4px] sm:text-[6px] text-stone-700 font-bold text-center leading-tight px-[1px] truncate w-full">
+                            <span className="w-full truncate px-[1px] text-center font-serif text-[4px] font-bold leading-tight text-[#604832] sm:text-[6px]">
                                 {space.name.length > 9 ? space.name.slice(0, 8) + "…" : space.name}
                             </span>
 
@@ -1188,7 +1201,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
 
                             {/* Price for unowned properties */}
                             {isProp && !owner && (
-                                <span className="text-[4px] sm:text-[5px] text-stone-400 font-bold">
+                                <span className="text-[4px] sm:text-[5px] text-[#9a8065] font-bold">
                                     {space.cost}₪
                                 </span>
                             )}
@@ -1214,9 +1227,10 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 };
 
                 return (
-                    <div className="bg-emerald-800 rounded-2xl p-1.5 shadow-lg border border-emerald-900/50">
+                    <div className="relative overflow-hidden rounded-[1.75rem] border-[5px] border-[#8a663f] bg-gradient-to-br from-[#6e4c2f] via-[#9b7449] to-[#5c3c26] p-2 shadow-[0_18px_35px_rgba(61,40,24,.3),inset_0_0_0_2px_rgba(255,233,190,.3)]">
+                        <div className="pointer-events-none absolute inset-1 rounded-[1.3rem] border border-[#e1bd7d]/35" />
                         <div
-                            className="grid gap-[2px] w-full"
+                            className="relative grid w-full gap-[2px] overflow-hidden rounded-xl bg-[#184f3c] p-[2px] shadow-[inset_0_0_30px_rgba(0,0,0,.28)]"
                             style={{
                                 gridTemplateColumns: "repeat(9, 1fr)",
                                 gridTemplateRows: "repeat(8, 1fr)",
@@ -1230,15 +1244,19 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
 
                             {/* ─── Center Area: Action Panel ─── */}
                             <div
-                                className="bg-emerald-700/60 rounded-lg flex flex-col items-center justify-center p-2 gap-1 overflow-hidden"
+                                className="relative flex flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-[#d5ba77]/25 bg-[radial-gradient(circle_at_center,#39745c_0%,#215b46_52%,#164434_100%)] p-2 shadow-[inset_0_0_28px_rgba(2,32,24,.38)]"
                                 style={{
                                     gridRow: "2 / 8",
                                     gridColumn: "2 / 9",
                                 }}
                             >
                                 {/* Game Title */}
-                                <p className="text-[10px] sm:text-xs text-emerald-200/80 font-bold tracking-wide uppercase">
-                                    🫒 Bible Monopoly 🫒
+                                <div className="pointer-events-none absolute inset-2 rounded-lg border border-dashed border-[#e8d59c]/15" />
+                                <p className="relative font-serif text-[10px] font-bold tracking-[0.14em] text-[#f3e4b3] sm:text-xs">
+                                    ✦ BIBLE MONOPOLY ✦
+                                </p>
+                                <p className="relative -mt-1 text-[6px] font-bold uppercase tracking-[0.22em] text-emerald-100/50 sm:text-[7px]">
+                                    Steward your shekels wisely
                                 </p>
 
                                 {/* Dice Display */}
@@ -1258,8 +1276,8 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                                               }
                                                             : { rotate: 0, scale: 1 }
                                                     }
-                                                    transition={{ duration: 0.6, ease: "easeOut" }}
-                                                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg border-2 border-stone-200 flex items-center justify-center shadow-sm"
+                                                    transition={{ duration: 1.15, ease: "easeOut" }}
+                                                    className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[#ddcda8] bg-gradient-to-br from-white to-[#f3ead8] shadow-[0_5px_10px_rgba(0,0,0,.22),inset_0_1px_0_white] sm:h-11 sm:w-11"
                                                 >
                                                     <DiceIcon className="w-5 h-5 sm:w-7 sm:h-7 text-warm-cocoa" />
                                                 </motion.div>
@@ -1272,10 +1290,10 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                 {isMyTurn && phase === "rolling" && !myPlayerState?.bankrupt && (
                                     <motion.button
                                         onClick={handleRollDice}
-                                        className="px-6 py-2 rounded-xl bg-amber-500 text-white font-serif text-xs font-bold transition-all active:scale-95 shadow-lg shadow-amber-600/30"
+                                        className="relative rounded-xl border border-amber-200/60 bg-gradient-to-b from-[#e7b653] to-[#bd7b24] px-6 py-2 font-serif text-xs font-bold text-white shadow-[0_6px_0_#714615,0_9px_16px_rgba(55,33,12,.28)] transition-all active:translate-y-1 active:scale-95 active:shadow-[0_2px_0_#714615]"
                                         whileTap={{ scale: 0.95 }}
                                         animate={{ scale: [1, 1.04, 1] }}
-                                        transition={{ repeat: Infinity, duration: 2 }}
+                                        transition={{ repeat: Infinity, duration: 2.8 }}
                                     >
                                         🎲 Roll Dice
                                     </motion.button>
@@ -1285,8 +1303,8 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                 {!isMyTurn && phase === "rolling" && (
                                     <motion.p
                                         animate={{ opacity: [0.5, 1, 0.5] }}
-                                        transition={{ repeat: Infinity, duration: 2 }}
-                                        className="text-[10px] font-bold text-emerald-300/70"
+                                        transition={{ repeat: Infinity, duration: 2.8 }}
+                                        className="relative rounded-full bg-emerald-950/25 px-3 py-1 text-[9px] font-bold text-emerald-100/75"
                                     >
                                         Waiting for {getMemberName(room.members, currentTurnPlayerId)} to roll…
                                     </motion.p>
@@ -1299,7 +1317,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                             initial={{ opacity: 0, y: 12 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -12 }}
-                                            className="bg-amber-50/95 border border-amber-200/50 rounded-xl p-2.5 w-full max-w-[240px]"
+                                            className="relative w-full max-w-[250px] rounded-xl border border-[#dfc27c] bg-gradient-to-b from-[#fff9e9] to-[#f8e7bd] p-3 shadow-[0_8px_20px_rgba(44,30,13,.22)]"
                                         >
                                             <div className="text-center mb-2">
                                                 <span className="text-xl">{buyPropertyInfo.emoji}</span>
@@ -1327,13 +1345,13 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                             <div className="flex gap-1.5">
                                                 <button
                                                     onClick={handleBuyProperty}
-                                                    className="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[10px] transition-all active:scale-95"
+                                                    className="flex-1 rounded-lg border border-emerald-400/40 bg-gradient-to-b from-emerald-600 to-emerald-700 py-2 text-[10px] font-bold text-white shadow-sm transition-all active:scale-95"
                                                 >
                                                     Buy 🏠
                                                 </button>
                                                 <button
                                                     onClick={handlePassProperty}
-                                                    className="flex-1 py-1.5 rounded-lg bg-stone-200 text-warm-cocoa font-bold text-[10px] transition-all active:scale-95"
+                                                    className="flex-1 rounded-lg border border-[#d1bea0] bg-[#eee2ce] py-2 text-[10px] font-bold text-[#674d35] transition-all active:scale-95"
                                                 >
                                                     Pass ✋
                                                 </button>
@@ -1350,7 +1368,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
                                             exit={{ opacity: 0, scale: 0.8 }}
                                             transition={{ type: "spring", damping: 15 }}
-                                            className="bg-gradient-to-b from-amber-50 to-white border border-amber-200/50 rounded-xl p-2.5 text-center w-full max-w-[240px]"
+                                            className="w-full max-w-[250px] rounded-xl border border-[#d9bd78] bg-gradient-to-b from-[#fffaf0] to-[#f4dfab] p-3 text-center shadow-[0_8px_22px_rgba(45,29,12,.24)]"
                                         >
                                             <span className="text-2xl">{showScriptureCard.emoji}</span>
                                             <p className="font-serif text-[10px] text-warm-cocoa mt-1 font-bold leading-relaxed">
@@ -1367,9 +1385,9 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                             initial={{ opacity: 0, y: 6 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0 }}
-                                            className="text-center"
+                                            className="relative text-center"
                                         >
-                                            <p className="text-[10px] font-bold text-emerald-100 bg-emerald-800/60 rounded-lg px-3 py-1.5 border border-emerald-600/30">
+                                            <p className="rounded-lg border border-[#ead79c]/20 bg-emerald-950/35 px-3 py-2 text-[10px] font-bold leading-relaxed text-[#f5ebc8] shadow-inner">
                                                 {statusMessage}
                                             </p>
                                         </motion.div>
@@ -1382,13 +1400,13 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
             })()}
 
             {/* ─── 4. Player Dashboard ─── */}
-            <div className="bg-white/50 border border-warm-grey/5 rounded-2xl p-3 shadow-sm">
+            <div className="rounded-2xl border border-[#d7c39f]/70 bg-gradient-to-b from-[#fffaf0]/95 to-[#f3e5cc]/90 p-3 shadow-[0_8px_24px_rgba(72,50,27,.1)]">
                 <div className="flex items-center justify-between mb-2">
-                    <p className="text-[9px] text-warm-grey/40 uppercase tracking-wider font-bold">
-                        Players
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8a6d4e]">
+                        Pilgrims
                     </p>
-                    <p className="text-[9px] text-warm-grey/40 font-bold">
-                        Pot: {pot} ₪
+                    <p className="rounded-full border border-amber-200/60 bg-amber-50 px-2 py-1 text-[9px] font-bold text-amber-800">
+                        Offering pot · {pot} ₪
                     </p>
                 </div>
                 <div className="space-y-2">
@@ -1413,12 +1431,12 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                 key={id}
                                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all ${
                                     p.bankrupt
-                                        ? "bg-stone-100/50 border border-stone-200/20 opacity-40"
+                                        ? "bg-stone-100/50 border border-stone-200/30 opacity-40"
                                         : isCurrentTurn
-                                            ? "bg-amber-50 border border-amber-200/50 ring-1 ring-amber-300/30"
+                                            ? "border border-amber-300/70 bg-gradient-to-r from-amber-50 to-[#fff7dc] ring-1 ring-amber-300/30 shadow-[0_4px_12px_rgba(180,123,35,.12)]"
                                             : isMe
-                                                ? "bg-white/80 border border-warm-grey/10"
-                                                : "bg-white/40 border border-warm-grey/5"
+                                                ? "bg-white/85 border border-[#d7c5a7]"
+                                                : "bg-white/55 border border-[#dfd1ba]/70"
                                 }`}
                                 animate={isCurrentTurn ? { scale: [1, 1.01, 1] } : {}}
                                 transition={{ repeat: Infinity, duration: 3 }}
