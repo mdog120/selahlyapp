@@ -79,13 +79,19 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, user_id: user.id, platform: resolvedPlatform });
-  } catch (err) {
-    console.error('Register token error:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
-    const errorResponse: Record<string, unknown> = { error: 'Internal server error' };
-    if (isDebugMode(request)) {
-      errorResponse.details = err;
-    }
-    return NextResponse.json(errorResponse, { status: 500 });
+  } catch (error) {
+    console.error('register-token exception', error);
+
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      },
+      { status: 500 }
+    );
   }
 }
 
