@@ -524,7 +524,7 @@ export default function GameRoomPage() {
                 {/* Game area — fills remaining space, scrollable only internally */}
                 <div
                     data-game-scroll
-                    className="flex-1 min-h-0 h-0 overflow-y-scroll overflow-x-hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] relative z-10"
+                    className="flex-1 min-h-0 h-0 overflow-y-scroll overflow-x-hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] relative z-10 scroll-momentum"
                     style={{
                         WebkitOverflowScrolling: "touch",
                         overscrollBehaviorY: "auto",

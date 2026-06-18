@@ -112,32 +112,47 @@ function Crazy8CardView({
     } : undefined;
 
     const outerStyle = wildBorderStyle || plus4BorderStyle;
+    const cardBg = bgGradient || "linear-gradient(180deg, #ffffff 0%, #f7f6ff 100%)";
+    const cardBorder = getCardBorder(card);
+    const cornerLabel = card.type === "number"
+        ? `${card.rank}`
+        : card.type === "wild"
+            ? "WILD"
+            : card.type === "plus4"
+                ? "+4"
+                : card.type === "skip"
+                    ? "SKIP"
+                    : card.type === "reverse"
+                        ? "REV"
+                        : card.type === "draw2"
+                            ? "+2"
+                            : card.label;
 
     const cardInner = (
         <button
             onClick={onClick}
             disabled={!playable && !!onClick}
             className={`
-                ${sizeClasses} rounded-[18px] border bg-white flex flex-col items-center justify-center gap-1 p-2
+                ${sizeClasses} rounded-[18px] border flex flex-col items-center justify-center gap-1 p-2
                 transition-all duration-200 relative overflow-hidden shrink-0
                 ${playable ? "cursor-pointer hover:scale-105 hover:-translate-y-1 active:scale-95 hover:z-10" : ""}
                 ${playable === false ? "opacity-80 cursor-not-allowed" : ""}
             `}
             style={{
-                background: "linear-gradient(180deg, #ffffff 0%, #f7f6ff 100%)",
+                background: cardBg,
                 boxShadow: playable
                     ? "0 12px 30px rgba(0,0,0,0.16)"
                     : "0 6px 16px rgba(0,0,0,0.08)",
-                borderColor: isWild || isPlus4 ? "rgba(148,63,255,0.22)" : "rgba(148,163,184,0.3)",
+                borderColor: cardBorder,
             }}
         >
             <div className="absolute inset-0 rounded-[18px] border border-white/70 pointer-events-none" />
             <div className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 text-left">
-                {card.type === "number" ? card.rank : card.label}
+                {cornerLabel}
                 {card.suit ? <span className="block mt-1 text-[12px]">{SUITS[card.suit].symbol}</span> : ""}
             </div>
             <div className="absolute bottom-2 right-2 rotate-180 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 text-right">
-                {card.type === "number" ? card.rank : card.label}
+                {cornerLabel}
                 {card.suit ? <span className="block mt-1 text-[12px]">{SUITS[card.suit].symbol}</span> : ""}
             </div>
 

@@ -53,15 +53,27 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ token, platform: "web" }),
         });
 
-        const result = await response.json().catch(() => ({}));
+        console.log("register-token status:", response.status);
+        const responseText = await response.text();
+        console.log("register-token body:", responseText);
+
+        let result: unknown = {};
+        try {
+          result = JSON.parse(responseText);
+        } catch {
+          result = responseText;
+        }
 
         if (!response.ok) {
-          console.error("Failed to register native device token:", result);
+          console.error("Failed to register native device token:", JSON.stringify(result, Object.getOwnPropertyNames(result)));
         } else {
           console.log("Native device token registered successfully:", result);
         }
       } catch (err) {
-        console.error("nativeDeviceToken registration failed:", err);
+        console.error(
+          "nativeDeviceToken registration failed:",
+          JSON.stringify(err, Object.getOwnPropertyNames(err))
+        );
       }
     }
 

@@ -293,7 +293,7 @@ export function DrawingCanvas({
                     onPointerUp={handlePointerUp}
                     onPointerLeave={handlePointerUp}
                     className={`w-full h-full ${isDrawer ? "cursor-crosshair" : "pointer-events-none"}`}
-                    style={{ touchAction: "none" }}
+                    style={{ touchAction: isDrawer ? "none" : "pan-y" }}
                 />
             </div>
 

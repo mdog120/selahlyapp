@@ -283,15 +283,21 @@ export function getCardColor(card: GameCard): string {
 }
 
 export function getCardBg(card: GameCard): string {
-    if (card.type === "wild") return "bg-purple-50";
-    if (card.type === "plus4") return "bg-red-50";
-    if (card.suit) return SUITS[card.suit].bgColor;
-    return "bg-stone-50";
+    if (card.type === "wild") return "linear-gradient(180deg, #f3e8ff 0%, #ede9fe 100%)";
+    if (card.type === "plus4") return "linear-gradient(180deg, #fee2e2 0%, #fecaca 100%)";
+    if (card.suit === "love") return "linear-gradient(180deg, #fff1f2 0%, #fecdd3 100%)";
+    if (card.suit === "faith") return "linear-gradient(180deg, #fffbeb 0%, #fde68a 100%)";
+    if (card.suit === "hope") return "linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%)";
+    if (card.suit === "grace") return "linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%)";
+    return "linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)";
 }
 
 export function getCardBorder(card: GameCard): string {
-    if (card.type === "wild") return "border-purple-200";
-    if (card.type === "plus4") return "border-red-200";
-    if (card.suit) return SUITS[card.suit].borderColor;
-    return "border-stone-200";
+    if (card.type === "wild") return "#c4b5fd";
+    if (card.type === "plus4") return "#fecaca";
+    if (card.suit === "love") return "#fecdd3";
+    if (card.suit === "faith") return "#fde68a";
+    if (card.suit === "hope") return "#bfdbfe";
+    if (card.suit === "grace") return "#a7f3d0";
+    return "rgba(148,163,184,0.35)";
 }
