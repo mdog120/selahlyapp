@@ -295,32 +295,26 @@ export default function GameRoomPage() {
     // ─── RENDER ─────────────────────────────────────────────
     if (loading) {
         return (
-            <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
-                <Navbar />
-                <div className="container mx-auto px-4 pt-24 max-w-2xl flex flex-col items-center justify-center gap-4 mt-20">
-                    <div className="w-8 h-8 border-3 border-warm-grey/20 border-t-warm-cocoa rounded-full animate-spin" />
-                    <p className="text-xs text-warm-grey/50 font-serif">Entering room...</p>
-                </div>
+            <div className="min-h-screen bg-warm-paper animate-fade-in flex flex-col items-center justify-center">
+                <div className="w-8 h-8 border-3 border-warm-grey/20 border-t-warm-cocoa rounded-full animate-spin mb-4" />
+                <p className="text-xs text-warm-grey/50 font-serif">Entering room...</p>
             </div>
         );
     }
 
     if (error || !room) {
         return (
-            <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
-                <Navbar />
-                <div className="container mx-auto px-4 pt-24 max-w-2xl flex flex-col items-center justify-center gap-4 mt-20">
-                    <span className="text-4xl">🚪</span>
-                    <h2 className="font-serif text-xl text-warm-cocoa font-bold">{error || "Room not found"}</h2>
-                    <p className="text-xs text-warm-grey/50 mb-4">This game room may have been closed by the host.</p>
-                    <Link
-                        href="/minigames/multiplayer"
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-warm-cocoa text-white text-xs font-bold transition-all hover:bg-warm-cocoa/90 active:scale-95 shadow-lg shadow-warm-cocoa/20"
-                    >
-                        <ArrowLeft className="w-3.5 h-3.5" />
-                        Back to Lobby
-                    </Link>
-                </div>
+            <div className="min-h-screen bg-warm-paper animate-fade-in flex flex-col items-center justify-center gap-4">
+                <span className="text-4xl">🚪</span>
+                <h2 className="font-serif text-xl text-warm-cocoa font-bold">{error || "Room not found"}</h2>
+                <p className="text-xs text-warm-grey/50 mb-4">This game room may have been closed by the host.</p>
+                <Link
+                    href="/minigames/multiplayer"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-warm-cocoa text-white text-xs font-bold transition-all hover:bg-warm-cocoa/90 active:scale-95 shadow-lg shadow-warm-cocoa/20"
+                >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Back to Lobby
+                </Link>
             </div>
         );
     }
@@ -331,9 +325,8 @@ export default function GameRoomPage() {
     // If spectating, show waiting screen
     if (isSpectating) {
         return (
-            <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
-                <Navbar />
-                <div className="container mx-auto px-4 pt-24 max-w-2xl">
+            <div className="min-h-screen bg-warm-paper animate-fade-in">
+                <div className="container mx-auto px-4 pt-6 max-w-2xl">
                     <button
                         onClick={handleLeave}
                         disabled={isLeaving}
@@ -577,10 +570,8 @@ export default function GameRoomPage() {
     }
 
     return (
-        <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
-            <Navbar />
-
-            <div className="container mx-auto px-4 pt-24 max-w-2xl">
+        <div className="min-h-screen bg-warm-paper animate-fade-in">
+            <div className="container mx-auto px-4 pt-6 max-w-2xl">
                 {/* Back Button */}
                 <button
                     onClick={handleLeave}

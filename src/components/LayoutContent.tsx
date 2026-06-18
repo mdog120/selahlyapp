@@ -12,6 +12,7 @@ interface LayoutContentProps {
 export function LayoutContent({ children }: LayoutContentProps) {
     const pathname = usePathname();
     const isGraceInhale = pathname === "/grace-inhale";
+    const isMultiplayerRoom = pathname.startsWith("/minigames/multiplayer/room/");
 
     useEffect(() => {
         document.body.classList.remove("theme-sunrise", "theme-sunset", "theme-night");
@@ -21,6 +22,17 @@ export function LayoutContent({ children }: LayoutContentProps) {
     }, []);
 
     if (isGraceInhale) {
+        return (
+            <div className="flex flex-col min-h-screen">
+                <main className="flex-1 w-full h-full">
+                    {children}
+                </main>
+            </div>
+        );
+    }
+
+    // Hide nav and bottom nav in multiplayer game rooms
+    if (isMultiplayerRoom) {
         return (
             <div className="flex flex-col min-h-screen">
                 <main className="flex-1 w-full h-full">
