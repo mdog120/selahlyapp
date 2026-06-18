@@ -7,11 +7,16 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
   const initialized = useRef(false);
 
   useEffect(() => {
+    console.log("[Website] FCMProvider mounted");
+    if (typeof window !== "undefined" && (window as any).nativeDeviceToken) {
+      console.log("[Website] existing nativeDeviceToken found", (window as any).nativeDeviceToken);
+    }
     if (initialized.current) return;
     initialized.current = true;
 
     async function registerNativeDeviceToken(event: Event) {
       try {
+        console.log("[Website] nativeDeviceToken received", (event as CustomEvent).detail);
         const customEvent = event as CustomEvent<unknown>;
         let token: string | undefined;
 
