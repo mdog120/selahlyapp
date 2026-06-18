@@ -1,6 +1,6 @@
 // ─── Board Data for Bible Monopoly Lite ─────────────────────
 
-export type SpaceType = "go" | "property" | "scripture_card" | "wilderness" | "tithe" | "free_parking";
+export type SpaceType = "go" | "property" | "scripture_card" | "jail" | "tithe" | "free_parking";
 
 export interface PropertySpace {
     type: "property";
@@ -14,7 +14,7 @@ export interface PropertySpace {
 }
 
 export interface SpecialSpace {
-    type: "go" | "scripture_card" | "wilderness" | "tithe" | "free_parking";
+    type: "go" | "scripture_card" | "jail" | "tithe" | "free_parking";
     name: string;
     emoji: string;
     description: string;
@@ -66,7 +66,7 @@ export const BOARD: BoardSpace[] = [
     // Right column (top to bottom): Yellow + Green + Scripture Card + Dark Blue
     { type: "property", name: "Corinth", color: "yellow", colorHex: "#E8C840", cost: 260, rent: 60, emoji: "📬", verse: "1 Cor 1:2" },
     { type: "property", name: "Ephesus", color: "yellow", colorHex: "#E8C840", cost: 280, rent: 65, emoji: "⚔️", verse: "Eph 6:11" },
-    { type: "wilderness", name: "Wilderness", emoji: "🏜️", description: "Rest here — skip your next turn" },
+    { type: "jail", name: "Jail", emoji: "🔒", description: "Go to jail — miss your next turn" },
     { type: "property", name: "Rome", color: "green", colorHex: "#4CAF50", cost: 300, rent: 70, emoji: "🏟️", verse: "Rom 1:7" },
     { type: "property", name: "Athens", color: "green", colorHex: "#4CAF50", cost: 300, rent: 70, emoji: "🏛️", verse: "Acts 17:22" },
     { type: "property", name: "Tarsus", color: "green", colorHex: "#4CAF50", cost: 320, rent: 75, emoji: "📖", verse: "Acts 21:39" },

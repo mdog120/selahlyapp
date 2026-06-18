@@ -58,6 +58,7 @@ interface PlayerState {
     properties: string[]; // property names owned
     bankrupt: boolean;
     skipNextTurn: boolean;
+    skipReason?: "jail" | "wilderness";
 }
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -139,6 +140,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
     const [showBuyPrompt, setShowBuyPrompt] = useState(false);
     const [buyPropertyInfo, setBuyPropertyInfo] = useState<PropertySpace | null>(null);
     const [showScriptureCard, setShowScriptureCard] = useState<ScriptureCard | null>(null);
+    const [showTokenPicker, setShowTokenPicker] = useState(true);
 
     // Game over
     const [winnerId, setWinnerId] = useState<string | null>(null);
@@ -158,15 +160,16 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         turnOrderRef.current = order;
 
         const playerStates: Record<string, PlayerState> = {};
-        order.forEach((id, idx) => {
+        order.forEach((id) => {
             playerStates[id] = {
                 id,
                 position: 0,
                 money: STARTING_MONEY,
-                token: idx % PLAYER_TOKENS.length,
+                token: -1,
                 properties: [],
                 bankrupt: false,
                 skipNextTurn: false,
+                skipReason: undefined,
             };
         });
         playersRef.current = playerStates;
@@ -210,6 +213,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         setShowBuyPrompt(false);
         setBuyPropertyInfo(null);
         setShowScriptureCard(null);
+        setShowTokenPicker(true);
         setStatusMessage("");
     }
 
@@ -245,13 +249,21 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
 
         const p = playersRef.current[playerId];
         if (!p || p.bankrupt) return;
+        if (p.token < 0) {
+            setStatusMessage("Choose your character before rolling 🎟️");
+            return;
+        }
 
         // Check skip turn
         if (p.skipNextTurn) {
+            const skipReason = p.skipReason;
             p.skipNextTurn = false;
+            p.skipReason = undefined;
             playersRef.current[playerId] = { ...p };
 
-            const msg = `${getMemberName(room.members, playerId)} is resting in the wilderness. Turn skipped!`;
+            const msg = skipReason === "jail"
+                ? `${getMemberName(room.members, playerId)} is serving one turn in jail. Turn skipped! 🔒`
+                : `${getMemberName(room.members, playerId)} is resting in the wilderness. Turn skipped!`;
             broadcast("bm_roll_result", {
                 playerId,
                 die1: 0,
@@ -460,10 +472,11 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 broadcastLandAction(playerId, msg, false);
             }
             setTimeout(() => hostEndTurn(), STANDARD_EVENT_HOLD_MS);
-        } else if (space.type === "wilderness") {
+        } else if (space.type === "jail") {
             p.skipNextTurn = true;
+            p.skipReason = "jail";
             playersRef.current[playerId] = { ...p };
-            const msg = `Entered the Wilderness. 🏜️ Must rest — skip next turn!`;
+            const msg = `Sent to Jail! 🔒 Miss your next turn, then return to the journey.`;
             broadcastLandAction(playerId, msg, false);
             setTimeout(() => hostEndTurn(), IMPORTANT_EVENT_HOLD_MS);
         }
@@ -546,6 +559,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
             }
             case "skip_turn": {
                 p.skipNextTurn = true;
+                p.skipReason = "wilderness";
                 playersRef.current[playerId] = { ...p };
                 break;
             }
@@ -675,6 +689,26 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         setTimeout(() => hostEndTurn(), DECISION_RESULT_HOLD_MS);
     }
 
+    function hostProcessTokenChoice(playerId: string, tokenIndex: number) {
+        const player = playersRef.current[playerId];
+        if (!player || tokenIndex < 0 || tokenIndex >= PLAYER_TOKENS.length) return;
+
+        const tokenClaimed = Object.values(playersRef.current).some(
+            (other) => other.id !== playerId && other.token === tokenIndex
+        );
+        if (tokenClaimed) return;
+
+        player.token = tokenIndex;
+        playersRef.current[playerId] = { ...player };
+
+        broadcast("bm_token_selected", {
+            playerId,
+            tokenIndex,
+            players: playersRef.current,
+        });
+        setPlayers({ ...playersRef.current });
+    }
+
     function hostEndTurn() {
         hostClearTimer();
         pendingLandRef.current = null;
@@ -799,6 +833,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 setShowScriptureCard(null);
                 setWinnerId(null);
                 setFinalStandings([]);
+                setShowTokenPicker(true);
             })
             .on("broadcast", { event: "bm_timer" }, ({ payload }) => {
                 if (!isHost) {
@@ -881,6 +916,9 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 setPlayers(payload.players);
                 confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
             })
+            .on("broadcast", { event: "bm_token_selected" }, ({ payload }) => {
+                setPlayers(payload.players);
+            })
             // HOST ONLY: process requests from other players
             .on("broadcast", { event: "bm_player_roll" }, ({ payload }) => {
                 if (!isHost) return;
@@ -893,6 +931,10 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
             .on("broadcast", { event: "bm_player_pass" }, ({ payload }) => {
                 if (!isHost) return;
                 hostProcessPassProperty(payload.playerId);
+            })
+            .on("broadcast", { event: "bm_player_choose_token" }, ({ payload }) => {
+                if (!isHost) return;
+                hostProcessTokenChoice(payload.playerId, payload.tokenIndex);
             })
             .subscribe();
 
@@ -946,6 +988,24 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserId, isHost, broadcast]);
 
+    const handleChooseToken = useCallback((tokenIndex: number) => {
+        const tokenClaimed = Object.values(players).some(
+            (player) => player.id !== currentUserId && player.token === tokenIndex
+        );
+        if (tokenClaimed) return;
+
+        if (isHost) {
+            hostProcessTokenChoice(currentUserId, tokenIndex);
+        } else {
+            broadcast("bm_player_choose_token", {
+                playerId: currentUserId,
+                tokenIndex,
+            });
+        }
+        setShowTokenPicker(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [players, currentUserId, isHost, broadcast]);
+
     const handlePlayAgain = useCallback(() => {
         hostInitGame();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -976,7 +1036,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 </h2>
                 {winnerId && (
                     <p className="text-sm font-bold text-amber-700 mb-1">
-                        {PLAYER_TOKENS[players[winnerId]?.token || 0]?.emoji}{" "}
+                        {PLAYER_TOKENS[players[winnerId]?.token]?.emoji || "🎟️"}{" "}
                         {getMemberName(room.members, winnerId)} wins!
                     </p>
                 )}
@@ -988,7 +1048,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 <div className="space-y-2 mb-6 max-w-xs mx-auto">
                     {finalStandings.map((s, idx) => {
                         const p = players[s.id];
-                        const token = PLAYER_TOKENS[p?.token || 0];
+                        const token = p ? PLAYER_TOKENS[p.token] : undefined;
                         return (
                             <motion.div
                                 key={s.id}
@@ -1006,7 +1066,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                 <span className="text-sm font-bold text-warm-grey/40 w-5">
                                     {idx === 0 ? "👑" : `#${idx + 1}`}
                                 </span>
-                                <span className="text-lg">{token?.emoji}</span>
+                                <span className="text-lg">{token?.emoji || "🎟️"}</span>
                                 <span className="flex-1 text-left text-xs font-bold text-warm-cocoa">
                                     {getMemberName(room.members, s.id)}
                                     {s.id === currentUserId && " (You)"}
@@ -1088,7 +1148,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                 <div className="flex items-center gap-2">
                     {currentPlayerState && (
                         <span className="max-w-[100px] truncate text-[9px] font-bold text-[#5b402c] sm:max-w-none sm:text-[10px]">
-                            {PLAYER_TOKENS[currentPlayerState.token]?.emoji}{" "}
+                            {PLAYER_TOKENS[currentPlayerState.token]?.emoji || "🎟️"}{" "}
                             {isMyTurn ? "Your turn" : getMemberName(room.members, currentTurnPlayerId)}
                         </span>
                     )}
@@ -1104,6 +1164,60 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                         </span>
                     )}
                 </div>
+            </div>
+
+            {/* Character selection */}
+            <div className="rounded-2xl border border-[#d8c49e]/70 bg-[#fffaf0]/90 p-2.5 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                    <div>
+                        <p className="font-serif text-[11px] font-bold text-[#5b402c]">
+                            {(myPlayerState?.token ?? -1) >= 0 ? "Your traveler" : "Choose your traveler"}
+                        </p>
+                        <p className="text-[8px] font-semibold text-[#92785b]">
+                            Pick the character that will journey around the board.
+                        </p>
+                    </div>
+                    {(myPlayerState?.token ?? -1) >= 0 && !showTokenPicker && (
+                        <button
+                            onClick={() => setShowTokenPicker(true)}
+                            className="shrink-0 rounded-full border border-[#d7c4a3] bg-white/80 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#795e42] transition-all active:scale-95"
+                        >
+                            Change
+                        </button>
+                    )}
+                </div>
+
+                {(showTokenPicker || (myPlayerState?.token ?? -1) < 0) && (
+                    <div className="mt-2 grid grid-cols-6 gap-1.5">
+                        {PLAYER_TOKENS.map((token, tokenIndex) => {
+                            const claimedByOther = Object.values(players).some(
+                                (player) => player.id !== currentUserId && player.token === tokenIndex
+                            );
+                            const selected = myPlayerState?.token === tokenIndex;
+
+                            return (
+                                <button
+                                    key={token.label}
+                                    onClick={() => handleChooseToken(tokenIndex)}
+                                    disabled={claimedByOther}
+                                    title={claimedByOther ? `${token.label} is already taken` : token.label}
+                                    className={`flex min-w-0 flex-col items-center gap-0.5 rounded-xl border px-1 py-2 transition-all ${
+                                        selected
+                                            ? "border-amber-400 bg-amber-50 ring-2 ring-amber-200"
+                                            : claimedByOther
+                                                ? "cursor-not-allowed border-stone-200 bg-stone-100 opacity-35 grayscale"
+                                                : "border-[#dbc9a9] bg-white/75 hover:-translate-y-0.5 hover:bg-white active:scale-95"
+                                    }`}
+                                >
+                                    <span className="text-xl leading-none">{token.emoji}</span>
+                                    <span className="w-full truncate text-center text-[6px] font-black uppercase tracking-wide text-[#72583f] sm:text-[7px]">
+                                        {token.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* ─── 2. Square Monopoly Board with Embedded Action Panel ─── */}
@@ -1287,7 +1401,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                 </div>
 
                                 {/* Roll Button */}
-                                {isMyTurn && phase === "rolling" && !myPlayerState?.bankrupt && (
+                                {isMyTurn && phase === "rolling" && !myPlayerState?.bankrupt && (myPlayerState?.token ?? -1) >= 0 && (
                                     <motion.button
                                         onClick={handleRollDice}
                                         className="relative rounded-xl border border-amber-200/60 bg-gradient-to-b from-[#e7b653] to-[#bd7b24] px-6 py-2 font-serif text-xs font-bold text-white shadow-[0_6px_0_#714615,0_9px_16px_rgba(55,33,12,.28)] transition-all active:translate-y-1 active:scale-95 active:shadow-[0_2px_0_#714615]"
@@ -1297,6 +1411,12 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                     >
                                         🎲 Roll Dice
                                     </motion.button>
+                                )}
+
+                                {isMyTurn && phase === "rolling" && (myPlayerState?.token ?? -1) < 0 && (
+                                    <p className="relative rounded-full border border-amber-300/30 bg-amber-50/90 px-3 py-1.5 text-[9px] font-bold text-amber-900">
+                                        Choose your traveler above before rolling 🎟️
+                                    </p>
                                 )}
 
                                 {/* Waiting for other player */}
@@ -1441,7 +1561,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                 animate={isCurrentTurn ? { scale: [1, 1.01, 1] } : {}}
                                 transition={{ repeat: Infinity, duration: 3 }}
                             >
-                                <span className="text-lg">{token?.emoji}</span>
+                                <span className="text-lg">{token?.emoji || "🎟️"}</span>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1">
                                         <span className="text-[11px] font-bold text-warm-cocoa truncate">
@@ -1455,7 +1575,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                         )}
                                         {p.skipNextTurn && !p.bankrupt && (
                                             <span className="text-[8px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-bold">
-                                                🏜️ Skip
+                                                {p.skipReason === "jail" ? "🔒 Jail" : "🏜️ Rest"}
                                             </span>
                                         )}
                                     </div>
