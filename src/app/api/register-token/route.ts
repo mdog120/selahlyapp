@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) {
       console.error('Error saving device token:', JSON.stringify(upsertError, Object.getOwnPropertyNames(upsertError)));
-      const errorResponse = { error: 'Failed to save token' };
+      const errorResponse: Record<string, unknown> = { error: 'Failed to save token' };
       if (isDebugMode(request)) {
         errorResponse.details = upsertError;
       }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, user_id: user.id, platform: resolvedPlatform });
   } catch (err) {
     console.error('Register token error:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
-    const errorResponse = { error: 'Internal server error' };
+    const errorResponse: Record<string, unknown> = { error: 'Internal server error' };
     if (isDebugMode(request)) {
       errorResponse.details = err;
     }

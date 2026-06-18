@@ -144,7 +144,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
 
     // Game over
     const [winnerId, setWinnerId] = useState<string | null>(null);
-    const [finalStandings, setFinalStandings] = useState<{ id: string; money: number }[]>([]);
+    const [finalStandings, setFinalStandings] = useState<{ id: string; money: number; score: number }[]>([]);
 
     // ─── Broadcast helper ──
     const broadcast = useCallback((event: string, payload: Record<string, unknown>) => {
@@ -781,14 +781,32 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
 
         const allPlayers = Object.values(playersRef.current);
         const standings = allPlayers
-            .map((p) => ({
-                id: p.id,
-                money: p.bankrupt ? 0 : p.money + p.properties.reduce((sum, propName) => {
+            .map((p) => {
+                if (p.bankrupt) {
+                    return { id: p.id, money: 0, score: 0 };
+                }
+
+                // Cash + property values
+                const propertyValue = p.properties.reduce((sum, propName) => {
                     const space = BOARD.find((s) => s.type === "property" && s.name === propName) as PropertySpace | undefined;
                     return sum + (space?.cost || 0);
-                }, 0),
-            }))
-            .sort((a, b) => b.money - a.money);
+                }, 0);
+
+                // Bonus: complete color groups (50 points per group)
+                const colorGroupBonus = Object.keys(COLOR_GROUPS).reduce((sum, colorKey) => {
+                    return sum + (ownsFullColorGroup(p.properties, colorKey) ? 50 : 0);
+                }, 0);
+
+                // Total score: cash + property value + group bonuses
+                const totalScore = p.money + propertyValue + colorGroupBonus;
+
+                return {
+                    id: p.id,
+                    money: p.money,
+                    score: totalScore,
+                };
+            })
+            .sort((a, b) => b.score - a.score);
 
         const winner = standings[0]?.id || "";
 
@@ -1072,7 +1090,7 @@ export function BibleMonopoly({ room, currentUserId, isHost, onGameEnd, onCloseR
                                     {s.id === currentUserId && " (You)"}
                                 </span>
                                 <span className="text-sm font-bold text-warm-cocoa">
-                                    {p?.bankrupt ? "💀" : `${s.money} ₪`}
+                                    {p?.bankrupt ? "💀" : `${s.score} pts`}
                                 </span>
                             </motion.div>
                         );
