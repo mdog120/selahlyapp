@@ -539,8 +539,12 @@ export default function GameRoomPage() {
 
                 {/* Game area — fills remaining space, scrollable only internally */}
                 <div
-                    className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 relative z-10"
-                    style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+                    className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-3 relative z-10"
+                    style={{
+                        WebkitOverflowScrolling: "touch",
+                        overscrollBehavior: "contain",
+                        touchAction: "pan-y",
+                    }}
                 >
                     {room.game_type === "sisters_sketch" && (
                         <SistersSketch room={room} currentUserId={currentUserId!} isHost={isHost}
