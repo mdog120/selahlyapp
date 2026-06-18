@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Sparkles, RefreshCw, Trash2, HelpCircle, AlertCircle } from "lucide-react";
+import { X, Sparkles, RefreshCw, Trash2, HelpCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -132,7 +132,7 @@ export const RECIPES: Record<string, ElementId> = {
 
 const STARTER_ELEMENTS: ElementId[] = ["creation", "word", "grace", "faith"];
 
-export function GraceAlchemy() {
+export function GraceAlchemy({ onBack }: { onBack?: () => void }) {
     const [discovered, setDiscovered] = useState<ElementId[]>(STARTER_ELEMENTS);
     const [canvasItems, setCanvasItems] = useState<CanvasItem[]>([]);
     const [selectedTab, setSelectedTab] = useState<"all" | "core" | "divine" | "virtues" | "history" | "concepts">("all");
@@ -518,7 +518,7 @@ export function GraceAlchemy() {
                     {canvasItems.length === 0 && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-warm-grey/40 pointer-events-none">
                             <span className="text-2xl mb-1.5">🏺</span>
-                            <h5 className="text-xs font-bold font-serif">Alchemist's Desk</h5>
+                            <h5 className="text-xs font-bold font-serif">Alchemist&apos;s Desk</h5>
                             <p className="text-[9px] max-w-xs mt-1 leading-relaxed">
                                 Canvas is clean. Sprout your starting seeds from the sidebar and begin merging physical and spiritual truths.
                             </p>
@@ -553,6 +553,17 @@ export function GraceAlchemy() {
                         );
                     })}
                 </div>
+
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50/80 hover:bg-amber-100 border border-amber-200/50 text-[10px] font-bold text-amber-800 transition-all active:scale-95"
+                        style={{ touchAction: "manipulation" }}
+                    >
+                        <ArrowLeft className="w-3 h-3" />
+                        Back to Arcade Hub
+                    </button>
+                )}
             </div>
 
             {/* 3. DISCOVERY CELEBRATION MODAL */}

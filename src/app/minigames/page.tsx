@@ -218,18 +218,20 @@ export default function MiniGamesPage() {
                 ) : (
                     // ------------------ Active Single-Player Game View ------------------
                     <div className="flex flex-col gap-4 animate-fade-in">
-                        <button
-                            onClick={() => setActiveTab("lobby")}
-                            className="self-start flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/60 hover:bg-white border border-stone-200/40 text-xs text-warm-cocoa font-bold transition-all shadow-sm hover:scale-[1.02] active:scale-95 duration-200 cursor-pointer mb-2"
-                        >
-                            ← Back to Lobby
-                        </button>
+                        {activeTab !== "gracealchemy" && (
+                            <button
+                                onClick={() => setActiveTab("lobby")}
+                                className="self-start flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/60 hover:bg-white border border-stone-200/40 text-xs text-warm-cocoa font-bold transition-all shadow-sm hover:scale-[1.02] active:scale-95 duration-200 cursor-pointer mb-2"
+                            >
+                                ← Back to Lobby
+                            </button>
+                        )}
 
                         {activeTab === "blockblast" && <BlockBlast />}
                         {activeTab === "crosswords" && <Crosswords />}
                         {activeTab === "wordsearch" && <WordSearch />}
                         {activeTab === "sudoku" && <Sudoku />}
-                        {activeTab === "gracealchemy" && <GraceAlchemy />}
+                        {activeTab === "gracealchemy" && <GraceAlchemy onBack={() => setActiveTab("lobby")} />}
                         {activeTab === "memorymatch" && <MemoryMatch />}
                         {activeTab === "garden" && <GardenGrid />}
                     </div>
