@@ -977,12 +977,13 @@ export function Spyfall({ room, currentUserId, isHost, onGameEnd, onCloseRoom }:
                         💬 <span className="text-cyan-300">{getMemberName(room.members, pendingQuestion.askerId)}</span> asked{" "}
                         <span className="text-cyan-300">{getMemberName(room.members, pendingQuestion.targetId)}</span> a question...
                     </p>
+                ) : isMyTurnToAsk ? (
+                    <p className="text-sm font-bold text-purple-300">
+                        🎯 <span className="text-red-300">Your turn!</span> Pick someone to ask a question
+                    </p>
                 ) : (
                     <p className="text-sm font-bold text-purple-300">
-                        {isMyTurnToAsk
-                            ? "🎯 <span className='text-red-300'>Your turn!</span> Pick someone to ask a question"
-                            : `🎯 ${getMemberName(room.members, currentAskerId)}'s turn to ask`
-                        }
+                        🎯 {getMemberName(room.members, currentAskerId)}&apos;s turn to ask
                     </p>
                 )}
             </motion.div>
@@ -992,7 +993,7 @@ export function Spyfall({ room, currentUserId, isHost, onGameEnd, onCloseRoom }:
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="bg-gradient-to-br from-slate-800/80 via-purple-900/40 to-slate-800/80 border border-purple-500/30 rounded-3xl p-5 shadow-2xl shadow-purple-900/50 max-h-[300px] overflow-y-auto backdrop-blur-sm"
+                className="bg-gradient-to-br from-slate-800/80 via-purple-900/40 to-slate-800/80 border border-purple-500/30 rounded-3xl p-5 shadow-2xl shadow-purple-900/50 max-h-[480px] overflow-y-auto backdrop-blur-sm"
             >
                 {qaLog.length === 0 && !pendingQuestion ? (
                     <div className="text-center py-8">
