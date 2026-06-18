@@ -272,6 +272,15 @@ export function DrawingCanvas({
                 </div>
             )}
 
+            {isDrawer && (
+                <div
+                    className="md:hidden flex items-center justify-center py-2 rounded-xl bg-amber-50/90 border border-amber-200/50 text-[10px] font-bold text-amber-800 select-none"
+                    style={{ touchAction: "pan-y" }}
+                >
+                    ↕ Swipe here to scroll the game
+                </div>
+            )}
+
             {/* Canvas */}
             <div
                 ref={containerRef}

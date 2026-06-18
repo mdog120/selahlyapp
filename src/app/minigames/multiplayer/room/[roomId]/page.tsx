@@ -270,7 +270,7 @@ export default function GameRoomPage() {
             .eq("id", room.id);
     }, [room, isHost]);
 
-    // ─── Lock scroll during gameplay (mobile) ───────────────
+    // ─── Keep the page behind the fullscreen game from scrolling ─
     const isPlaying = room?.status === "playing";
     useEffect(() => {
         if (!isPlaying) return;
@@ -278,33 +278,17 @@ export default function GameRoomPage() {
         const html = document.documentElement;
         const body = document.body;
 
-        // Save original styles
         const origHtmlOverflow = html.style.overflow;
         const origBodyOverflow = body.style.overflow;
-        const origBodyPosition = body.style.position;
-        const origBodyWidth = body.style.width;
-        const origBodyHeight = body.style.height;
-        const origTouchAction = body.style.touchAction;
-        const scrollY = window.scrollY;
 
-        // Lock everything
+        // Avoid position: fixed here. It prevents nested momentum scrolling
+        // inside fullscreen overlays on iOS Safari and iOS webviews.
         html.style.overflow = "hidden";
         body.style.overflow = "hidden";
-        body.style.position = "fixed";
-        body.style.width = "100%";
-        body.style.height = "100%";
-        body.style.touchAction = "manipulation";
-        body.style.top = `-${scrollY}px`;
 
         return () => {
             html.style.overflow = origHtmlOverflow;
             body.style.overflow = origBodyOverflow;
-            body.style.position = origBodyPosition;
-            body.style.width = origBodyWidth;
-            body.style.height = origBodyHeight;
-            body.style.touchAction = origTouchAction;
-            body.style.top = "";
-            window.scrollTo(0, scrollY);
         };
     }, [isPlaying]);
 
@@ -474,8 +458,8 @@ export default function GameRoomPage() {
     if (isPlaying) {
         return (
             <div
-                className="fixed inset-0 z-50 bg-warm-paper flex flex-col"
-                style={{ touchAction: "manipulation", overscrollBehavior: "none" }}
+                className="fixed inset-0 z-50 h-[100dvh] max-h-[100dvh] overflow-hidden bg-warm-paper flex flex-col"
+                style={{ touchAction: "pan-y" }}
             >
                 {/* Minimal top bar during gameplay */}
                 <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-white/80 backdrop-blur-sm border-b border-stone-200/30 relative z-20">
@@ -539,11 +523,11 @@ export default function GameRoomPage() {
 
                 {/* Game area — fills remaining space, scrollable only internally */}
                 <div
-                    className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-3 relative z-10"
+                    data-game-scroll
+                    className="flex-1 min-h-0 h-0 overflow-y-scroll overflow-x-hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] relative z-10"
                     style={{
                         WebkitOverflowScrolling: "touch",
-                        overscrollBehavior: "contain",
-                        touchAction: "pan-y",
+                        overscrollBehaviorY: "auto",
                     }}
                 >
                     {room.game_type === "sisters_sketch" && (
