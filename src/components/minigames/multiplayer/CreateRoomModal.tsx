@@ -58,12 +58,6 @@ const GAMES = [
     game_type: "bible_monopoly",
     description: "Buy Bible lands and collect rent",
   },
-  {
-    emoji: "🔠",
-    label: "Bible Scrabble",
-    game_type: "bible_scrabble",
-    description: "Build Scripture words on a shared letter board",
-  },
 ];
 
 const MAX_INVITES = 4;

@@ -10,6 +10,56 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
     if (initialized.current) return;
     initialized.current = true;
 
+    async function registerNativeDeviceToken(event: Event) {
+      try {
+        const customEvent = event as CustomEvent<unknown>;
+        let token: string | undefined;
+
+        if (customEvent.detail) {
+          if (typeof customEvent.detail === "string") {
+            token = customEvent.detail;
+          } else if (typeof customEvent.detail === "object" && customEvent.detail !== null) {
+            const detailObject = customEvent.detail as Record<string, unknown>;
+            if (typeof detailObject.token === "string") {
+              token = detailObject.token;
+            }
+          }
+        }
+
+        if (!token) {
+          console.warn("nativeDeviceToken event received with no valid token:", customEvent.detail);
+          return;
+        }
+
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          console.warn("Cannot register native device token because Supabase session is not available.");
+          return;
+        }
+
+        const response = await fetch("/api/register-token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ token, platform: "web" }),
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          console.error("Failed to register native device token:", result);
+        } else {
+          console.log("Native device token registered successfully:", result);
+        }
+      } catch (err) {
+        console.error("nativeDeviceToken registration failed:", err);
+      }
+    }
+
     async function initFCM() {
       try {
         // Wait for auth to be ready
@@ -54,9 +104,12 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Small delay to not block initial render
+    window.addEventListener("nativeDeviceToken", registerNativeDeviceToken as EventListener);
     const timer = setTimeout(initFCM, 2000);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("nativeDeviceToken", registerNativeDeviceToken as EventListener);
+    };
   }, []);
 
   return <>{children}</>;

@@ -21,7 +21,6 @@ const GAME_NAME_MAP: Record<string, string> = {
   wavelength: "📡 Wavelength",
   card_rooms: "🃏 Egyptian Rat Screw",
   crazy_8s: "🎴 Christian Crazy 8s",
-  bible_scrabble: "🔠 Bible Scrabble",
   spyfall: "🕵️ Bible Spyfall",
 };
 

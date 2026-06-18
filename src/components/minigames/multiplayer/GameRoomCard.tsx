@@ -43,7 +43,6 @@ const GAME_META: Record<string, { emoji: string; label: string }> = {
   crazy_8s: { emoji: "🎴", label: "Christian Crazy 8s" },
   spyfall: { emoji: "🕵️", label: "Bible Spyfall" },
   bible_monopoly: { emoji: "🎲", label: "Bible Monopoly Lite" },
-  bible_scrabble: { emoji: "🔠", label: "Bible Scrabble" },
 };
 
 const getAvatarBg = (id: string) => {
@@ -118,15 +117,6 @@ const GAME_THEMES: Record<string, GameTheme> = {
     buttonGlow: "0 0 20px rgba(139,92,246,0.35)",
     iconBg: "bg-purple-100/80",
     pillBorder: "border-purple-200/60",
-  },
-  bible_scrabble: {
-    accentGradient: "linear-gradient(135deg, #0f766e, #047857, #365314)",
-    bgTint: "linear-gradient(180deg, rgba(16,185,129,0.08) 0%, rgba(245,158,11,0.03) 62%, rgba(255,255,255,0) 100%)",
-    ringColor: "ring-emerald-300",
-    buttonGradient: "linear-gradient(135deg, #047857, #365314)",
-    buttonGlow: "0 0 20px rgba(4,120,87,0.35)",
-    iconBg: "bg-emerald-100/80",
-    pillBorder: "border-emerald-200/60",
   },
 };
 

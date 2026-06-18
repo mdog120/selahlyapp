@@ -118,45 +118,57 @@ function Crazy8CardView({
             onClick={onClick}
             disabled={!playable && !!onClick}
             className={`
-                ${sizeClasses} rounded-xl flex flex-col items-center justify-center gap-0.5 p-1
+                ${sizeClasses} rounded-[18px] border bg-white flex flex-col items-center justify-center gap-1 p-2
                 transition-all duration-200 relative overflow-hidden shrink-0
-                ${bgGradient}
-                ${!isWild && !isPlus4 ? `border-2 ${getCardBorder(card)}` : "border-0"}
-                ${playable ? "cursor-pointer hover:scale-110 hover:-translate-y-3 active:scale-95 hover:z-10" : ""}
-                ${playable === false ? "opacity-40 cursor-not-allowed grayscale-[30%]" : ""}
+                ${playable ? "cursor-pointer hover:scale-105 hover:-translate-y-1 active:scale-95 hover:z-10" : ""}
+                ${playable === false ? "opacity-80 cursor-not-allowed" : ""}
             `}
             style={{
+                background: "linear-gradient(180deg, #ffffff 0%, #f7f6ff 100%)",
                 boxShadow: playable
-                    ? "0 4px 20px rgba(0,0,0,0.15), 0 0 15px rgba(168,85,247,0.2)"
-                    : isPlus4
-                        ? "0 2px 12px rgba(239,68,68,0.25), inset 0 1px 0 rgba(255,255,255,0.6)"
-                        : isWild
-                            ? "0 2px 12px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.6)"
-                            : "0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)",
+                    ? "0 12px 30px rgba(0,0,0,0.16)"
+                    : "0 6px 16px rgba(0,0,0,0.08)",
+                borderColor: isWild || isPlus4 ? "rgba(148,63,255,0.22)" : "rgba(148,163,184,0.3)",
             }}
         >
-            {card.suit && (
-                <span className={`absolute top-0.5 left-1 ${rankSize} leading-none opacity-70`}>
-                    {SUITS[card.suit].symbol}
-                </span>
-            )}
-            <span className={emojiSize} style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.1))" }}>{card.emoji}</span>
-            <span className={`${textSize} font-bold ${getCardColor(card)} leading-tight text-center`}>
+            <div className="absolute inset-0 rounded-[18px] border border-white/70 pointer-events-none" />
+            <div className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 text-left">
                 {card.type === "number" ? card.rank : card.label}
-            </span>
-            <span className={`${rankSize} ${getCardColor(card)}/60 leading-none truncate max-w-full`}>
-                {card.character}
-            </span>
+                {card.suit ? <span className="block mt-1 text-[12px]">{SUITS[card.suit].symbol}</span> : ""}
+            </div>
+            <div className="absolute bottom-2 right-2 rotate-180 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 text-right">
+                {card.type === "number" ? card.rank : card.label}
+                {card.suit ? <span className="block mt-1 text-[12px]">{SUITS[card.suit].symbol}</span> : ""}
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center justify-center gap-1">
+                <span className={emojiSize} style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.12))" }}>{card.emoji}</span>
+                <span className={`${textSize} font-bold ${getCardColor(card)} leading-tight text-center`}>
+                    {card.type === "number" ? card.rank : card.label}
+                </span>
+                {card.character && (
+                    <span className={`${rankSize} ${getCardColor(card)}/70 leading-none text-center max-w-full`}>
+                        {card.character}
+                    </span>
+                )}
+            </div>
+
+            <div className="absolute inset-x-4 bottom-4 h-0.5 rounded-full bg-slate-200/60" />
             {(isWild || isPlus4) && (
                 <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-400 via-amber-400 via-emerald-400 to-blue-400 opacity-80" />
             )}
-            {/* Inner shine */}
-            <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl" />
         </button>
     );
 
     if (outerStyle) {
-        return <div style={outerStyle} className="shrink-0">{cardInner}</div>;
+        return (
+            <div
+                style={outerStyle}
+                className="shrink-0 rounded-[20px]"
+            >
+                {cardInner}
+            </div>
+        );
     }
     return cardInner;
 }
@@ -165,45 +177,40 @@ function Crazy8CardView({
 
 function CardBack({ count }: { count: number }) {
     return (
-        <div className="relative">
-            {/* Stacked cards behind — offset slightly */}
+        <div className="relative" style={{ width: 56, height: 92 }}>
             <div
-                className="absolute rounded-xl w-14 h-[78px]"
+                className="absolute rounded-[18px]"
                 style={{
-                    top: "4px",
-                    left: "4px",
-                    background: "linear-gradient(135deg, #3b1d5e 0%, #2d1b4e 100%)",
-                    border: "2px solid rgba(139,92,246,0.15)",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    width: 56,
+                    height: 92,
+                    top: 6,
+                    left: 6,
+                    background: "linear-gradient(145deg, rgba(0,0,0,0.08), rgba(0,0,0,0))",
+                    filter: "blur(1px)",
+                    opacity: 0.8,
                 }}
             />
             <div
-                className="absolute rounded-xl w-14 h-[78px]"
+                className="relative rounded-[18px] w-full h-full overflow-hidden"
                 style={{
-                    top: "2px",
-                    left: "2px",
-                    background: "linear-gradient(135deg, #4a2570 0%, #3b1d5e 100%)",
-                    border: "2px solid rgba(139,92,246,0.2)",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                }}
-            />
-            {/* Top card of deck */}
-            <div
-                className="relative w-14 h-[78px] rounded-xl flex items-center justify-center"
-                style={{
-                    background: "linear-gradient(145deg, #5b2d8e 0%, #3b1d5e 50%, #2d1b4e 100%)",
-                    border: "2px solid rgba(168,85,247,0.3)",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+                    background: "linear-gradient(145deg, #ffffff 0%, #ede9fe 100%)",
+                    border: "1px solid rgba(148,163,184,0.25)",
+                    boxShadow: "0 14px 35px rgba(0,0,0,0.18)",
                 }}
             >
-                {/* Cross pattern */}
-                <div className="absolute inset-2 rounded-lg border border-purple-400/20 flex items-center justify-center">
-                    <span className="text-purple-300/40 text-xl" style={{ textShadow: "0 0 8px rgba(168,85,247,0.3)" }}>✝</span>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.15),_transparent_35%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(255,255,255,0.75),_rgba(255,255,255,0)_60%)]" />
+                <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,_rgba(148,163,184,0.04),_rgba(148,163,184,0.04)_6px,_transparent_6px,_transparent_12px)]" />
+                <div className="absolute inset-4 rounded-[14px] border border-white/50" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full bg-amber-100/90 border border-amber-200/70 flex items-center justify-center text-2xl text-amber-800 shadow-inner shadow-amber-200/30">
+                        ✝
+                    </div>
                 </div>
                 {count > 0 && (
                     <span
-                        className="absolute -top-2 -right-2 text-white text-[9px] font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-purple-200"
-                        style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 2px 8px rgba(124,58,237,0.4)" }}
+                        className="absolute -top-1 -right-1 text-white text-[9px] font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white/70"
+                        style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", boxShadow: "0 4px 12px rgba(249,115,22,0.35)" }}
                     >
                         {count}
                     </span>
