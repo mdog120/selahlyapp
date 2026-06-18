@@ -10,8 +10,9 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     console.log("[Website] FCMProvider mounted");
-    if (typeof window !== "undefined" && (window as any).nativeDeviceToken) {
-      console.log("[Website] existing nativeDeviceToken found", (window as any).nativeDeviceToken);
+    if (typeof window !== "undefined") {
+      const maybeToken = (window as unknown as Record<string, unknown>).nativeDeviceToken;
+      if (maybeToken) console.log("[Website] existing nativeDeviceToken found", maybeToken);
     }
     if (initialized.current) return;
     initialized.current = true;
@@ -46,7 +47,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           console.log("Pending native device token registered successfully");
           pendingTokenRef.current = null;
-          try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
+          try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
         } else {
           console.error("Failed to register pending native device token:", response.status, responseText);
         }
@@ -79,7 +80,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
 
         // Save pending token (ref + sessionStorage) then try registering
         pendingTokenRef.current = token;
-        try { sessionStorage.setItem(STORAGE_KEY, token); } catch (e) {}
+        try { sessionStorage.setItem(STORAGE_KEY, token); } catch {}
 
         await attemptRegisterPendingToken();
       } catch (err) {
@@ -150,14 +151,14 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
 
     const timer = setTimeout(initFCM, 2000);
     // Also try immediately in case token already in sessionStorage
-    try { pendingTokenRef.current = sessionStorage.getItem(STORAGE_KEY); } catch (e) {}
+    try { pendingTokenRef.current = sessionStorage.getItem(STORAGE_KEY); } catch {}
     attemptRegisterPendingToken();
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener("nativeDeviceToken", registerNativeDeviceToken as EventListener);
       // remove supabase listener
-      try { subscription.unsubscribe(); } catch (e) {}
+      try { subscription.unsubscribe(); } catch {}
     };
   }, []);
 
