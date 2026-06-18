@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 
 export function FCMProvider({ children }: { children: React.ReactNode }) {
   const initialized = useRef(false);
+  const pendingTokenRef = useRef<string | null>(null);
+  const STORAGE_KEY = "pending_native_device_token";
 
   useEffect(() => {
     console.log("[Website] FCMProvider mounted");
@@ -13,6 +15,45 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
     }
     if (initialized.current) return;
     initialized.current = true;
+
+    async function attemptRegisterPendingToken() {
+      try {
+        const token = pendingTokenRef.current ?? (typeof window !== "undefined" ? sessionStorage.getItem(STORAGE_KEY) : null);
+        if (!token) return;
+
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          console.warn("Attempt to register token skipped — no Supabase session yet.");
+          return;
+        }
+
+        console.log("Attempting to register pending native token...");
+        const response = await fetch("/api/register-token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ token, platform: "web" }),
+        });
+
+        console.log("register-token status:", response.status);
+        const responseText = await response.text();
+        console.log("register-token body:", responseText);
+
+        if (response.ok) {
+          console.log("Pending native device token registered successfully");
+          pendingTokenRef.current = null;
+          try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        } else {
+          console.error("Failed to register pending native device token:", response.status, responseText);
+        }
+      } catch (err) {
+        console.error("Error while attempting to register pending native token:", err);
+      }
+    }
 
     async function registerNativeDeviceToken(event: Event) {
       try {
@@ -36,39 +77,11 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        // Save pending token (ref + sessionStorage) then try registering
+        pendingTokenRef.current = token;
+        try { sessionStorage.setItem(STORAGE_KEY, token); } catch (e) {}
 
-        if (!session?.access_token) {
-          console.warn("Cannot register native device token because Supabase session is not available.");
-          return;
-        }
-
-        const response = await fetch("/api/register-token", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ token, platform: "web" }),
-        });
-
-        console.log("register-token status:", response.status);
-        const responseText = await response.text();
-        console.log("register-token body:", responseText);
-
-        let result: unknown = {};
-        try {
-          result = JSON.parse(responseText);
-        } catch {
-          result = responseText;
-        }
-
-        if (!response.ok) {
-          console.error("Failed to register native device token:", JSON.stringify(result, Object.getOwnPropertyNames(result)));
-        } else {
-          console.log("Native device token registered successfully:", result);
-        }
+        await attemptRegisterPendingToken();
       } catch (err) {
         console.error(
           "nativeDeviceToken registration failed:",
@@ -82,7 +95,10 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
         // Wait for auth to be ready
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return; // Not logged in — skip FCM setup
+        // If user exists, try registering any pending token immediately
+        if (user) {
+          await attemptRegisterPendingToken();
+        }
 
         // Check if browser supports notifications
         if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -122,10 +138,26 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
     }
 
     window.addEventListener("nativeDeviceToken", registerNativeDeviceToken as EventListener);
+
+    // Retry when auth state changes (user signs in)
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("supabase auth state change:", event);
+      if (event === "SIGNED_IN" || (session && session.access_token)) {
+        await attemptRegisterPendingToken();
+      }
+    });
+
     const timer = setTimeout(initFCM, 2000);
+    // Also try immediately in case token already in sessionStorage
+    try { pendingTokenRef.current = sessionStorage.getItem(STORAGE_KEY); } catch (e) {}
+    attemptRegisterPendingToken();
+
     return () => {
       clearTimeout(timer);
       window.removeEventListener("nativeDeviceToken", registerNativeDeviceToken as EventListener);
+      // remove supabase listener
+      try { subscription.unsubscribe(); } catch (e) {}
     };
   }, []);
 
