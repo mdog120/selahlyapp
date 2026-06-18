@@ -1,102 +1,64 @@
 export interface WavelengthPrompt {
   id: string;
-  left: string; // left end of spectrum (score 0)
-  right: string; // right end of spectrum (score 100)
+  topic: string;
+  left: string;
+  right: string;
+  example: string;
 }
 
 export const WAVELENGTH_PROMPTS: WavelengthPrompt[] = [
-  // ── Theological Concepts ──────────────────────────────────────────────
-  { id: 'law-grace', left: 'Law', right: 'Grace' },
-  { id: 'justice-mercy', left: 'Justice', right: 'Mercy' },
-  { id: 'sin-righteousness', left: 'Sin', right: 'Righteousness' },
-  { id: 'fear-of-god-love-of-god', left: 'Fear of God', right: 'Love of God' },
-  { id: 'old-covenant-new-covenant', left: 'Old Covenant', right: 'New Covenant' },
-  { id: 'letter-of-law-spirit-of-law', left: 'Letter of the Law', right: 'Spirit of the Law' },
-  { id: 'earthly-kingdom-heavenly-kingdom', left: 'Earthly Kingdom', right: 'Heavenly Kingdom' },
-  { id: 'human-effort-gods-sovereignty', left: 'Human Effort', right: "God's Sovereignty" },
-  { id: 'doubt-faith', left: 'Doubt', right: 'Faith' },
-  { id: 'punishment-forgiveness', left: 'Punishment', right: 'Forgiveness' },
-  { id: 'wrath-compassion', left: 'Wrath', right: 'Compassion' },
-  { id: 'flesh-spirit', left: 'Flesh', right: 'Spirit' },
-  { id: 'death-resurrection', left: 'Death', right: 'Resurrection' },
-  { id: 'darkness-light', left: 'Darkness', right: 'Light' },
-  { id: 'bondage-liberty', left: 'Bondage', right: 'Liberty' },
+  // Bible characters
+  { id: "characters-faith", topic: "Bible Characters", left: "Timid Faith", right: "Bold Faith", example: "Moses, Esther, Peter..." },
+  { id: "characters-obedience", topic: "Bible Characters", left: "Runs Away", right: "Quickly Obeys", example: "Jonah, Ruth, Abraham..." },
+  { id: "characters-leadership", topic: "Bible Characters", left: "Quiet Supporter", right: "Commanding Leader", example: "Barnabas, Deborah, Nehemiah..." },
+  { id: "characters-wisdom", topic: "Bible Characters", left: "Acts Impulsively", right: "Acts Wisely", example: "Peter, Abigail, Solomon..." },
+  { id: "characters-courage", topic: "Bible Characters", left: "Very Fearful", right: "Extremely Courageous", example: "Gideon, David, Esther..." },
+  { id: "characters-patience", topic: "Bible Characters", left: "Very Impatient", right: "Very Patient", example: "Sarah, Joseph, Job..." },
+  { id: "characters-outsider", topic: "Bible Characters", left: "At the Center", right: "An Outsider", example: "David, Rahab, Ruth..." },
+  { id: "characters-change", topic: "Bible Characters", left: "Hardly Changes", right: "Completely Transformed", example: "Saul, Zacchaeus, Jacob..." },
 
-  // ── Biblical Characters ───────────────────────────────────────────────
-  { id: 'david-shepherd-king', left: 'David as Shepherd', right: 'David as King' },
-  { id: 'moses-stutterer-deliverer', left: 'Moses the Stutterer', right: 'Moses the Deliverer' },
-  { id: 'saul-persecutor-paul-apostle', left: 'Saul the Persecutor', right: 'Paul the Apostle' },
-  { id: 'peter-denier-peter-rock', left: 'Peter the Denier', right: 'Peter the Rock' },
-  { id: 'jonah-running-jonah-obeying', left: 'Jonah Running Away', right: 'Jonah Obeying' },
-  { id: 'jacob-deceiver-israel-overcomer', left: 'Jacob the Deceiver', right: 'Israel the Overcomer' },
-  { id: 'gideon-fearful-gideon-warrior', left: 'Gideon the Fearful', right: 'Gideon the Warrior' },
-  { id: 'rahab-outsider-rahab-redeemed', left: 'Rahab the Outsider', right: 'Rahab the Redeemed' },
-  { id: 'abraham-wanderer-abraham-father', left: 'Abraham the Wanderer', right: 'Abraham the Father of Nations' },
-  { id: 'elijah-cave-elijah-carmel', left: 'Elijah in the Cave', right: 'Elijah on Mount Carmel' },
+  // Bible stories
+  { id: "stories-quiet-dramatic", topic: "Bible Stories", left: "Quiet Moment", right: "Huge Spectacle", example: "Ruth gleaning, Red Sea, Pentecost..." },
+  { id: "stories-sad-joyful", topic: "Bible Stories", left: "Deeply Sorrowful", right: "Overflowing Joy", example: "The exile, resurrection morning..." },
+  { id: "stories-private-public", topic: "Bible Stories", left: "Private Encounter", right: "Whole Nation Watching", example: "Jacob wrestling, Mount Carmel..." },
+  { id: "stories-peace-danger", topic: "Bible Stories", left: "Peaceful", right: "Extremely Dangerous", example: "Psalm 23, Daniel in the lions’ den..." },
+  { id: "stories-human-miracle", topic: "Bible Stories", left: "Ordinary Human Action", right: "Undeniable Miracle", example: "Building the ark, feeding the 5,000..." },
+  { id: "stories-small-big", topic: "Bible Stories", left: "Small Personal Moment", right: "World-Changing Event", example: "Widow’s offering, resurrection..." },
 
-  // ── Biblical Themes ───────────────────────────────────────────────────
-  { id: 'desert-wandering-promised-land', left: 'Wandering in the Desert', right: 'Entering the Promised Land' },
-  { id: 'captivity-freedom', left: 'Captivity', right: 'Freedom' },
-  { id: 'famine-abundance', left: 'Famine', right: 'Abundance' },
-  { id: 'exile-homecoming', left: 'Exile', right: 'Homecoming' },
-  { id: 'persecution-blessing', left: 'Persecution', right: 'Blessing' },
-  { id: 'wilderness-garden', left: 'Wilderness', right: 'Garden' },
-  { id: 'scattering-gathering', left: 'Scattering', right: 'Gathering' },
-  { id: 'mourning-dancing', left: 'Mourning', right: 'Dancing' },
-  { id: 'sowing-in-tears-reaping-in-joy', left: 'Sowing in Tears', right: 'Reaping in Joy' },
-  { id: 'valley-of-shadow-green-pastures', left: 'Valley of the Shadow', right: 'Green Pastures' },
-  { id: 'broken-vessel-refined-gold', left: 'Broken Vessel', right: 'Refined Gold' },
+  // Places
+  { id: "places-peace-danger", topic: "Places in the Bible", left: "Peaceful Refuge", right: "Dangerous Place", example: "Bethany, wilderness, Babylon..." },
+  { id: "places-humble-grand", topic: "Places in the Bible", left: "Humble", right: "Grand", example: "Manger, temple, palace..." },
+  { id: "places-earth-heaven", topic: "Places in the Bible", left: "Feels Earthly", right: "Feels Heavenly", example: "Egypt, Eden, New Jerusalem..." },
+  { id: "places-dry-lush", topic: "Places in the Bible", left: "Dry and Barren", right: "Lush and Abundant", example: "Sinai, Jordan, Eden..." },
 
-  // ── Virtue Spectrums ──────────────────────────────────────────────────
-  { id: 'pride-humility', left: 'Pride', right: 'Humility' },
-  { id: 'anger-patience', left: 'Anger', right: 'Patience' },
-  { id: 'selfishness-generosity', left: 'Selfishness', right: 'Generosity' },
-  { id: 'worry-peace', left: 'Worry', right: 'Peace' },
-  { id: 'bitterness-forgiveness', left: 'Bitterness', right: 'Forgiveness' },
-  { id: 'envy-contentment', left: 'Envy', right: 'Contentment' },
-  { id: 'hatred-love', left: 'Hatred', right: 'Love' },
-  { id: 'cowardice-courage', left: 'Cowardice', right: 'Courage' },
-  { id: 'despair-hope', left: 'Despair', right: 'Hope' },
-  { id: 'foolishness-wisdom', left: 'Foolishness', right: 'Wisdom' },
-  { id: 'laziness-diligence', left: 'Laziness', right: 'Diligence' },
-  { id: 'greed-sacrifice', left: 'Greed', right: 'Sacrifice' },
-  { id: 'deceit-truth', left: 'Deceit', right: 'Truth' },
+  // Objects and symbols
+  { id: "objects-gentle-powerful", topic: "Biblical Objects & Symbols", left: "Gentle Symbol", right: "Powerful Symbol", example: "Dove, sword, pillar of fire..." },
+  { id: "objects-small-large", topic: "Biblical Objects & Symbols", left: "Tiny", right: "Enormous", example: "Mustard seed, ark, temple..." },
+  { id: "objects-ordinary-sacred", topic: "Biblical Objects & Symbols", left: "Ordinary", right: "Deeply Sacred", example: "Fishing net, altar, ark of the covenant..." },
+  { id: "objects-quiet-loud", topic: "Biblical Objects & Symbols", left: "Quiet", right: "Loud", example: "Oil lamp, trumpet, thunder..." },
 
-  // ── Fun / Creative ────────────────────────────────────────────────────
-  { id: 'eden-new-jerusalem', left: 'Garden of Eden', right: 'New Jerusalem' },
-  { id: 'bread-living-water', left: 'Bread', right: 'Living Water' },
-  { id: 'whisper-thunder', left: 'Whisper', right: 'Thunder' },
-  { id: 'burning-bush-red-sea', left: 'Burning Bush', right: 'Parting of the Red Sea' },
-  { id: 'mustard-seed-cedar-of-lebanon', left: 'Mustard Seed', right: 'Cedar of Lebanon' },
-  { id: 'sheep-lion', left: 'Sheep', right: 'Lion' },
-  { id: 'martha-mary', left: 'Martha', right: 'Mary' },
-  { id: 'babel-pentecost', left: 'Tower of Babel', right: 'Day of Pentecost' },
-  { id: 'still-waters-stormy-seas', left: 'Still Waters', right: 'Stormy Seas' },
-  { id: 'manger-throne', left: 'Manger', right: 'Throne' },
-  { id: 'donkey-warhorse', left: 'Donkey', right: 'Warhorse' },
-  { id: 'clay-potters-hands', left: 'Clay', right: "Potter's Hands" },
-  { id: 'narrow-gate-wide-road', left: 'Narrow Gate', right: 'Wide Road' },
-  { id: 'sparrow-eagle', left: 'Sparrow', right: 'Eagle' },
-  { id: 'oil-lamp-pillar-of-fire', left: 'Oil Lamp', right: 'Pillar of Fire' },
-  { id: 'foot-washing-anointing', left: 'Foot Washing', right: 'Anointing with Oil' },
-  { id: 'single-talent-ten-talents', left: 'One Talent', right: 'Ten Talents' },
-  { id: 'fishing-net-shepherds-staff', left: 'Fishing Net', right: "Shepherd's Staff" },
+  // Virtues and spiritual life
+  { id: "practices-private-public", topic: "Faith Practices", left: "Private", right: "Public", example: "Silent prayer, preaching, worship..." },
+  { id: "practices-easy-hard", topic: "Faith Practices", left: "Easy to Begin", right: "Requires Great Discipline", example: "Gratitude, fasting, forgiveness..." },
+  { id: "virtues-gentle-bold", topic: "Christian Virtues", left: "Gentle", right: "Bold", example: "Kindness, courage, righteous justice..." },
+  { id: "virtues-inward-outward", topic: "Christian Virtues", left: "Mostly Inward", right: "Clearly Visible", example: "Contentment, generosity, service..." },
+  { id: "virtues-natural-difficult", topic: "Christian Virtues", left: "Comes Naturally", right: "Very Difficult", example: "Joy, patience, forgiving an enemy..." },
+
+  // Books and passages
+  { id: "books-story-teaching", topic: "Books of the Bible", left: "Mostly Story", right: "Mostly Teaching", example: "Esther, Acts, Romans..." },
+  { id: "books-gentle-intense", topic: "Books of the Bible", left: "Gentle Tone", right: "Intense Tone", example: "Ruth, Psalms, Revelation..." },
+  { id: "books-personal-global", topic: "Books of the Bible", left: "Very Personal", right: "Global in Scope", example: "Philemon, Genesis, Revelation..." },
+  { id: "psalms-lament-praise", topic: "Psalms", left: "Lament", right: "Celebration", example: "Psalm 22, Psalm 23, Psalm 150..." },
+
+  // Miracles and teachings
+  { id: "miracles-subtle-spectacular", topic: "Miracles of Jesus", left: "Subtle", right: "Spectacular", example: "Coin in the fish, calming the storm..." },
+  { id: "miracles-person-crowd", topic: "Miracles of Jesus", left: "Helps One Person", right: "Helps a Huge Crowd", example: "Healing Bartimaeus, feeding the 5,000..." },
+  { id: "parables-simple-deep", topic: "Parables of Jesus", left: "Easy to Understand", right: "Deep and Mysterious", example: "Lost sheep, ten virgins..." },
+  { id: "teachings-comfort-challenge", topic: "Teachings of Jesus", left: "Comforting", right: "Challenging", example: "Do not worry, love your enemies..." },
 ];
 
-/**
- * Returns a random prompt that hasn't been used yet.
- * If all prompts have been excluded, picks any random prompt.
- */
 export function getRandomPrompt(exclude: string[]): WavelengthPrompt {
-  const available = WAVELENGTH_PROMPTS.filter(
-    (p) => !exclude.includes(p.id),
-  );
-
-  if (available.length === 0) {
-    return WAVELENGTH_PROMPTS[
-      Math.floor(Math.random() * WAVELENGTH_PROMPTS.length)
-    ];
-  }
-
-  return available[Math.floor(Math.random() * available.length)];
+  const available = WAVELENGTH_PROMPTS.filter((prompt) => !exclude.includes(prompt.id));
+  const pool = available.length > 0 ? available : WAVELENGTH_PROMPTS;
+  return pool[Math.floor(Math.random() * pool.length)];
 }

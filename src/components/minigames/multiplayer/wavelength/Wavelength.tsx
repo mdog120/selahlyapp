@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getRandomPrompt, type WavelengthPrompt } from "./wavelengthPrompts";
-import { Trophy, RotateCcw, ArrowLeft, Send, Radio, Shuffle, LogOut } from "lucide-react";
+import { Trophy, RotateCcw, Send, Radio, Shuffle, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
@@ -108,15 +108,13 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
     const [allGuesses, setAllGuesses] = useState<Record<string, number>>({});
     const [scores, setScores] = useState<Record<string, number>>({});
     const [lastRoundResult, setLastRoundResult] = useState<{ points: number; label: string; emoji: string } | null>(null);
-    const [winnerId, setWinnerId] = useState<string | null>(null);
     const [clueInput, setClueInput] = useState("");
     const [hasGuessed, setHasGuessed] = useState(false);
     const [guessCount, setGuessCount] = useState(0);
     const [timer, setTimer] = useState(0);
-    const [turnOrder, setTurnOrder] = useState<string[]>([]);
 
     // ─── Broadcast helper ──
-    const broadcast = useCallback((event: string, payload: any) => {
+    const broadcast = useCallback((event: string, payload: Record<string, unknown>) => {
         channelRef.current?.send({ type: "broadcast", event, payload });
     }, []);
 
@@ -140,7 +138,13 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
 
         const payload = {
             round: roundRef.current,
-            prompt: { id: prompt.id, left: prompt.left, right: prompt.right },
+            prompt: {
+                id: prompt.id,
+                topic: prompt.topic,
+                left: prompt.left,
+                right: prompt.right,
+                example: prompt.example,
+            },
             psychicId: psychicPlayerId,
             scores: scoresRef.current,
             target: newTarget, // only psychic should use this
@@ -183,10 +187,6 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
         setClue(submittedClue);
 
         // Start 20s guess timer
-        const order = turnOrderRef.current;
-        const psychicPlayerId = order[psychicIndexRef.current % order.length];
-        const totalGuessers = order.filter((id) => id !== psychicPlayerId).length;
-
         startTimer(20, () => {
             // Auto-submit for anyone who hasn't guessed
             processRevealOnHost();
@@ -267,7 +267,6 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
             broadcast("wl_game_over", { scores: finalScores, winnerId: winner });
 
             setPhase("ended");
-            setWinnerId(winner);
             setScores(finalScores);
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         } else {
@@ -347,7 +346,6 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
             })
             .on("broadcast", { event: "wl_game_over" }, ({ payload }) => {
                 setPhase("ended");
-                setWinnerId(payload.winnerId);
                 setScores(payload.scores);
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             })
@@ -375,8 +373,6 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
         const timer = setTimeout(() => {
             const order = room.members.map((m) => m.user_id);
             turnOrderRef.current = order;
-            setTurnOrder(order);
-
             const initScores: Record<string, number> = {};
             order.forEach((id) => { initScores[id] = 0; });
             scoresRef.current = initScores;
@@ -420,7 +416,6 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
         turnOrderRef.current.forEach((id) => { initScores[id] = 0; });
         scoresRef.current = initScores;
 
-        setWinnerId(null);
         hostStartRound();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -535,7 +530,7 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
                 </div>
                 {isPsychic && phase === "waiting_clue" && (
                     <p className="text-[10px] text-warm-grey/50 mt-1">
-                        You can see where the target is. Give a clue!
+                        You can see the target. Name one example from this round&apos;s topic!
                     </p>
                 )}
             </div>
@@ -543,14 +538,32 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
             {/* Spectrum */}
             {currentPrompt && (
                 <div className="bg-white/50 border border-warm-grey/5 rounded-3xl p-5 shadow-sm">
+                    {/* Topic */}
+                    <div className="mb-4 rounded-2xl border border-indigo-200/60 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 px-4 py-3 text-center">
+                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-indigo-500">
+                            This round&apos;s topic
+                        </p>
+                        <p className="mt-0.5 font-serif text-xl font-bold text-warm-cocoa">
+                            {currentPrompt.topic}
+                        </p>
+                        <p className="mt-1 text-[10px] text-warm-grey/55">
+                            Psychic: name one example, such as {currentPrompt.example}
+                        </p>
+                    </div>
+
                     {/* Labels */}
-                    <div className="flex justify-between mb-3">
-                        <span className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">
-                            {currentPrompt.left}
-                        </span>
-                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-                            {currentPrompt.right}
-                        </span>
+                    <p className="mb-2 text-center text-[9px] font-black uppercase tracking-[0.18em] text-warm-grey/40">
+                        Place the example somewhere on this scale
+                    </p>
+                    <div className="mb-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-rose-200/60 bg-rose-50 px-3 py-2 text-left">
+                            <p className="text-[8px] font-black uppercase tracking-wider text-rose-400">Far left</p>
+                            <p className="text-xs font-bold text-rose-700">{currentPrompt.left}</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-200/60 bg-emerald-50 px-3 py-2 text-right">
+                            <p className="text-[8px] font-black uppercase tracking-wider text-emerald-500">Far right</p>
+                            <p className="text-xs font-bold text-emerald-700">{currentPrompt.right}</p>
+                        </div>
                     </div>
 
                     {/* Spectrum Bar */}
@@ -696,14 +709,21 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
                 {/* Waiting for clue — Psychic input */}
                 {phase === "waiting_clue" && isPsychic && (
                     <div className="flex flex-col items-center gap-3">
-                        <p className="text-xs font-bold text-warm-cocoa">Give a clue to help others find the target!</p>
+                        <div className="text-center">
+                            <p className="text-xs font-bold text-warm-cocoa">
+                                Name something from: {currentPrompt?.topic}
+                            </p>
+                            <p className="mt-1 text-[10px] text-warm-grey/50">
+                                Pick an example that belongs near the hidden target between {currentPrompt?.left} and {currentPrompt?.right}.
+                            </p>
+                        </div>
                         <div className="flex gap-2 w-full max-w-sm">
                             <input
                                 type="text"
                                 value={clueInput}
                                 onChange={(e) => setClueInput(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handleSubmitClue()}
-                                placeholder="Type your clue..."
+                                placeholder={currentPrompt ? `Example: ${currentPrompt.example.split(",")[0]}` : "Type an example..."}
                                 className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-sm font-serif text-warm-cocoa placeholder:text-warm-grey/30 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                                 maxLength={50}
                             />
@@ -726,7 +746,7 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
                             transition={{ repeat: Infinity, duration: 2 }}
                         >
                             <p className="text-xs font-bold text-warm-grey/50">
-                                🔮 Waiting for {psychicName} to give a clue...
+                                🔮 Waiting for {psychicName} to name a {currentPrompt?.topic.toLowerCase()} example...
                             </p>
                         </motion.div>
                     </div>
@@ -738,7 +758,7 @@ export function Wavelength({ room, currentUserId, isHost, onGameEnd, onCloseRoom
                         {!hasGuessed ? (
                             <>
                                 <p className="text-xs text-warm-grey/50">
-                                    Slide to where you think the target is, then lock it in!
+                                    Where does &ldquo;{clue}&rdquo; belong between {currentPrompt?.left} and {currentPrompt?.right}?
                                 </p>
                                 <button
                                     onClick={handleSubmitGuess}
