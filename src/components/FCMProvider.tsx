@@ -36,6 +36,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
+            "x-debug-register-token": "true",
           },
           body: JSON.stringify({ token, platform: "web" }),
         });
