@@ -13,6 +13,7 @@ import { ChristianCrazy8 } from "@/components/minigames/multiplayer/cards/Christ
 import { Wavelength } from "@/components/minigames/multiplayer/wavelength/Wavelength";
 import { Spyfall } from "@/components/minigames/multiplayer/spyfall/Spyfall";
 import { BibleMonopoly } from "@/components/minigames/multiplayer/monopoly/BibleMonopoly";
+import { BibleScrabble } from "@/components/minigames/multiplayer/scrabble/BibleScrabble";
 
 interface RoomMember {
     user_id: string;
@@ -39,6 +40,7 @@ const GAME_INFO: Record<string, { emoji: string; name: string; description: stri
     crazy_8s: { emoji: "🎴", name: "Christian Crazy 8s", description: "Match virtues & Bible characters" },
     spyfall: { emoji: "🕵️", name: "Bible Spyfall", description: "Find the spy among the Bible characters" },
     bible_monopoly: { emoji: "🎲", name: "Bible Monopoly Lite", description: "Buy Bible lands and collect rent" },
+    bible_scrabble: { emoji: "🔠", name: "Bible Scrabble", description: "Build Scripture words on a shared letter board" },
 };
 
 const getAvatarBg = (id: string) => {
@@ -560,7 +562,12 @@ export default function GameRoomPage() {
                             onGameEnd={() => { setIsStarting(false); setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev); supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id); }}
                             onCloseRoom={handleLeave} />
                     )}
-                    {!["sisters_sketch", "card_rooms", "crazy_8s", "wavelength", "spyfall", "bible_monopoly"].includes(room.game_type) && (
+                    {room.game_type === "bible_scrabble" && (
+                        <BibleScrabble room={room} currentUserId={currentUserId!} isHost={isHost}
+                            onGameEnd={() => { setIsStarting(false); setRoom((prev) => prev ? { ...prev, status: "waiting" } : prev); supabase.from("game_rooms").update({ status: "waiting" }).eq("id", room.id); }}
+                            onCloseRoom={handleLeave} />
+                    )}
+                    {!["sisters_sketch", "card_rooms", "crazy_8s", "wavelength", "spyfall", "bible_monopoly", "bible_scrabble"].includes(room.game_type) && (
                         <div className="w-full bg-white/50 border border-warm-grey/5 rounded-3xl p-8 shadow-sm text-center">
                             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-100">
                                 <Gamepad2 className="w-8 h-8 text-emerald-600" />
