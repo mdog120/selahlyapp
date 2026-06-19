@@ -45,6 +45,7 @@ self.addEventListener('notificationclick', (event) => {
   switch (data.type) {
     case 'like':
     case 'comment':
+    case 'comment_like':
     case 'post':
       targetUrl = '/home';
       break;
@@ -53,16 +54,37 @@ self.addEventListener('notificationclick', (event) => {
       break;
     case 'pray':
     case 'prayer':
+    case 'prayer_request':
       targetUrl = '/prayer-pocket';
       break;
     case 'friend_request':
-      targetUrl = '/home';
+      targetUrl = '/profile/me';
       break;
     case 'message':
+    case 'message_like':
+    case 'message_dislike':
       targetUrl = data.actor_id ? `/messages/${data.actor_id}` : '/messages';
       break;
+    case 'group_message_like':
+    case 'group_message_dislike':
+      targetUrl = data.resource_id ? `/messages/group/${data.resource_id}` : '/messages';
+      break;
     case 'mention':
-      targetUrl = '/home';
+      if (data.resource_type === 'group_chat' && data.resource_id) {
+        targetUrl = `/messages/group/${data.resource_id}`;
+      } else {
+        targetUrl = '/home';
+      }
+      break;
+    case 'plant_ready':
+    case 'solo_minigame':
+      targetUrl = '/minigames';
+      break;
+    case 'lobby':
+      targetUrl = '/minigames/multiplayer';
+      break;
+    case 'verse_of_the_day':
+      targetUrl = '/diaries';
       break;
     default:
       targetUrl = '/home';

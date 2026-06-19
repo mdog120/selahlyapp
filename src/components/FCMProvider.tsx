@@ -145,10 +145,46 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
 
             // Show a native notification for foreground messages too
             if (Notification.permission === "granted" && payload.notification) {
-              new Notification(payload.notification.title || "Selahly ౨ৎ", {
+              const notif = new Notification(payload.notification.title || "Selahly ౨ৎ", {
                 body: payload.notification.body || "",
                 icon: "/logo-v2.svg",
               });
+
+              notif.onclick = () => {
+                window.focus();
+                const data = payload.data || {};
+                const type = data.type || "";
+                const resourceId = data.resource_id || "";
+                const resourceType = data.resource_type || "";
+                const actorId = data.actor_id || "";
+
+                let targetUrl = '/home';
+                if (type === 'reply') {
+                  targetUrl = resourceId ? `/velvet-vault/${resourceId}` : '/velvet-vault';
+                } else if (type === 'pray' || type === 'prayer' || type === 'prayer_request') {
+                  targetUrl = '/prayer-pocket';
+                } else if (type === 'friend_request') {
+                  targetUrl = '/profile/me';
+                } else if (type === 'message' || type === 'message_like' || type === 'message_dislike') {
+                  targetUrl = actorId ? `/messages/${actorId}` : '/messages';
+                } else if (type === 'group_message_like' || type === 'group_message_dislike') {
+                  targetUrl = resourceId ? `/messages/group/${resourceId}` : '/messages';
+                } else if (type === 'mention') {
+                  if (resourceType === 'group_chat' && resourceId) {
+                    targetUrl = `/messages/group/${resourceId}`;
+                  } else {
+                    targetUrl = '/home';
+                  }
+                } else if (type === 'plant_ready' || type === 'solo_minigame') {
+                  targetUrl = '/minigames';
+                } else if (type === 'lobby') {
+                  targetUrl = '/minigames/multiplayer';
+                } else if (type === 'verse_of_the_day') {
+                  targetUrl = '/diaries';
+                }
+
+                window.location.href = targetUrl;
+              };
             }
           });
         }
