@@ -140,3 +140,15 @@ export function stripEmojis(text: string): string {
     return text.replace(/[^\w\s\d.,!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/g, '').trim();
   }
 }
+
+export function formatMessagePreview(content?: string): string {
+  if (!content) return 'sent you a message';
+  if (content.startsWith("[media:image:")) return "Sent an image";
+  if (content.startsWith("[media:video:")) return "Sent a video";
+  if (content.startsWith("[sticker:")) {
+    const match = content.match(/\[sticker:(.+)\]/);
+    const stickerName = match ? match[1] : '';
+    return stickerName ? `Sent a ${stickerName} sticker` : "Sent a sticker";
+  }
+  return stripEmojis(content);
+}

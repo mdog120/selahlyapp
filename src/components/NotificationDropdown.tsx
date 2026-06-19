@@ -6,7 +6,7 @@ import { Bell, Heart, MessageCircle, MessageSquare, User, AtSign, Flower, Gamepa
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getNotificationTextOnly, stripEmojis } from "@/lib/notifications";
+import { getNotificationTextOnly, stripEmojis, formatMessagePreview } from "@/lib/notifications";
 
 type Notification = {
     id: string;
@@ -351,7 +351,7 @@ export function NotificationDropdown() {
                                                         {n.type === 'message' ? (
                                                             <>
                                                                 <span className="font-bold text-warm-cocoa block mb-0.5">{n.actor?.first_name || "Someone"}</span>
-                                                                <span className="text-warm-grey/70 text-[11px] block">{stripEmojis(n.message_content || "")}</span>
+                                                                <span className="text-warm-grey/70 text-[11px] block">{formatMessagePreview(n.message_content || "")}</span>
                                                             </>
                                                         ) : (
                                                             <>

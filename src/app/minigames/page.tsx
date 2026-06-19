@@ -54,7 +54,7 @@ export default function MiniGamesPage() {
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-rose-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
                                     <div className="w-10 h-10 rounded-2xl bg-rose-100/60 text-muted-rose flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
-                                        🌸
+                                        🧱
                                     </div>
                                     <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">Block Blast</h5>
                                     <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">

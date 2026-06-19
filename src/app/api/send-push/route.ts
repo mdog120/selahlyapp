@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminMessaging } from '@/lib/firebase-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-import { formatNotificationText, stripEmojis } from '@/lib/notifications';
+import { formatNotificationText, stripEmojis, formatMessagePreview } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     const isMessageNotif = type === 'message';
     const finalTitle = isMessageNotif ? actorName : 'Selahly ౨ৎ';
     const finalBody = isMessageNotif 
-      ? (messageContent ? stripEmojis(messageContent) : 'sent you a message') 
+      ? formatMessagePreview(messageContent) 
       : notificationBody;
 
     // 5. Send to each device token
