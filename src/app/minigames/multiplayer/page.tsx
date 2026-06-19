@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
@@ -57,6 +57,7 @@ export default function MultiplayerGamesPage() {
     const router = useRouter();
     const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
     const [onlineSisters, setOnlineSisters] = useState<OnlineSister[]>([]);
+    const [friends, setFriends] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Game Rooms
@@ -81,6 +82,24 @@ export default function MultiplayerGamesPage() {
                         .single();
                     if (data) {
                         setCurrentUserProfile(data);
+
+                        // Fetch accepted friendships where user is either 1 or 2
+                        const { data: friendshipsData } = await supabase
+                            .from("friendships")
+                            .select(`
+                                id, status, user_id_1, user_id_2,
+                                user1:profiles!friendships_user_id_1_fkey(id, username, first_name, last_name, avatar_url),
+                                user2:profiles!friendships_user_id_2_fkey(id, username, first_name, last_name, avatar_url)
+                            `)
+                            .eq("status", "accepted")
+                            .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+
+                        if (friendshipsData) {
+                            const friendsList = friendshipsData.map(f => {
+                                return f.user_id_1 === user.id ? f.user2 : f.user1;
+                            });
+                            setFriends(friendsList);
+                        }
                     }
                 }
             } catch (error) {
@@ -250,6 +269,15 @@ export default function MultiplayerGamesPage() {
                             game_type: gameType,
                         },
                     });
+
+                    // Insert database notification
+                    await supabase.from("notifications").insert({
+                        user_id: userId,
+                        actor_id: currentUserProfile.id,
+                        type: 'lobby',
+                        resource_id: data.id,
+                        resource_type: 'game_room'
+                    });
                 }
             }
 
@@ -334,7 +362,21 @@ export default function MultiplayerGamesPage() {
         setPendingInvite(null);
     }, []);
 
-    // ─── Derived state ──────────────────────────────────────
+    const friendsMapped = useMemo(() => {
+        if (!friends) return [];
+        return friends.map(friend => {
+            const isOnline = onlineSisters.some(os => os.user_id === friend.id);
+            return {
+                user_id: friend.id,
+                first_name: friend.first_name,
+                username: friend.username,
+                avatar_url: friend.avatar_url,
+                location: "",
+                online_at: isOnline ? new Date().toISOString() : '',
+            };
+        });
+    }, [friends, onlineSisters]);
+
     const otherSisters = onlineSisters.filter(sister => sister.user_id !== currentUserProfile?.id);
     const currentUserPresence = onlineSisters.find(sister => sister.user_id === currentUserProfile?.id);
     const activeRooms = gameRooms.filter((r) => r.status === "waiting" || r.status === "playing");
@@ -602,7 +644,7 @@ export default function MultiplayerGamesPage() {
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onCreateRoom={handleCreateRoom}
-                onlineSisters={otherSisters}
+                onlineSisters={friendsMapped}
                 isCreating={isCreatingRoom}
             />
         </div>

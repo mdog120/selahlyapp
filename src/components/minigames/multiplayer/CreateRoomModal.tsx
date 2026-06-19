@@ -220,10 +220,9 @@ export function CreateRoomModal({
 
                   {onlineSisters.length === 0 ? (
                     <div className="py-8 text-center">
-                      <p className="text-3xl mb-3">🌙</p>
+                      <p className="text-3xl mb-3">👭</p>
                       <p className="text-xs text-warm-grey/50 max-w-[260px] mx-auto leading-relaxed">
-                        No sisters online right now. You can create the room and
-                        wait for others to join from the lobby.
+                        Add some friends first to invite them to play together! 🌸
                       </p>
                     </div>
                   ) : (
@@ -264,9 +263,15 @@ export function CreateRoomModal({
 
                             {/* Name & username */}
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-warm-cocoa truncate">
-                                {sister.first_name}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-warm-cocoa truncate">
+                                  {sister.first_name}
+                                </p>
+                                <span 
+                                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${sister.online_at ? "bg-emerald-400 animate-pulse" : "bg-warm-grey/30"}`} 
+                                  title={sister.online_at ? "Online" : "Offline"}
+                                />
+                              </div>
                               <p className="text-[10px] text-warm-grey/40 truncate">
                                 @{sister.username}
                               </p>
