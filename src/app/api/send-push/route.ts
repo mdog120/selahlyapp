@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminMessaging } from '@/lib/firebase-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-import { formatNotificationText } from '@/lib/notifications';
+import { formatNotificationText, stripEmojis } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,6 +69,12 @@ export async function POST(request: NextRequest) {
     // Generate cute notification body deterministically using the notification ID
     const notificationBody = formatNotificationText(type, actorName, id || '', messageContent);
 
+    const isMessageNotif = type === 'message';
+    const finalTitle = isMessageNotif ? actorName : 'Selahly ౨ৎ';
+    const finalBody = isMessageNotif 
+      ? (messageContent ? stripEmojis(messageContent) : 'sent you a message') 
+      : notificationBody;
+
     // 5. Send to each device token
     const results = await Promise.allSettled(
       tokens.map(async ({ token }) => {
@@ -76,8 +82,8 @@ export async function POST(request: NextRequest) {
           await adminMessaging.send({
             token,
             notification: {
-              title: 'Selahly ౨ৎ',
-              body: notificationBody,
+              title: finalTitle,
+              body: finalBody,
             },
             webpush: {
               fcmOptions: {
@@ -141,9 +147,16 @@ function getNotificationLink(
     case 'prayer_request':
       return '/prayer-pocket';
     case 'friend_request':
-      return '/home';
+      return '/profile/me';
     case 'message':
+    case 'message_like':
+    case 'message_dislike':
       return actorId ? `/messages/${actorId}` : '/messages';
+    case 'group_message_like':
+    case 'group_message_dislike':
+      return resourceId ? `/messages/group/${resourceId}` : '/messages';
+    case 'comment_like':
+      return '/home';
     case 'mention':
       if (resourceType === 'group_chat' && resourceId) return `/messages/group/${resourceId}`;
       return '/home';

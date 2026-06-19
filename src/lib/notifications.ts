@@ -5,6 +5,32 @@ export const cuteTemplates: Record<string, string[]> = {
     "heart-ed your post! ౨ৎ",
     "is cheering you on! ✨"
   ],
+  message_like: [
+    "smiled at your message! ౨ৎ",
+    "loved your message! 💖",
+    "reacted to your message! ✨",
+    "left a sweet reaction on your message! 🌸"
+  ],
+  message_dislike: [
+    "disliked your message. 🥺",
+    "gave your message a little frown. 😔",
+    "reacted to your message. 💔"
+  ],
+  group_message_like: [
+    "smiled at your message in the group! ౨ৎ",
+    "loved your message in the group! 💖",
+    "reacted to your group message! ✨"
+  ],
+  group_message_dislike: [
+    "disliked your message in the group. 🥺",
+    "reacted to your group message. 💔"
+  ],
+  comment_like: [
+    "loved your comment! 💖",
+    "smiled at your comment! ౨ৎ",
+    "left some love on your comment! ✨",
+    "liked what you commented! 🌸"
+  ],
   comment: [
     "left a sweet comment on your post! 📝✨",
     "shared their thoughts on your post! 💬🌸",
@@ -85,7 +111,7 @@ export function getDeterministicIndex(id: string, length: number): number {
 export function getNotificationTextOnly(type: string, id: string, extraContent?: string): string {
   if (type === 'message' && extraContent) {
     const preview = extraContent.length > 60 ? extraContent.slice(0, 60) + '...' : extraContent;
-    return `sent you a message: "${preview}" 💌`;
+    return preview;
   }
   const templates = cuteTemplates[type] || ["sent you a notification."];
   const idx = getDeterministicIndex(id, templates.length);
@@ -99,4 +125,18 @@ export function formatNotificationText(type: string, actorName: string, id: stri
     return text;
   }
   return `${actorName} ${text}`;
+}
+
+export function stripEmojis(text: string): string {
+  if (!text) return "";
+  try {
+    return text
+      .replace(/\p{Extended_Pictographic}/gu, '')
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/\uFE0F/g, '')
+      .trim();
+  } catch (e) {
+    // fallback if regex is not supported in environment
+    return text.replace(/[^\w\s\d.,!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/g, '').trim();
+  }
 }

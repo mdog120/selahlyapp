@@ -45,6 +45,7 @@ type Comment = {
     content: string;
     user_id: string;
     created_at: string;
+    likes?: Record<string, boolean>;
     author: {
         username: string;
         first_name: string;
@@ -463,7 +464,7 @@ export function PostCard({ post }: { post: Post }) {
             const { data } = await supabase
                 .from("post_comments")
                 .select(`
-                    id, content, created_at, user_id,
+                    id, content, created_at, user_id, likes,
                     author:profiles!post_comments_user_id_fkey (username, first_name, avatar_url)
                 `)
                 .eq("post_id", post.id)
@@ -488,6 +489,7 @@ export function PostCard({ post }: { post: Post }) {
             content: newComment,
             user_id: user.id,
             created_at: new Date().toISOString(),
+            likes: {},
             author: {
                 username: profile?.username || "me",
                 first_name: profile?.first_name || "Me",
@@ -496,9 +498,6 @@ export function PostCard({ post }: { post: Post }) {
         };
 
         setComments([...comments, fakeComment]);
-        setNewComment("");
-        setCommentsCount(c => c + 1);
-
         setNewComment("");
         setCommentsCount(c => c + 1);
 
@@ -602,6 +601,61 @@ export function PostCard({ post }: { post: Post }) {
             toggleComments(); // Reload comments
         } else {
             await supabase.rpc("decrement_post_comments", { post_uuid: post.id });
+        }
+    };
+
+    const handleLikeComment = async (commentId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const comment = comments.find(c => c.id === commentId);
+        if (!comment) return;
+
+        const currentLikes = comment.likes || {};
+        const hasLiked = !!currentLikes[user.id];
+
+        // Toggle
+        const newLikes = { ...currentLikes };
+        if (hasLiked) {
+            delete newLikes[user.id];
+        } else {
+            newLikes[user.id] = true;
+        }
+
+        // Optimistic update
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, likes: newLikes } : c));
+
+        // Update DB
+        const { error } = await supabase
+            .from("post_comments")
+            .update({ likes: newLikes })
+            .eq("id", commentId);
+
+        if (error) {
+            console.error("Error updating comment like:", error);
+            // Revert on error
+            setComments(prev => prev.map(c => c.id === commentId ? { ...c, likes: currentLikes } : c));
+            return;
+        }
+
+        // Handle notifications
+        if (!hasLiked && comment.user_id !== user.id) {
+            // Insert notification
+            await supabase.from("notifications").insert({
+                user_id: comment.user_id,
+                actor_id: user.id,
+                type: 'comment_like',
+                resource_id: post.id,
+                resource_type: 'post'
+            });
+        } else if (hasLiked && comment.user_id !== user.id) {
+            // Delete notification
+            await supabase.from("notifications")
+                .delete()
+                .eq("user_id", comment.user_id)
+                .eq("actor_id", user.id)
+                .eq("type", 'comment_like')
+                .eq("resource_id", post.id);
         }
     };
 
@@ -1152,23 +1206,46 @@ export function PostCard({ post }: { post: Post }) {
                                         </div>
                                     </Link>
                                     <div className="bg-white/60 px-3 py-2 rounded-lg rounded-tl-none text-xs text-warm-grey flex-1 group/comment relative">
-                                        <div className="flex justify-between items-start">
-                                            <div>
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div className="break-all flex-1">
                                                 <Link href={`/profile/${comment.author?.username || ""}`} className="font-bold mr-1 hover:underline hover:text-muted-rose">
                                                     {comment.author?.first_name}:
                                                 </Link>
                                                 {renderContentWithStickers(comment.content)}
                                             </div>
 
-                                            {(currentUserId === comment.user_id || isOwner) && (
+                                            <div className="flex items-center gap-1 shrink-0 ml-1">
                                                 <button
-                                                    onClick={() => handleDeleteComment(comment.id)}
-                                                    className="opacity-0 group-hover/comment:opacity-100 transition-opacity p-1 hover:text-red-400 text-warm-grey/40"
-                                                    title="Delete comment"
+                                                    onClick={() => handleLikeComment(comment.id)}
+                                                    className={`transition-all duration-300 flex items-center gap-0.5 p-1 rounded-full hover:bg-muted-rose/10 ${
+                                                        comment.likes?.[currentUserId || ""]
+                                                            ? "text-muted-rose scale-110"
+                                                            : "text-warm-grey/40 hover:text-muted-rose"
+                                                    }`}
+                                                    title={comment.likes?.[currentUserId || ""] ? "Unlike comment" : "Like comment"}
                                                 >
-                                                    <Trash2 className="w-3 h-3" />
+                                                    <Heart
+                                                        className={`w-3.5 h-3.5 ${
+                                                            comment.likes?.[currentUserId || ""] ? "fill-current" : ""
+                                                        }`}
+                                                    />
+                                                    {comment.likes && Object.keys(comment.likes).length > 0 && (
+                                                        <span className="text-[10px] font-semibold">
+                                                            {Object.keys(comment.likes).length}
+                                                        </span>
+                                                    )}
                                                 </button>
-                                            )}
+
+                                                {(currentUserId === comment.user_id || isOwner) && (
+                                                    <button
+                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                        className="opacity-0 group-hover/comment:opacity-100 transition-opacity p-1 hover:text-red-400 text-warm-grey/40"
+                                                        title="Delete comment"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

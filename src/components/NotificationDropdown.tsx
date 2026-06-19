@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Bell, Heart, MessageCircle, MessageSquare, User, AtSign, Flower, Gamepad2, BookOpen, Sparkles } from "lucide-react";
+import { Bell, Heart, MessageCircle, MessageSquare, User, AtSign, Flower, Gamepad2, BookOpen, Sparkles, ThumbsDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getNotificationTextOnly } from "@/lib/notifications";
+import { getNotificationTextOnly, stripEmojis } from "@/lib/notifications";
 
 type Notification = {
     id: string;
@@ -202,7 +202,14 @@ export function NotificationDropdown() {
 
     const getIcon = (type: string) => {
         switch (type) {
-            case 'like': return <Heart className="w-3 h-3 text-white" />;
+            case 'like':
+            case 'comment_like':
+            case 'message_like':
+            case 'group_message_like':
+                return <Heart className="w-3 h-3 text-white" />;
+            case 'message_dislike':
+            case 'group_message_dislike':
+                return <ThumbsDown className="w-3 h-3 text-white" />;
             case 'comment': return <MessageCircle className="w-3 h-3 text-white" />;
             case 'reply': return <MessageSquare className="w-3 h-3 text-white" />;
             case 'pray':
@@ -222,7 +229,14 @@ export function NotificationDropdown() {
 
     const getColor = (type: string) => {
         switch (type) {
-            case 'like': return "bg-muted-rose";
+            case 'like':
+            case 'comment_like':
+            case 'message_like':
+            case 'group_message_like':
+                return "bg-muted-rose";
+            case 'message_dislike':
+            case 'group_message_dislike':
+                return "bg-stone-400";
             case 'comment': return "bg-blue-400";
             case 'reply': return "bg-deep-velvet";
             case 'pray':
@@ -243,8 +257,10 @@ export function NotificationDropdown() {
     const getLink = (n: Notification) => {
         if (n.type === 'reply') return `/velvet-vault/${n.resource_id}`;
         if (n.type === 'pray' || n.type === 'prayer' || n.type === 'prayer_request') return `/prayer-pocket`;
-        if (n.type === 'friend_request') return `/profile/${n.actor?.username || "user"}`;
-        if (n.type === 'message') return `/messages/${n.actor_id}`; // Correctly use UUID
+        if (n.type === 'friend_request') return `/profile/me`;
+        if (n.type === 'message' || n.type === 'message_like' || n.type === 'message_dislike') return `/messages/${n.actor_id}`; // Correctly use UUID
+        if (n.type === 'group_message_like' || n.type === 'group_message_dislike') return `/messages/group/${n.resource_id}`;
+        if (n.type === 'comment_like') return `/home`;
         if (n.type === 'mention') {
             if (n.resource_type === 'note') return `/profile/${n.actor?.username || "user"}`;
             if (n.resource_type === 'group_chat') return `/messages/group/${n.resource_id}`;
@@ -332,13 +348,19 @@ export function NotificationDropdown() {
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="text-xs text-warm-grey leading-snug break-words">
-                                                        {n.type !== 'plant_ready' && n.type !== 'verse_of_the_day' && n.type !== 'solo_minigame' && (
+                                                        {n.type === 'message' ? (
                                                             <>
-                                                                <span className="font-bold text-warm-cocoa">{n.actor?.first_name || "Someone"}</span>
-                                                                {" "}
+                                                                <span className="font-bold text-warm-cocoa block mb-0.5">{n.actor?.first_name || "Someone"}</span>
+                                                                <span className="text-warm-grey/70 text-[11px] block">{stripEmojis(n.message_content || "")}</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                {n.type !== 'plant_ready' && n.type !== 'verse_of_the_day' && n.type !== 'solo_minigame' && (
+                                                                    <span className="font-bold text-warm-cocoa">{n.actor?.first_name || "Someone"} </span>
+                                                                )}
+                                                                {getNotificationTextOnly(n.type, n.id, n.message_content)}
                                                             </>
                                                         )}
-                                                        {getNotificationTextOnly(n.type, n.id, n.message_content)}
                                                     </p>
                                                     <p className="text-[10px] text-warm-grey/40 mt-1">
                                                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}

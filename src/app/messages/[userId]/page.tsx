@@ -438,6 +438,33 @@ export default function ChatPage() {
             .from("direct_messages")
             .update({ reactions: newReactions })
             .eq("id", messageId);
+
+        // Notification management
+        if (msg.sender_id !== currentUser.id) {
+            // 1. Delete notification for the previous reaction if it existed
+            if (myReaction) {
+                const prevNotifType = myReaction === 'bow' ? 'message_like' : 'message_dislike';
+                await supabase
+                    .from("notifications")
+                    .delete()
+                    .eq("user_id", msg.sender_id)
+                    .eq("actor_id", currentUser.id)
+                    .eq("type", prevNotifType)
+                    .eq("resource_id", messageId);
+            }
+
+            // 2. Insert notification for the new reaction if one is set
+            if (myReaction !== type) {
+                const newNotifType = type === 'bow' ? 'message_like' : 'message_dislike';
+                await supabase.from("notifications").insert({
+                    user_id: msg.sender_id,
+                    actor_id: currentUser.id,
+                    type: newNotifType,
+                    resource_id: messageId,
+                    resource_type: 'message'
+                });
+            }
+        }
     };
 
     const handleDoubleTap = (messageId: string) => {
