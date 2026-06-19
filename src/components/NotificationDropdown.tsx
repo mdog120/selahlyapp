@@ -267,7 +267,7 @@ export function NotificationDropdown() {
             return `/home`;
         }
         if (n.type === 'plant_ready' || n.type === 'solo_minigame') return `/minigames`;
-        if (n.type === 'lobby') return `/minigames/multiplayer`;
+        if (n.type === 'lobby') return n.resource_id ? `/minigames/multiplayer/room/${n.resource_id}` : `/minigames/multiplayer`;
         if (n.type === 'verse_of_the_day') return `/diaries`;
         return `/home`;
     };

@@ -164,7 +164,7 @@ function getNotificationLink(
     case 'solo_minigame':
       return '/minigames';
     case 'lobby':
-      return '/minigames/multiplayer';
+      return resourceId ? `/minigames/multiplayer/room/${resourceId}` : '/minigames/multiplayer';
     case 'verse_of_the_day':
       return '/diaries';
     case 'like':

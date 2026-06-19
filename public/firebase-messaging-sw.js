@@ -81,7 +81,7 @@ self.addEventListener('notificationclick', (event) => {
       targetUrl = '/minigames';
       break;
     case 'lobby':
-      targetUrl = '/minigames/multiplayer';
+      targetUrl = data.resource_id ? `/minigames/multiplayer/room/${data.resource_id}` : '/minigames/multiplayer';
       break;
     case 'verse_of_the_day':
       targetUrl = '/diaries';

@@ -178,7 +178,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
                 } else if (type === 'plant_ready' || type === 'solo_minigame') {
                   targetUrl = '/minigames';
                 } else if (type === 'lobby') {
-                  targetUrl = '/minigames/multiplayer';
+                  targetUrl = resourceId ? `/minigames/multiplayer/room/${resourceId}` : '/minigames/multiplayer';
                 } else if (type === 'verse_of_the_day') {
                   targetUrl = '/diaries';
                 }
