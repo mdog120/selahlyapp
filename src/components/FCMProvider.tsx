@@ -57,6 +57,23 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    async function triggerNotificationCheck() {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        fetch("/api/cron/check-plants", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        }).catch(err => console.error("Error triggering notifications cron check:", err));
+      } catch (err) {
+        console.error("Error triggering notifications cron check:", err);
+      }
+    }
+
     async function registerNativeDeviceToken(event: Event) {
       try {
         console.log("[Website] nativeDeviceToken received", (event as CustomEvent).detail);
@@ -100,6 +117,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
         // If user exists, try registering any pending token immediately
         if (user) {
           await attemptRegisterPendingToken();
+          triggerNotificationCheck();
         }
 
         // Check if browser supports notifications
@@ -147,6 +165,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
       console.log("supabase auth state change:", event);
       if (event === "SIGNED_IN" || (session && session.access_token)) {
         await attemptRegisterPendingToken();
+        triggerNotificationCheck();
       }
     });
 
@@ -154,6 +173,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
     // Also try immediately in case token already in sessionStorage
     try { pendingTokenRef.current = sessionStorage.getItem(STORAGE_KEY); } catch {}
     attemptRegisterPendingToken();
+    triggerNotificationCheck();
 
     return () => {
       clearTimeout(timer);

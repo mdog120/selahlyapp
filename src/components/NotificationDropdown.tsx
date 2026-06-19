@@ -2,20 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Bell, Heart, MessageCircle, MessageSquare, User, AtSign } from "lucide-react";
+import { Bell, Heart, MessageCircle, MessageSquare, User, AtSign, Flower, Gamepad2, BookOpen, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getNotificationTextOnly } from "@/lib/notifications";
 
 type Notification = {
     id: string;
-    type: 'like' | 'comment' | 'reply' | 'pray' | 'prayer' | 'friend_request' | 'message' | 'post' | 'mention';
+    type: string;
     read: boolean;
     created_at: string;
-    resource_id: string;
-    resource_type?: string;
-    actor_id: string;
-    actor: {
+    resource_id: string | null;
+    resource_type?: string | null;
+    actor_id: string | null;
+    actor?: {
         username: string;
         first_name: string;
         last_name: string;
@@ -152,6 +153,11 @@ export function NotificationDropdown() {
             case 'message': return <MessageCircle className="w-3 h-3 text-white" />; // Use Message icon
             case 'post': return <Heart className="w-3 h-3 text-white" />; // Use generic icon for post or image
             case 'mention': return <AtSign className="w-3 h-3 text-white" />;
+            case 'plant_ready': return <Flower className="w-3 h-3 text-white" />;
+            case 'lobby': return <Gamepad2 className="w-3 h-3 text-white" />;
+            case 'prayer_request': return <Heart className="w-3 h-3 text-white" />;
+            case 'verse_of_the_day': return <BookOpen className="w-3 h-3 text-white" />;
+            case 'solo_minigame': return <Sparkles className="w-3 h-3 text-white" />;
             default: return <Bell className="w-3 h-3 text-white" />;
         }
     };
@@ -167,13 +173,18 @@ export function NotificationDropdown() {
             case 'message': return "bg-sage-green"; // Distinct color for messages
             case 'post': return "bg-warm-cocoa";
             case 'mention': return "bg-purple-400";
+            case 'plant_ready': return "bg-pink-400";
+            case 'lobby': return "bg-indigo-400";
+            case 'prayer_request': return "bg-rose-400";
+            case 'verse_of_the_day': return "bg-amber-400";
+            case 'solo_minigame': return "bg-teal-400";
             default: return "bg-warm-grey";
         }
     };
 
     const getLink = (n: Notification) => {
         if (n.type === 'reply') return `/velvet-vault/${n.resource_id}`;
-        if (n.type === 'pray' || n.type === 'prayer') return `/prayer-pocket`;
+        if (n.type === 'pray' || n.type === 'prayer' || n.type === 'prayer_request') return `/prayer-pocket`;
         if (n.type === 'friend_request') return `/profile/${n.actor?.username || "user"}`;
         if (n.type === 'message') return `/messages/${n.actor_id}`; // Correctly use UUID
         if (n.type === 'mention') {
@@ -181,7 +192,9 @@ export function NotificationDropdown() {
             if (n.resource_type === 'group_chat') return `/messages/group/${n.resource_id}`;
             return `/home`;
         }
-        // For feeds, we might just go to base page if we don't have single post view yet
+        if (n.type === 'plant_ready' || n.type === 'solo_minigame') return `/minigames`;
+        if (n.type === 'lobby') return `/minigames/multiplayer`;
+        if (n.type === 'verse_of_the_day') return `/diaries`;
         return `/home`;
     };
 
@@ -236,18 +249,13 @@ export function NotificationDropdown() {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-warm-grey leading-snug">
-                                                    <span className="font-bold text-warm-cocoa">{n.actor?.first_name || "Someone"}</span>
-                                                    {" "}
-                                                    {n.type === 'like' && "liked your post."}
-                                                    {n.type === 'comment' && "commented on your post."}
-                                                    {n.type === 'reply' && "replied to your question."}
-                                                    {(n.type === 'pray' || n.type === 'prayer') && "prayed for you."}
-                                                    {n.type === 'friend_request' && "sent you a friend request."}
-                                                    {n.type === 'mention' && (
-                                                        n.resource_type === 'note' ? "mentioned you in a note." :
-                                                        n.resource_type === 'group_chat' ? "mentioned you in a group chat." :
-                                                        "mentioned you in a post."
+                                                    {n.type !== 'plant_ready' && n.type !== 'verse_of_the_day' && n.type !== 'solo_minigame' && (
+                                                        <>
+                                                            <span className="font-bold text-warm-cocoa">{n.actor?.first_name || "Someone"}</span>
+                                                            {" "}
+                                                        </>
                                                     )}
+                                                    {getNotificationTextOnly(n.type, n.id)}
                                                 </p>
                                                 <p className="text-[10px] text-warm-grey/40 mt-1">
                                                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}

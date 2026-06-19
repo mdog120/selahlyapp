@@ -2,18 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminMessaging } from '@/lib/firebase-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-// Notification type to human-readable message mapping
-const typeToMessage: Record<string, string> = {
-  like: 'liked your post.',
-  comment: 'commented on your post.',
-  reply: 'replied to your question.',
-  pray: 'prayed for you.',
-  prayer: 'prayed for you.',
-  friend_request: 'sent you a friend request.',
-  message: 'sent you a message.',
-  post: 'shared a new post.',
-  mention: 'mentioned you.',
-};
+import { formatNotificationText } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse the notification payload
     const body = await request.json();
-    const { user_id, actor_id, type, resource_id, resource_type } = body;
+    const { id, user_id, actor_id, type, resource_id, resource_type } = body;
 
     if (!user_id || !type) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -64,8 +53,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const action = typeToMessage[type] || 'sent you a notification.';
-    const notificationBody = `${actorName} ${action}`;
+    // Generate cute notification body deterministically using the notification ID
+    const notificationBody = formatNotificationText(type, actorName, id || '');
 
     // 5. Send to each device token
     const results = await Promise.allSettled(
@@ -136,6 +125,7 @@ function getNotificationLink(
       return resourceId ? `/velvet-vault/${resourceId}` : '/velvet-vault';
     case 'pray':
     case 'prayer':
+    case 'prayer_request':
       return '/prayer-pocket';
     case 'friend_request':
       return '/home';
@@ -144,6 +134,13 @@ function getNotificationLink(
     case 'mention':
       if (resourceType === 'group_chat' && resourceId) return `/messages/group/${resourceId}`;
       return '/home';
+    case 'plant_ready':
+    case 'solo_minigame':
+      return '/minigames';
+    case 'lobby':
+      return '/minigames/multiplayer';
+    case 'verse_of_the_day':
+      return '/diaries';
     case 'like':
     case 'comment':
     case 'post':
