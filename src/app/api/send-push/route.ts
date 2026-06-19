@@ -53,8 +53,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // If this is a direct message, retrieve the content for push notification preview
+    let messageContent = '';
+    if (type === 'message' && resource_id) {
+      const { data: dm } = await supabase
+        .from('direct_messages')
+        .select('content')
+        .eq('id', resource_id)
+        .single();
+      if (dm?.content) {
+        messageContent = dm.content;
+      }
+    }
+
     // Generate cute notification body deterministically using the notification ID
-    const notificationBody = formatNotificationText(type, actorName, id || '');
+    const notificationBody = formatNotificationText(type, actorName, id || '', messageContent);
 
     // 5. Send to each device token
     const results = await Promise.allSettled(

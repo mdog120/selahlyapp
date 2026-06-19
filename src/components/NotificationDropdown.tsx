@@ -16,6 +16,7 @@ type Notification = {
     resource_id: string | null;
     resource_type?: string | null;
     actor_id: string | null;
+    message_content?: string;
     actor?: {
         username: string;
         first_name: string;
@@ -91,6 +92,24 @@ export function NotificationDropdown() {
             .limit(10);
 
         if (data) {
+            // Find all message notifications to batch fetch their content
+            const messageNotifs = data.filter((n: any) => n.type === 'message' && n.resource_id);
+            if (messageNotifs.length > 0) {
+                const messageIds = messageNotifs.map((n: any) => n.resource_id);
+                const { data: dms } = await supabase
+                    .from('direct_messages')
+                    .select('id, content')
+                    .in('id', messageIds);
+                
+                if (dms) {
+                    const dmMap = new Map(dms.map(d => [d.id, d.content]));
+                    data.forEach((n: any) => {
+                        if (n.type === 'message' && n.resource_id) {
+                            n.message_content = dmMap.get(n.resource_id);
+                        }
+                    });
+                }
+            }
             setNotifications(data as any);
         }
 
@@ -259,7 +278,7 @@ export function NotificationDropdown() {
                                                             {" "}
                                                         </>
                                                     )}
-                                                    {getNotificationTextOnly(n.type, n.id)}
+                                                    {getNotificationTextOnly(n.type, n.id, n.message_content)}
                                                 </p>
                                                 <p className="text-[10px] text-warm-grey/40 mt-1">
                                                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}

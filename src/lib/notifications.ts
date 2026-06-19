@@ -82,14 +82,18 @@ export function getDeterministicIndex(id: string, length: number): number {
   return sum % length;
 }
 
-export function getNotificationTextOnly(type: string, id: string): string {
+export function getNotificationTextOnly(type: string, id: string, extraContent?: string): string {
+  if (type === 'message' && extraContent) {
+    const preview = extraContent.length > 60 ? extraContent.slice(0, 60) + '...' : extraContent;
+    return `sent you a message: "${preview}" 💌`;
+  }
   const templates = cuteTemplates[type] || ["sent you a notification."];
   const idx = getDeterministicIndex(id, templates.length);
   return templates[idx];
 }
 
-export function formatNotificationText(type: string, actorName: string, id: string): string {
-  const text = getNotificationTextOnly(type, id);
+export function formatNotificationText(type: string, actorName: string, id: string, extraContent?: string): string {
+  const text = getNotificationTextOnly(type, id, extraContent);
   // System notifications without actors
   if (type === 'plant_ready' || type === 'verse_of_the_day' || type === 'solo_minigame') {
     return text;
