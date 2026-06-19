@@ -87,7 +87,7 @@ export default function MultiplayerGamesPage() {
                         const { data: friendshipsData } = await supabase
                             .from("friendships")
                             .select(`
-                                id, status, user_id_1, user_id_2,
+                                status, user_id_1, user_id_2,
                                 user1:profiles!friendships_user_id_1_fkey(id, username, first_name, last_name, avatar_url),
                                 user2:profiles!friendships_user_id_2_fkey(id, username, first_name, last_name, avatar_url)
                             `)
@@ -95,9 +95,9 @@ export default function MultiplayerGamesPage() {
                             .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
 
                         if (friendshipsData) {
-                            const friendsList = friendshipsData.map(f => {
-                                return f.user_id_1 === user.id ? f.user2 : f.user1;
-                            });
+                            const friendsList = friendshipsData
+                                .map(f => (f.user_id_1 === user.id ? f.user2 : f.user1))
+                                .filter(Boolean);
                             setFriends(friendsList);
                         }
                     }
