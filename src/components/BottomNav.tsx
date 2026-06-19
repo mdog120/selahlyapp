@@ -12,57 +12,48 @@ export function BottomNav() {
     useEffect(() => {
         if (typeof window === "undefined") return;
 
-        const handleResize = () => {
-            const activeEl = document.activeElement;
-            const isInputFocused = activeEl && (
-                activeEl.tagName === "INPUT" || 
-                activeEl.tagName === "TEXTAREA" || 
-                (activeEl as HTMLElement).isContentEditable
-            );
+        let timeoutId: NodeJS.Timeout;
 
-            const keyboardVisible = 
-                window.visualViewport 
-                    ? window.visualViewport.height < window.innerHeight * 0.85
-                    : window.innerHeight < screen.height * 0.75;
+        const checkFocus = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                const el = document.activeElement as HTMLElement | null;
+                const isInputFocused = el && (
+                    el.tagName === "INPUT" || 
+                    el.tagName === "TEXTAREA" || 
+                    el.isContentEditable
+                );
 
-            setIsKeyboardOpen(!!(keyboardVisible || (isInputFocused && window.visualViewport && window.visualViewport.height < window.innerHeight * 0.92)));
+                const keyboardVisible = 
+                    window.visualViewport 
+                        ? window.visualViewport.height < window.innerHeight * 0.85
+                        : false;
+
+                // Hide nav if an input is focused or screen height has shrunk (keyboard visible)
+                setIsKeyboardOpen(!!(isInputFocused || keyboardVisible));
+            }, 50); // Debounce to prevent layout flickering when shifting focus
         };
 
-        const handleFocusIn = (e: FocusEvent) => {
-            const target = e.target as HTMLElement;
-            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
-                // Instantly hide on focus if mobile screen size
-                if (window.innerWidth < 768) {
-                    setIsKeyboardOpen(true);
-                }
-            }
-        };
-
-        const handleFocusOut = () => {
-            // Delay re-evaluation slightly to let layout adjust
-            setTimeout(handleResize, 100);
-        };
+        // Capture phase focus/blur listeners work universally on mobile Safari/Chrome
+        window.addEventListener("focus", checkFocus, true);
+        window.addEventListener("blur", checkFocus, true);
 
         if (window.visualViewport) {
-            window.visualViewport.addEventListener("resize", handleResize);
-        } else {
-            window.addEventListener("resize", handleResize);
+            window.visualViewport.addEventListener("resize", checkFocus);
         }
+        window.addEventListener("resize", checkFocus);
 
-        document.addEventListener("focusin", handleFocusIn);
-        document.addEventListener("focusout", handleFocusOut);
-
-        // Initial check
-        handleResize();
+        // Initial run
+        checkFocus();
 
         return () => {
+            clearTimeout(timeoutId);
+            window.removeEventListener("focus", checkFocus, true);
+            window.removeEventListener("blur", checkFocus, true);
             if (window.visualViewport) {
-                window.visualViewport.removeEventListener("resize", handleResize);
-            } else {
-                window.removeEventListener("resize", handleResize);
+                window.visualViewport.removeEventListener("resize", checkFocus);
             }
-            document.removeEventListener("focusin", handleFocusIn);
-            document.removeEventListener("focusout", handleFocusOut);
+            window.removeEventListener("resize", checkFocus);
         };
     }, []);
 
