@@ -234,12 +234,16 @@ export function NotificationDropdown() {
                                     >
                                         <div className="flex gap-3">
                                             <div className="relative flex-shrink-0">
-                                                <div className="w-8 h-8 rounded-full bg-stone-200 overflow-hidden">
+                                                <div className="w-8 h-8 rounded-full bg-stone-100 overflow-hidden flex items-center justify-center border border-stone-200/30">
                                                     {n.actor?.avatar_url ? (
                                                         <img src={n.actor.avatar_url} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span className="w-full h-full flex items-center justify-center text-[10px] uppercase">
+                                                    ) : n.actor ? (
+                                                        <span className="w-full h-full flex items-center justify-center text-[10px] uppercase font-bold text-warm-cocoa">
                                                             {(n.actor?.first_name?.[0] || "") + (n.actor?.last_name?.[0] || "")}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="w-full h-full flex items-center justify-center text-xs text-muted-rose font-serif bg-stone-50 select-none">
+                                                            ౨ৎ
                                                         </span>
                                                     )}
                                                 </div>
