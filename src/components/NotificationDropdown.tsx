@@ -161,6 +161,45 @@ export function NotificationDropdown() {
         }
     }
 
+    async function clearAllNotifications() {
+        const uid = userId;
+        if (!uid) return;
+
+        // Optimistic update
+        setNotifications([]);
+        setUnreadCount(0);
+
+        // Delete all notifications for this user in DB
+        const { error } = await supabase
+            .from("notifications")
+            .delete()
+            .eq("user_id", uid);
+
+        if (error) {
+            console.error("Error clearing all notifications in database:", error);
+        }
+    }
+
+    async function deleteNotification(notificationId: string) {
+        // Find notification
+        const notification = notifications.find(n => n.id === notificationId);
+        
+        // Optimistic update
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        if (notification && !notification.read) {
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+
+        const { error } = await supabase
+            .from("notifications")
+            .delete()
+            .eq("id", notificationId);
+
+        if (error) {
+            console.error("Error deleting notification:", error);
+        }
+    }
+
     const getIcon = (type: string) => {
         switch (type) {
             case 'like': return <Heart className="w-3 h-3 text-white" />;
@@ -233,9 +272,27 @@ export function NotificationDropdown() {
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
                     <div className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-white/50 z-50 overflow-hidden animate-fade-in-up origin-top-right">
-                        <div className="p-3 border-b border-warm-grey/5 flex justify-between items-baseline">
-                            <h3 className="font-serif text-warm-cocoa pl-1">Notifications</h3>
-                            <button onClick={() => { fetchNotifications(); }} className="text-[10px] text-warm-grey/40 hover:text-warm-grey">Refresh</button>
+                        <div className="p-3 border-b border-warm-grey/5 flex justify-between items-center">
+                            <h3 className="font-serif text-warm-cocoa pl-1 text-sm font-bold">Notifications</h3>
+                            <div className="flex gap-2.5 items-center">
+                                {unreadCount > 0 && (
+                                    <button 
+                                        onClick={markAllAsRead} 
+                                        className="text-[10px] text-muted-rose hover:text-muted-rose/80 font-semibold"
+                                    >
+                                        Mark read
+                                    </button>
+                                )}
+                                {notifications.length > 0 && (
+                                    <button 
+                                        onClick={clearAllNotifications} 
+                                        className="text-[10px] text-warm-grey/40 hover:text-warm-grey font-semibold"
+                                    >
+                                        Clear all
+                                    </button>
+                                )}
+                                <button onClick={() => { fetchNotifications(); }} className="text-[10px] text-warm-grey/40 hover:text-warm-grey font-medium">Refresh</button>
+                            </div>
                         </div>
 
                         <div className="max-h-[70vh] overflow-y-auto">
@@ -245,50 +302,69 @@ export function NotificationDropdown() {
                                 </div>
                             ) : (
                                 notifications.map(n => (
-                                    <Link
-                                        href={getLink(n)}
+                                    <div
                                         key={n.id}
-                                        onClick={() => { handleRead(n.id); setIsOpen(false); }}
-                                        className={`block p-3 hover:bg-stone-50 transition-colors border-b border-warm-grey/5 last:border-0 ${!n.read ? "bg-stone-50/50" : ""}`}
+                                        className={`group relative block hover:bg-stone-50 transition-colors border-b border-warm-grey/5 last:border-0 ${!n.read ? "bg-stone-50/50" : ""}`}
                                     >
-                                        <div className="flex gap-3">
-                                            <div className="relative flex-shrink-0">
-                                                <div className="w-8 h-8 rounded-full bg-stone-100 overflow-hidden flex items-center justify-center border border-stone-200/30">
-                                                    {n.actor?.avatar_url ? (
-                                                        <img src={n.actor.avatar_url} className="w-full h-full object-cover" />
-                                                    ) : n.actor ? (
-                                                        <span className="w-full h-full flex items-center justify-center text-[10px] uppercase font-bold text-warm-cocoa">
-                                                            {(n.actor?.first_name?.[0] || "") + (n.actor?.last_name?.[0] || "")}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="w-full h-full flex items-center justify-center text-xs text-muted-rose font-serif bg-stone-50 select-none">
-                                                            ౨ৎ
-                                                        </span>
-                                                    )}
+                                        <div className="p-3 pr-8 flex gap-3">
+                                            <Link
+                                                href={getLink(n)}
+                                                onClick={() => { handleRead(n.id); setIsOpen(false); }}
+                                                className="flex-1 flex gap-3 min-w-0"
+                                            >
+                                                <div className="relative flex-shrink-0">
+                                                    <div className="w-8 h-8 rounded-full bg-stone-100 overflow-hidden flex items-center justify-center border border-stone-200/30">
+                                                        {n.actor?.avatar_url ? (
+                                                            <img src={n.actor.avatar_url} className="w-full h-full object-cover" />
+                                                        ) : n.actor ? (
+                                                            <span className="w-full h-full flex items-center justify-center text-[10px] uppercase font-bold text-warm-cocoa">
+                                                                {(n.actor?.first_name?.[0] || "") + (n.actor?.last_name?.[0] || "")}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="w-full h-full flex items-center justify-center text-xs text-muted-rose font-serif bg-stone-50 select-none">
+                                                                ౨ৎ
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-white flex items-center justify-center ${getColor(n.type)}`}>
+                                                        {getIcon(n.type)}
+                                                    </div>
                                                 </div>
-                                                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-white flex items-center justify-center ${getColor(n.type)}`}>
-                                                    {getIcon(n.type)}
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs text-warm-grey leading-snug break-words">
+                                                        {n.type !== 'plant_ready' && n.type !== 'verse_of_the_day' && n.type !== 'solo_minigame' && (
+                                                            <>
+                                                                <span className="font-bold text-warm-cocoa">{n.actor?.first_name || "Someone"}</span>
+                                                                {" "}
+                                                            </>
+                                                        )}
+                                                        {getNotificationTextOnly(n.type, n.id, n.message_content)}
+                                                    </p>
+                                                    <p className="text-[10px] text-warm-grey/40 mt-1">
+                                                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                                                    </p>
                                                 </div>
+                                            </Link>
+                                            
+                                            {/* Unread indicators & individual clear/delete button */}
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
+                                                {!n.read && (
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-muted-rose shrink-0"></div>
+                                                )}
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        await deleteNotification(n.id);
+                                                    }}
+                                                    className="w-5 h-5 rounded-full hover:bg-stone-200 flex items-center justify-center text-warm-grey/30 hover:text-warm-grey opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Delete"
+                                                >
+                                                    <span className="text-[11px] font-bold">×</span>
+                                                </button>
                                             </div>
-                                            <div>
-                                                <p className="text-xs text-warm-grey leading-snug">
-                                                    {n.type !== 'plant_ready' && n.type !== 'verse_of_the_day' && n.type !== 'solo_minigame' && (
-                                                        <>
-                                                            <span className="font-bold text-warm-cocoa">{n.actor?.first_name || "Someone"}</span>
-                                                            {" "}
-                                                        </>
-                                                    )}
-                                                    {getNotificationTextOnly(n.type, n.id, n.message_content)}
-                                                </p>
-                                                <p className="text-[10px] text-warm-grey/40 mt-1">
-                                                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                                                </p>
-                                            </div>
-                                            {!n.read && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-muted-rose mt-1.5"></div>
-                                            )}
                                         </div>
-                                    </Link>
+                                    </div>
                                 ))
                             )}
                         </div>
