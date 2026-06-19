@@ -92,17 +92,20 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                 friendsWithMsg = await Promise.all(friendList.map(async (friend: any) => {
                     const { data: lastMsg } = await supabase
                         .from("direct_messages")
-                        .select("content, created_at, sender_id")
+                        .select("content, created_at, sender_id, read_at")
                         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friend.id}),and(sender_id.eq.${friend.id},receiver_id.eq.${user.id})`)
                         .order("created_at", { ascending: false })
                         .limit(1)
                         .single();
 
+                    const isUnread = lastMsg && lastMsg.sender_id === friend.id && !lastMsg.read_at;
+
                     return {
                         ...friend,
                         lastMessage: formatPreview(lastMsg?.content),
                         lastMessageTime: lastMsg?.created_at,
-                        lastSenderId: lastMsg?.sender_id
+                        lastSenderId: lastMsg?.sender_id,
+                        isUnread: !!isUnread
                     };
                 }));
             }
@@ -122,11 +125,13 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                 groupsWithMsg = await Promise.all(userGroups.map(async (g: any) => {
                     const { data: lastMsg } = await supabase
                         .from("group_messages")
-                        .select("content, created_at, sender_id, sender:profiles!group_messages_sender_id_fkey(first_name)")
+                        .select("content, created_at, sender_id, read_by, sender:profiles!group_messages_sender_id_fkey(first_name)")
                         .eq("group_id", g.group.id)
                         .order("created_at", { ascending: false })
                         .limit(1)
                         .single();
+
+                    const isUnread = lastMsg && lastMsg.sender_id !== user.id && (!lastMsg.read_by || !lastMsg.read_by.includes(user.id));
 
                     return {
                         id: g.group.id,
@@ -135,6 +140,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                         type: 'group',
                         lastMessage: lastMsg ? `${(lastMsg.sender as any)?.first_name || "Sister"}: ${formatPreview(lastMsg.content)}` : "New Circle",
                         lastMessageTime: lastMsg?.created_at || g.created_at || new Date().toISOString(),
+                        isUnread: !!isUnread
                     };
                 }));
             }
@@ -177,7 +183,8 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                             ...prev[friendIndex],
                             lastMessage: formatPreview(newMsg.content),
                             lastMessageTime: newMsg.created_at,
-                            lastSenderId: newMsg.sender_id
+                            lastSenderId: newMsg.sender_id,
+                            isUnread: newMsg.sender_id === friendId && !newMsg.read_at
                         };
 
                         const newFriends = [...prev];
@@ -185,42 +192,70 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                         return [updatedFriend, ...newFriends];
                     });
                 })
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
+                    const updatedMsg = payload.new as any;
+
+                    setDirectMessages(prev => {
+                        const friendId = updatedMsg.sender_id === user.id ? updatedMsg.receiver_id : updatedMsg.sender_id;
+                        const friendIndex = prev.findIndex(f => f.id === friendId);
+
+                        if (friendIndex === -1) return prev;
+
+                        const friend = prev[friendIndex];
+                        if (friend.lastMessageTime === updatedMsg.created_at) {
+                            const updatedFriend = {
+                                ...friend,
+                                isUnread: updatedMsg.sender_id === friendId && !updatedMsg.read_at
+                            };
+                            const newFriends = [...prev];
+                            newFriends[friendIndex] = updatedFriend;
+                            return newFriends;
+                        }
+                        return prev;
+                    });
+                })
                 .subscribe();
 
             // Group Messages Subscription
-            // Note: We need a way to listen to ALL group messages for groups I'm in. 
-            // supabase realtime doesn't support "where id in array" easily in filter string.
-            // But we can listen to "group_messages" generally and filter client side if we have the list, 
-            // OR strictly speaking we should subscribe to specific group channels if possible, or just one global table channel and check if group_id is in my circles.
-
             channelGroup = supabase
                 .channel('sidebar_messages_group')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages' }, async (payload) => {
                     const newMsg = payload.new as any;
 
-                    // We need to know if this group is in our circles list
-                    // Since state setter has access to prev, we can check there
                     setCircles(prev => {
                         const groupIndex = prev.findIndex(c => c.id === newMsg.group_id);
-                        if (groupIndex === -1) return prev; // Not in a group we know about
-
-                        // We might need sender name for group msg preview
-                        // For optimization, we can just say "Sister: ..." or fetch async. 
-                        // Fetching async inside state setter is tricky. 
-                        // Simplified: Update with content now
+                        if (groupIndex === -1) return prev;
 
                         const updatedCircle = {
                             ...prev[groupIndex],
-                            lastMessage: "New message...", // TODO: Ideally fetch sender name or include it in payload if possible (not possible with standard realtime headers usually)
+                            lastMessage: `Sister: ${formatPreview(newMsg.content)}`,
                             lastMessageTime: newMsg.created_at,
+                            isUnread: newMsg.sender_id !== user.id && (!newMsg.read_by || !newMsg.read_by.includes(user.id))
                         };
-
-                        // We can fire a separate fetch to get the nice preview text if needed, but for now:
-                        updatedCircle.lastMessage = `Sister: ${formatPreview(newMsg.content)}`;
 
                         const newCircles = [...prev];
                         newCircles.splice(groupIndex, 1);
                         return [updatedCircle, ...newCircles];
+                    });
+                })
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'group_messages' }, (payload) => {
+                    const updatedMsg = payload.new as any;
+
+                    setCircles(prev => {
+                        const groupIndex = prev.findIndex(c => c.id === updatedMsg.group_id);
+                        if (groupIndex === -1) return prev;
+
+                        const circle = prev[groupIndex];
+                        if (circle.lastMessageTime === updatedMsg.created_at) {
+                            const updatedCircle = {
+                                ...circle,
+                                isUnread: updatedMsg.sender_id !== user.id && (!updatedMsg.read_by || !updatedMsg.read_by.includes(user.id))
+                            };
+                            const newCircles = [...prev];
+                            newCircles[groupIndex] = updatedCircle;
+                            return newCircles;
+                        }
+                        return prev;
                     });
                 })
                 .subscribe();
@@ -304,7 +339,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className={`text-xs truncate ${isActive ? "text-muted-rose/80" : "text-warm-grey/60"}`}>
+                                                    <p className={`text-xs truncate ${item.isUnread ? "font-bold text-warm-cocoa" : (isActive ? "text-muted-rose/80" : "text-warm-grey/60")}`}>
                                                         {item.lastMessage || "New Circle"}
                                                     </p>
                                                 </div>
@@ -357,7 +392,7 @@ export function MessagesSidebar({ className = "" }: { className?: string }) {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className={`text-xs truncate ${isActive ? "text-warm-grey/80" : "text-warm-grey/60"}`}>
+                                                <p className={`text-xs truncate ${item.isUnread ? "font-bold text-warm-cocoa" : (isActive ? "text-warm-grey/80" : "text-warm-grey/60")}`}>
                                                     {hasMessage ? (
                                                         <span>
                                                             {item.lastSenderId !== item.id && "You: "}
