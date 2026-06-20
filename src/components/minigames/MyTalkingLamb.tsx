@@ -86,6 +86,7 @@ export function MyTalkingLamb() {
   // ─── Particles ──────────────────────────────────────────────
   const [particles, setParticles] = useState<Particle[]>([]);
   const particleIdRef = useRef(0);
+  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ─── Local Storage persistence ─────────────────────────────
   useEffect(() => {
@@ -112,6 +113,14 @@ export function MyTalkingLamb() {
         console.error("Failed to load lamb house stats", e);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    // Clear initial dialogue after 6 seconds
+    const t = setTimeout(() => {
+      setDialogue("");
+    }, 6000);
+    return () => clearTimeout(t);
   }, []);
 
   // Save Stats on Change
@@ -172,6 +181,29 @@ export function MyTalkingLamb() {
   const speak = (text: string) => {
     setDialogue(text);
     setIsTalking(true);
+
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+    }
+
+    // Auto-clear speech bubble after 6 seconds
+    speechTimeoutRef.current = setTimeout(() => {
+      setDialogue("");
+    }, 6000);
+
+    // Cute TTS voice output using Web Speech API
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.pitch = 1.65; // High pitch for cutesy lamb voice
+        utterance.rate = 1.15;  // Slightly faster for cuteness
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn("Speech synthesis failed", e);
+      }
+    }
+
     let count = 0;
     const interval = setInterval(() => {
       setIsTalking((prev) => !prev);
@@ -240,23 +272,23 @@ export function MyTalkingLamb() {
   // ─── Actions & Room Interactions ────────────────────────────
   const handlePet = () => {
     if (isSleeping) {
-      speak("Shhh... I am sleeping right now, baa... 💤");
+      speak("Shhh... Selah is sweeping right now, baa... Zzz... 💤");
       return;
     }
     setLastAction("petting");
     setHappiness((prev) => Math.min(prev + 12, 100));
     spawnParticles("❤️", 6);
-    speak("Baa! That tickles! You are the best shepherd! 🥰");
+    speak("Baa! *giggles* That tickles! You are the bestest shepherd! 🥰");
     setTimeout(() => setLastAction("none"), 1000);
   };
 
   const handleWash = () => {
     if (activeRoom !== "bathroom") {
-      speak("Baa! Put me in the Bathtub first! 🛁");
+      speak("Baa! Put me in the bubbly Bathtub first! 🛁");
       return;
     }
     if (isSleeping) {
-      speak("Baa... I want to sleep, not bathe... 💤");
+      speak("Baa... too sleepy for a bath... let's snuggle... 💤");
       return;
     }
     setLastAction("bathing");
@@ -266,7 +298,7 @@ export function MyTalkingLamb() {
       setMudFactor((prev) => prev - 1);
     }
     spawnParticles("🫧", 8);
-    speak("Splish splash! All the mud is washing away! 🧼🫧");
+    speak("Splish splash! Bubbles everywhere! Selah is squeaky clean! 🧼🫧");
     progressChallenge("wash", 1);
     setTimeout(() => setLastAction("none"), 1500);
   };
@@ -277,13 +309,13 @@ export function MyTalkingLamb() {
       return;
     }
     if (isSleeping) {
-      speak("Baa... too sleepy to play... Zzz... 💤");
+      speak("Baa... too sweepy to play... Zzz... 💤");
       return;
     }
     
     setIsChasingBall(true);
     setLastAction("playing");
-    speak("Baa! Throw the ball! I will catch it! ⚽");
+    speak("Baa! Throw the ball! I'm ready to chase it! ⚽");
     
     setTimeout(() => {
       setIsChasingBall(false);
@@ -293,7 +325,7 @@ export function MyTalkingLamb() {
       setEnergy((prev) => Math.max(prev - 15, 0));
       setMudFactor((prev) => Math.min(prev + 1, 4));
       spawnParticles("⚽", 5);
-      speak("Baa! Got it! Look at my jumps! But my wool got dirty... 🐾");
+      speak("Got it! Baa! Did you see my super jumps? Oh no, my wool got dirty... 🐾");
       progressChallenge("play", 1);
     }, 2000);
   };
@@ -301,13 +333,13 @@ export function MyTalkingLamb() {
   const handleWakeUp = () => {
     setIsSleeping(false);
     setLastAction("none");
-    speak("Good morning! Baa! I slept so well! ☀️");
+    speak("Morning, baa! *stretches* I slept like a little fluffy cloud! ☀️");
   };
 
   // ─── Shop Actions ───────────────────────────────────────────
   const buyFood = (type: "apple" | "manna" | "cookie", cost: number) => {
     if (coins < cost) {
-      speak("Baa! Not enough coins! Complete challenges to get more! 🪙");
+      speak("Baa! We need more coins! Let's do some chores! 🪙");
       return;
     }
     setCoins((c) => c - cost);
@@ -315,18 +347,18 @@ export function MyTalkingLamb() {
     else if (type === "manna") setMannaStock((s) => s + 1);
     else if (type === "cookie") setCookieStock((s) => s + 1);
     spawnParticles("🪙", 3);
-    speak(`Purchased a premium ${type}! Added to fridge. 🍎`);
+    speak(`Yummy! Purchased a premium ${type}! Added to fridge! 🍎`);
   };
 
   const buyAccessory = (acc: string, cost: number) => {
     if (coins < cost) {
-      speak("Baa! Not enough coins! 🪙");
+      speak("Baa! Not enough coins, shepherd! 🪙");
       return;
     }
     setCoins((c) => c - cost);
     setPurchasedAccessories((prev) => [...prev, acc]);
     spawnParticles("🪙", 4);
-    speak(`Baa! You bought the premium ${acc}! Try it on! 🎀`);
+    speak(`Ooh! You bought the premium ${acc}! Let's try it on, baa! 🎀`);
   };
 
   // ─── Map Room Navigation & Unlocks ──────────────────────────
@@ -335,22 +367,22 @@ export function MyTalkingLamb() {
       setActiveRoom(room);
       setIsMapOpen(false);
       if (room === "bedroom" && isSleeping) {
-        speak("Zzz... (Lamb is resting comfortably) 🛌🌙");
+        speak("Zzz... (Selah is resting comfortably) 🛌🌙");
       } else {
-        speak(`Baa! Travelled to the ${room}! ${room === "backyard" ? "Let's play outside! ⚽" : ""}`);
+        speak(`Baa! Welcome to the ${room}! ${room === "backyard" ? "Let's run around! ⚽" : "So cozy!"}`);
       }
     }
   };
 
   const unlockRoom = (room: RoomType, cost: number) => {
     if (coins < cost) {
-      speak(`Baa! You need 🪙 ${cost} coins to unlock the ${room}! 🔒`);
+      speak(`Baa! We need 🪙 ${cost} coins to unlock the ${room}! 🔒`);
       return;
     }
     setCoins((c) => c - cost);
     setUnlockedRooms((prev) => [...prev, room]);
     spawnParticles("✨", 8);
-    speak(`Baa! The ${room} is now UNLOCKED! Let's explore! 🎉`);
+    speak(`Yay! The ${room} is now UNLOCKED! Let's explore, baa! 🎉`);
   };
 
   // ─── Chat Dialogue match ────────────────────────────────────
@@ -362,7 +394,7 @@ export function MyTalkingLamb() {
     setChatInput("");
 
     if (isSleeping) {
-      speak("Zzz... (The lamb is fast asleep) 🌙");
+      speak("Zzz... (Selah is fast asleep) 🌙");
       return;
     }
 
@@ -373,25 +405,25 @@ export function MyTalkingLamb() {
     let reply = "";
 
     if (text.includes("sad") || text.includes("cry") || text.includes("lonely") || text.includes("hurt")) {
-      reply = "Baa... don't be sad, little sister! The Good Shepherd is holding you close today. 🌸";
+      reply = "Baa... don't be sad, sweet sister! The Good Shepherd is holding you super close today! 🌸";
     } else if (text.includes("scared") || text.includes("afraid") || text.includes("fear") || text.includes("anxious") || text.includes("worry")) {
-      reply = "Baa! 'Do not fear, for I am with you.' (Isaiah 41:10) You are safe! 🌿";
+      reply = "Baa! 'Do not fear, for I am with you.' (Isaiah 41:10) You are completely safe with me! 🌿";
     } else if (text.includes("love")) {
-      reply = "Baa! I love you too! And remember, Jesus loves you infinitely more! ❤️";
+      reply = "Baa! I love you so, so much! And remember, Jesus loves you infinitely more! ❤️";
     } else if (text.includes("hello") || text.includes("hi") || text.includes("hey") || text.includes("greet")) {
-      reply = "Baa! Hello, sweet sister! I'm so happy you came to visit me! 🐑";
+      reply = "Baa! Hello, sweet sister! I'm so, so happy you came to visit me! 🐑";
     } else if (text.includes("tired") || text.includes("sleepy") || text.includes("exhausted") || text.includes("weary")) {
-      reply = "Baa! Take a deep breath. 'He makes me lie down in green pastures...' (Psalm 23:2) 🌿";
+      reply = "Baa! *takes deep breath* 'He makes me lie down in green pastures...' (Psalm 23:2) Sleepy time... 🌿";
     } else if (text.includes("bible") || text.includes("scripture") || text.includes("god") || text.includes("jesus") || text.includes("faith")) {
-      reply = "Baa! 'The Lord is my shepherd, I shall not want.' (Psalm 23:1) He guides us! 📖";
+      reply = "Baa! 'The Lord is my shepherd, I shall not want.' (Psalm 23:1) He guides our little paths! 📖";
     } else {
       const randomReplies = [
-        "Baa! You are so precious in His sight! ✨",
-        "Baa! Have you taken a moment to rest and pray today? 🌸",
-        "Baa! A cheerful heart is good medicine! (Proverbs 17:22) 💖",
-        "Baa! Your heart is a beautiful garden. Grow in grace! 🌿",
-        "Baa! I'm listening, sweet sister! Tell me more. 🥰",
-        "Baa! Remember, you are never alone. The Shepherd is always near. 🐑"
+        "Baa! You are so, so precious in His sight! ✨",
+        "Baa! Have you taken a little moment to rest and pray today? 🌸",
+        "Baa! A cheerful heart is good medicine! (Proverbs 17:22) *giggles* 💖",
+        "Baa! Your heart is a beautiful garden. Let's grow in grace! 🌿",
+        "Baa! I'm listening, sweet sister! Tell me all about it! 🥰",
+        "Baa! Remember, you are never, ever alone. The Shepherd is always super near! 🐑"
       ];
       reply = randomReplies[Math.floor(Math.random() * randomReplies.length)];
     }
@@ -403,11 +435,11 @@ export function MyTalkingLamb() {
   const startCooking = (recipe: RecipeType) => {
     // Check ingredient stock
     if (recipe === "apple_mash" && applesStock <= 0) {
-      speak("Baa! Need 1 Apple to cook this. Buy one at the Shop! 🍎");
+      speak("Baa! We need 1 Apple. Let's get one from the shop! 🍎");
       return;
     }
     if (recipe === "manna_cookie" && (mannaStock <= 0 || cookieStock <= 0)) {
-      speak("Baa! Need 1 Manna Bread & 1 Cookie to cook this. Buy at Shop! 🍪");
+      speak("Baa! We need 1 Manna Bread & 1 Cookie. Let's shop! 🍪");
       return;
     }
 
@@ -422,7 +454,7 @@ export function MyTalkingLamb() {
     setCookingStep("slice");
     setSliceCount(0);
     setMixCount(0);
-    speak("Opening the recipe book! Let's slice the ingredients on the board! 🔪");
+    speak("Recipe book open! Let's slice-slice the ingredients! 🔪");
   };
 
   const handleSliceClick = () => {
@@ -432,7 +464,7 @@ export function MyTalkingLamb() {
       spawnParticles("🔪", 2);
       if (next === 3) {
         setCookingStep("mix");
-        speak("Nicely sliced! Let's put them in the bowl and stir! 🥣");
+        speak("Nicely sliced! Now let's mixy-mix them in the bowl! 🥣");
       }
     }
   };
@@ -443,7 +475,7 @@ export function MyTalkingLamb() {
     spawnParticles("🫧", 3);
     if (next >= 3) {
       setCookingStep("done");
-      speak("Everything is mixed perfectly! Click serve to feed me! 🍽️");
+      speak("Mixy-mix complete! I'm ready to eat, feed me please! 🍽️");
     }
   };
 
@@ -473,7 +505,7 @@ export function MyTalkingLamb() {
     setCoins((c) => c + 10); // Reward for cooking
 
     spawnParticles("😋", 6);
-    speak(`Baa! That was delicious! You fed me ${dishName}! (+🪙 10 reward) 🍽️✨`);
+    speak(`Baa! That was so delicious! Fluffy tummy is full! (+🪙 10 reward) 🍽️✨`);
     
     // Progress
     progressChallenge("feed", 1);
@@ -489,7 +521,7 @@ export function MyTalkingLamb() {
   const startStoryBook = () => {
     setIsReadingStory(true);
     setStoryPage(0);
-    speak("Baa... ready for a cozy bedtime story... 📖");
+    speak("Baa... please read me a cozy bedtime story, shepherd... 📖");
   };
 
   const handleStoryNext = () => {
@@ -500,7 +532,7 @@ export function MyTalkingLamb() {
       setIsReadingStory(false);
       setIsSleeping(true);
       setLastAction("sleeping");
-      speak("Goodnight, sweet sister... Zzz... 🛌🌙");
+      speak("Goodnight, sweet shepherd... Zzz... I love you... 🛌🌙");
     }
   };
 
@@ -815,8 +847,26 @@ export function MyTalkingLamb() {
         )}
 
         {/* VIRTUAL LAMB CANVAS DOCK */}
-        <div className="w-full flex justify-center items-center h-48 z-10 relative">
+        <div className="absolute inset-x-0 bottom-20 flex justify-center items-center h-36 z-10">
           
+          {/* Dialogue speech bubble */}
+          <AnimatePresence>
+            {dialogue && (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.8, opacity: 0, y: 10 }}
+                className="absolute -top-16 bg-white/95 border-2 border-[#D4A5A5] text-[#4B3A3A] px-4 py-2 rounded-2xl shadow-md text-center max-w-[200px] text-[10px] font-bold z-30"
+              >
+                <div className="relative text-center">
+                  {dialogue}
+                  {/* Speech bubble tail */}
+                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r-2 border-b-2 border-[#D4A5A5] rotate-45" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Particles */}
           <AnimatePresence>
             {particles.map((p) => (
@@ -1222,12 +1272,12 @@ export function MyTalkingLamb() {
                         disabled={!isOwned}
                         onClick={() => {
                           if (isSleeping) {
-                            speak("Baa... let me change when I wake up... Zzz...");
+                            speak("Baa... let me change my outfit when I wake up... Zzz...");
                             return;
                           }
                           setAccessory(acc);
                           spawnParticles("✨", 2);
-                          speak(acc === "none" ? "Baa! Clean and natural!" : `Baa! Look at my ${acc}! 🥰`);
+                          speak(acc === "none" ? "Baa! Fluffy, clean, and natural!" : `Baa! Look at my pretty ${acc}! 🥰`);
                         }}
                         className={`py-1.5 text-[8.5px] font-bold border rounded-lg capitalize disabled:opacity-40 transition-all cursor-pointer ${
                           accessory === acc
