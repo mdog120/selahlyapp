@@ -358,36 +358,67 @@ export function MyTalkingLamb() {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtxClass) return;
       const ctx = new AudioCtxClass();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
       
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(260, ctx.currentTime);
+      // Main oscillators for rich harmonics
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const filterNode = ctx.createBiquadFilter();
       
+      // Detuned sawtooth and triangle oscillators give a throaty sound
+      osc1.type = "sawtooth";
+      osc2.type = "triangle";
+      
+      const now = ctx.currentTime;
+      
+      // Pitch envelope: slightly sliding down from 320Hz to 240Hz
+      osc1.frequency.setValueAtTime(320, now);
+      osc1.frequency.exponentialRampToValueAtTime(240, now + 0.65);
+      
+      osc2.frequency.setValueAtTime(322, now);
+      osc2.frequency.exponentialRampToValueAtTime(242, now + 0.65);
+      
+      // Vibrato (pitch flutter) to sound like a shaky animal bleat
       const vibrato = ctx.createOscillator();
       const vibratoGain = ctx.createGain();
-      vibrato.frequency.value = 10;
-      vibratoGain.gain.value = 14;
+      vibrato.frequency.value = 11; // 11 Hz flutter
+      vibratoGain.gain.value = 16;  // pitch change range
       
       vibrato.connect(vibratoGain);
-      vibratoGain.connect(osc.frequency);
+      vibratoGain.connect(osc1.frequency);
+      vibratoGain.connect(osc2.frequency);
       
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      // Formant filter (bandpass filter around 1000Hz creates a nasal "baa" voice quality)
+      filterNode.type = "bandpass";
+      filterNode.frequency.setValueAtTime(1050, now);
+      filterNode.frequency.linearRampToValueAtTime(900, now + 0.65); // vocal cavity shifts as mouth closes
+      filterNode.Q.value = 2.2;
       
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+      // Gain envelope with tremolo flutter
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.18, now + 0.05); // quick attack
       
-      gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.05);
-      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.2);
-      gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + 0.35);
-      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.5);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.7);
+      // Shaky tremolo ramps to simulate lamb throat vibration
+      gainNode.gain.linearRampToValueAtTime(0.10, now + 0.15);
+      gainNode.gain.linearRampToValueAtTime(0.16, now + 0.28);
+      gainNode.gain.linearRampToValueAtTime(0.08, now + 0.42);
+      gainNode.gain.linearRampToValueAtTime(0.12, now + 0.55);
+      gainNode.gain.linearRampToValueAtTime(0, now + 0.65); // fade out
       
-      osc.start();
-      vibrato.start();
-      osc.stop(ctx.currentTime + 0.7);
-      vibrato.stop(ctx.currentTime + 0.7);
+      // Connections
+      osc1.connect(filterNode);
+      osc2.connect(filterNode);
+      filterNode.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      // Start/Stop
+      osc1.start(now);
+      osc2.start(now);
+      vibrato.start(now);
+      
+      osc1.stop(now + 0.65);
+      osc2.stop(now + 0.65);
+      vibrato.stop(now + 0.65);
     } catch (e) {
       console.warn("Baa sound synth failed", e);
     }
@@ -1179,7 +1210,7 @@ export function MyTalkingLamb() {
                 initial={{ scale: 0.8, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                className="absolute -top-16 bg-white/95 border-2 border-[#D4A5A5] text-[#4B3A3A] px-4 py-2 rounded-2xl shadow-md text-center max-w-[200px] text-[10px] font-bold z-30 pointer-events-auto"
+                className="absolute -top-16 bg-white/95 border-2 border-[#D4A5A5] text-[#4B3A3A] px-4 py-2 rounded-2xl shadow-md text-center max-w-[200px] text-[10px] font-bold z-48 pointer-events-auto"
               >
                 <div className="relative text-center">
                   {dialogue}
