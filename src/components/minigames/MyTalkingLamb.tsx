@@ -751,7 +751,7 @@ export function MyTalkingLamb() {
 
         {/* INTERACTIVE KITCHEN RECIPE BOOK & COOKING TRIGGERS */}
         {activeRoom === "kitchen" && !isCooking && (
-          <div className="absolute right-5 top-1/4 z-10 flex flex-col gap-2">
+          <div className="absolute right-5 top-1/4 z-30 flex flex-col gap-2">
             <button
               onClick={() => {
                 setIsCooking(true);
@@ -809,7 +809,7 @@ export function MyTalkingLamb() {
 
         {/* TOY BALL FOR BACKYARD FETCH */}
         {activeRoom === "backyard" && (
-          <div className="absolute left-10 bottom-16 z-10 flex flex-col items-center">
+          <div className="absolute left-10 bottom-16 z-30 flex flex-col items-center">
             <motion.button
               type="button"
               animate={isChasingBall ? { x: [0, 180, 0], y: [0, -60, 0], rotate: [0, 360, 0] } : {}}
@@ -827,7 +827,7 @@ export function MyTalkingLamb() {
 
         {/* BEDROOM STORYBOOK TRIGGER & WAKE SWITCH */}
         {activeRoom === "bedroom" && (
-          <div className="absolute left-6 top-1/4 z-10 flex flex-col gap-2">
+          <div className="absolute left-6 top-1/4 z-30 flex flex-col gap-2">
             {!isSleeping ? (
               <button
                 onClick={startStoryBook}
@@ -847,7 +847,7 @@ export function MyTalkingLamb() {
         )}
 
         {/* VIRTUAL LAMB CANVAS DOCK */}
-        <div className="absolute inset-x-0 bottom-20 flex justify-center items-center h-36 z-10">
+        <div className="absolute inset-x-0 bottom-20 flex justify-center items-center h-36 z-10 pointer-events-none">
           
           {/* Dialogue speech bubble */}
           <AnimatePresence>
@@ -856,7 +856,7 @@ export function MyTalkingLamb() {
                 initial={{ scale: 0.8, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                className="absolute -top-16 bg-white/95 border-2 border-[#D4A5A5] text-[#4B3A3A] px-4 py-2 rounded-2xl shadow-md text-center max-w-[200px] text-[10px] font-bold z-30"
+                className="absolute -top-16 bg-white/95 border-2 border-[#D4A5A5] text-[#4B3A3A] px-4 py-2 rounded-2xl shadow-md text-center max-w-[200px] text-[10px] font-bold z-30 pointer-events-auto"
               >
                 <div className="relative text-center">
                   {dialogue}
@@ -897,7 +897,7 @@ export function MyTalkingLamb() {
           <button
             type="button"
             onClick={handlePet}
-            className={`w-36 h-36 relative transition-all duration-300 focus:outline-none ${
+            className={`w-36 h-36 relative transition-all duration-300 focus:outline-none pointer-events-auto ${
               lastAction === "petting" ? "scale-105" : ""
             } ${lastAction === "feeding" ? "origin-bottom animate-bounce" : ""} ${
               isSleeping && activeRoom === "bedroom" ? "translate-x-12 translate-y-6 rotate-[75deg] scale-95 opacity-80" : ""
