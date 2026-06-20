@@ -1200,6 +1200,18 @@ export function MyTalkingLamb() {
           </div>
         )}
 
+        {/* BATHROOM WASH CONTROLS */}
+        {activeRoom === "bathroom" && (
+          <div className="absolute left-6 top-1/4 z-30 flex flex-col gap-2">
+            <button
+              onClick={handleWash}
+              className="p-2.5 rounded-2xl bg-cyan-400 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
+            >
+              🛁 Give Bubble Bath
+            </button>
+          </div>
+        )}
+
         {/* VIRTUAL LAMB CANVAS DOCK */}
         <div className="absolute inset-x-0 bottom-20 flex justify-center items-center h-36 z-10 pointer-events-none">
           
