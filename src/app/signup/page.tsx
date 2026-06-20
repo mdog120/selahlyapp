@@ -81,7 +81,7 @@ export default function Signup() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-warm-paper text-warm-grey relative overflow-hidden">
+        <div className="min-h-screen flex flex-col bg-warm-paper text-warm-grey relative overflow-y-auto">
             {/* Background elements */}
             <div className="absolute top-0 left-0 -ml-20 -mt-20 w-96 h-96 bg-sage-green rounded-full mix-blend-multiply filter blur-3xl opacity-50" />
             <div className="absolute bottom-0 right-0 -mr-20 -mb-20 w-80 h-80 bg-soft-blush rounded-full mix-blend-multiply filter blur-3xl opacity-50" />

@@ -65,7 +65,7 @@ export default function Login() {
     };
 
     return (
-        <div className="fixed inset-0 w-screen h-screen flex flex-col bg-warm-paper text-warm-grey overflow-hidden select-none touch-none">
+        <div className="min-h-screen w-full flex flex-col bg-warm-paper text-warm-grey overflow-y-auto relative">
             {/* Background elements */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-soft-blush rounded-full mix-blend-multiply filter blur-3xl opacity-50" />
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-sage-green rounded-full mix-blend-multiply filter blur-3xl opacity-50" />
