@@ -10,9 +10,10 @@ import { Sudoku } from "@/components/minigames/Sudoku";
 import { GraceAlchemy } from "@/components/minigames/GraceAlchemy";
 import { MemoryMatch } from "@/components/minigames/MemoryMatch";
 import { GardenGrid } from "@/components/garden/GardenGrid";
+import { MyTalkingLamb } from "@/components/minigames/MyTalkingLamb";
 
 export default function MiniGamesPage() {
-    const [activeTab, setActiveTab] = useState<"lobby" | "blockblast" | "crosswords" | "wordsearch" | "sudoku" | "gracealchemy" | "memorymatch" | "garden">("lobby");
+    const [activeTab, setActiveTab] = useState<"lobby" | "blockblast" | "crosswords" | "wordsearch" | "sudoku" | "gracealchemy" | "memorymatch" | "garden" | "mytalkinglamb">("lobby");
 
     return (
         <div className="min-h-screen bg-warm-paper pb-20 animate-fade-in">
@@ -193,6 +194,27 @@ export default function MiniGamesPage() {
                                 </div>
                             </div>
 
+                            {/* My Talking Lamb */}
+                            <div
+                                onClick={() => setActiveTab("mytalkinglamb")}
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-pink-200/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                            >
+                                <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-pink-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
+                                <div>
+                                    <div className="w-10 h-10 rounded-2xl bg-pink-50 text-rose-400 flex items-center justify-center text-lg mb-3 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                                        🐑
+                                    </div>
+                                    <h5 className="font-serif text-sm font-bold text-warm-cocoa mb-1">My Talking Lamb</h5>
+                                    <p className="text-[10px] text-warm-grey/50 leading-normal mb-3">
+                                        Adopt a cute digital lamb! Feed it treats, dress it up in sweet accessories, and chat with it to get biblical encouragement.
+                                    </p>
+                                </div>
+                                <div className="flex items-center justify-between border-t border-stone-200/20 pt-2.5 mt-2">
+                                    <span className="text-[9px] uppercase tracking-wider font-bold text-pink-600/70 bg-pink-50 px-2 py-0.5 rounded-md">Virtual Pet</span>
+                                    <span className="text-[10px] font-bold text-warm-cocoa/50 group-hover:text-warm-cocoa transition-colors flex items-center gap-0.5">Play Game →</span>
+                                </div>
+                            </div>
+
                             {/* Multiplayer Games Link Card */}
                             <Link
                                 href="/minigames/multiplayer"
@@ -234,6 +256,7 @@ export default function MiniGamesPage() {
                         {activeTab === "gracealchemy" && <GraceAlchemy onBack={() => setActiveTab("lobby")} />}
                         {activeTab === "memorymatch" && <MemoryMatch />}
                         {activeTab === "garden" && <GardenGrid />}
+                        {activeTab === "mytalkinglamb" && <MyTalkingLamb />}
                     </div>
                 )}
             </div>
