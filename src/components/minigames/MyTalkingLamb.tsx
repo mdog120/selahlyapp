@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Heart, Sparkles, Moon, Sun, Utensils, MessageCircle, Send, ShieldAlert, Award, Map, ShoppingBag, CheckSquare, X, Lock } from "lucide-react";
+import { Heart, Sparkles, Moon, Sun, Utensils, MessageCircle, Send, ShieldAlert, Award, Map, ShoppingBag, CheckSquare, X, Lock, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Particle {
@@ -21,6 +21,7 @@ interface Challenge {
 }
 
 type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "backyard";
+type RecipeType = "clover" | "apple_mash" | "manna_cookie";
 
 export function MyTalkingLamb() {
   // ─── Currency & Unlocking States ────────────────────────────
@@ -28,7 +29,7 @@ export function MyTalkingLamb() {
   const [unlockedRooms, setUnlockedRooms] = useState<RoomType[]>(["living", "kitchen", "bedroom"]);
   const [purchasedAccessories, setPurchasedAccessories] = useState<string[]>(["none", "bow"]);
 
-  // ─── Room Navigation ────────────────────────────────────────
+  // ─── Room Navigation & Modals ──────────────────────────────
   const [activeRoom, setActiveRoom] = useState<RoomType>("living");
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -58,6 +59,17 @@ export function MyTalkingLamb() {
   const [mudFactor, setMudFactor] = useState(0); // 0 (clean) to 4 (very dirty)
   const [isChasingBall, setIsChasingBall] = useState(false);
 
+  // ─── Cooking Table States ───────────────────────────────────
+  const [isCooking, setIsCooking] = useState(false);
+  const [cookingRecipe, setCookingRecipe] = useState<RecipeType | null>(null);
+  const [cookingStep, setCookingStep] = useState<"choose" | "slice" | "mix" | "done">("choose");
+  const [sliceCount, setSliceCount] = useState(0);
+  const [mixCount, setMixCount] = useState(0);
+
+  // ─── Bedtime Story States ───────────────────────────────────
+  const [isReadingStory, setIsReadingStory] = useState(false);
+  const [storyPage, setStoryPage] = useState(0);
+
   // ─── Chat & Dialogue States ─────────────────────────────────
   const [dialogue, setDialogue] = useState("Baa! Welcome to my cozy home, sister! 🐑");
   const [chatInput, setChatInput] = useState("");
@@ -77,7 +89,7 @@ export function MyTalkingLamb() {
 
   // ─── Local Storage persistence ─────────────────────────────
   useEffect(() => {
-    const saved = localStorage.getItem("selahly_talking_lamb_house");
+    const saved = localStorage.getItem("selahly_talking_lamb_house_v2");
     if (saved) {
       try {
         const p = JSON.parse(saved);
@@ -105,7 +117,7 @@ export function MyTalkingLamb() {
   // Save Stats on Change
   useEffect(() => {
     localStorage.setItem(
-      "selahly_talking_lamb_house",
+      "selahly_talking_lamb_house_v2",
       JSON.stringify({
         coins,
         unlockedRooms,
@@ -151,7 +163,7 @@ export function MyTalkingLamb() {
         setIsBlinking(true);
         setTimeout(() => setIsBlinking(false), 200);
       }
-    }, 4500 + Math.random() * 2500);
+    }, 4500 + Math.random() * 2505);
 
     return () => clearInterval(blinkInterval);
   }, [isSleeping]);
@@ -205,14 +217,14 @@ export function MyTalkingLamb() {
     setChallenges((prev) =>
       prev.map((c) => {
         if (c.id === id) {
-          return { ...c, claimed: true, current: 0 }; // reset but mark claimed
+          return { ...c, claimed: true };
         }
         return c;
       })
     );
     speak(`Baa! Challenge completed! You earned 🪙 ${reward} coins! 🎉`);
     
-    // Regenerate task after 3 seconds
+    // Regenerate task after 4 seconds
     setTimeout(() => {
       setChallenges((prev) =>
         prev.map((c) => {
@@ -222,7 +234,7 @@ export function MyTalkingLamb() {
           return c;
         })
       );
-    }, 3000);
+    }, 4000);
   };
 
   // ─── Actions & Room Interactions ────────────────────────────
@@ -236,60 +248,6 @@ export function MyTalkingLamb() {
     spawnParticles("❤️", 6);
     speak("Baa! That tickles! You are the best shepherd! 🥰");
     setTimeout(() => setLastAction("none"), 1000);
-  };
-
-  const handleFeed = (food: "clover" | "apple" | "manna" | "cookie") => {
-    if (activeRoom !== "kitchen") {
-      speak("Baa! We should go to the Kitchen to eat! 🍳");
-      return;
-    }
-    if (isSleeping) {
-      speak("Baa... feed me when I wake up... 💤");
-      return;
-    }
-
-    // Check stocks
-    if (food === "apple" && applesStock <= 0) {
-      speak("Baa! No apples left in the fridge! Buy some at the Shop! 🍎");
-      return;
-    }
-    if (food === "manna" && mannaStock <= 0) {
-      speak("Baa! No Scripture bread left! Buy some at the Shop! 🍞");
-      return;
-    }
-    if (food === "cookie" && cookieStock <= 0) {
-      speak("Baa! No cookies left! Buy some at the Shop! 🍪");
-      return;
-    }
-
-    setLastAction("feeding");
-    let fill = 15;
-    let emoji = "🍀";
-    let text = "Yummy sweet clover! Baa! 🍀";
-
-    if (food === "apple") {
-      setApplesStock((s) => s - 1);
-      fill = 25;
-      emoji = "🍎";
-      text = "Crunch crunch! Sweet apples are my favorite! 🍎";
-    } else if (food === "manna") {
-      setMannaStock((s) => s - 1);
-      fill = 40;
-      emoji = "🍞";
-      text = "Scripture Bread! 'Give us this day our daily bread...' 📖🍞";
-    } else if (food === "cookie") {
-      setCookieStock((s) => s - 1);
-      fill = 20;
-      emoji = "🍪";
-      text = "Baa! Chocolate chip cookie! So sweet! 🍪";
-    }
-
-    setHunger((prev) => Math.min(prev + fill, 100));
-    setHappiness((prev) => Math.min(prev + 8, 100));
-    spawnParticles(emoji, 6);
-    speak(text);
-    progressChallenge("feed", 1);
-    setTimeout(() => setLastAction("none"), 1200);
   };
 
   const handleWash = () => {
@@ -340,20 +298,10 @@ export function MyTalkingLamb() {
     }, 2000);
   };
 
-  const handleToggleSleep = () => {
-    if (activeRoom !== "bedroom") {
-      speak("Baa! We should go to the Bedroom first! 🛌");
-      return;
-    }
-    if (isSleeping) {
-      setIsSleeping(false);
-      setLastAction("none");
-      speak("Good morning! Baa! Ready for a sweet day! ☀️");
-    } else {
-      setIsSleeping(true);
-      setLastAction("sleeping");
-      speak("Goodnight, sweet sister... Zzz... 🌙");
-    }
+  const handleWakeUp = () => {
+    setIsSleeping(false);
+    setLastAction("none");
+    speak("Good morning! Baa! I slept so well! ☀️");
   };
 
   // ─── Shop Actions ───────────────────────────────────────────
@@ -389,7 +337,7 @@ export function MyTalkingLamb() {
       if (room === "bedroom" && isSleeping) {
         speak("Zzz... (Lamb is resting comfortably) 🛌🌙");
       } else {
-        speak(`Baa! Travelled to the ${room}! ${room === "backyard" ? "Let's play outside! 🌿" : ""}`);
+        speak(`Baa! Travelled to the ${room}! ${room === "backyard" ? "Let's play outside! ⚽" : ""}`);
       }
     }
   };
@@ -451,6 +399,112 @@ export function MyTalkingLamb() {
     speak(reply);
   };
 
+  // ─── Recipe Cooking Board Actions ────────────────────────────
+  const startCooking = (recipe: RecipeType) => {
+    // Check ingredient stock
+    if (recipe === "apple_mash" && applesStock <= 0) {
+      speak("Baa! Need 1 Apple to cook this. Buy one at the Shop! 🍎");
+      return;
+    }
+    if (recipe === "manna_cookie" && (mannaStock <= 0 || cookieStock <= 0)) {
+      speak("Baa! Need 1 Manna Bread & 1 Cookie to cook this. Buy at Shop! 🍪");
+      return;
+    }
+
+    // Deduct stock
+    if (recipe === "apple_mash") setApplesStock((s) => s - 1);
+    else if (recipe === "manna_cookie") {
+      setMannaStock((s) => s - 1);
+      setCookieStock((s) => s - 1);
+    }
+
+    setCookingRecipe(recipe);
+    setCookingStep("slice");
+    setSliceCount(0);
+    setMixCount(0);
+    speak("Opening the recipe book! Let's slice the ingredients on the board! 🔪");
+  };
+
+  const handleSliceClick = () => {
+    if (sliceCount < 3) {
+      const next = sliceCount + 1;
+      setSliceCount(next);
+      spawnParticles("🔪", 2);
+      if (next === 3) {
+        setCookingStep("mix");
+        speak("Nicely sliced! Let's put them in the bowl and stir! 🥣");
+      }
+    }
+  };
+
+  const handleMixClick = () => {
+    const next = mixCount + 1;
+    setMixCount(next);
+    spawnParticles("🫧", 3);
+    if (next >= 3) {
+      setCookingStep("done");
+      speak("Everything is mixed perfectly! Click serve to feed me! 🍽️");
+    }
+  };
+
+  const serveCookedRecipe = () => {
+    if (!cookingRecipe) return;
+
+    setLastAction("feeding");
+    let fill = 25;
+    let happy = 10;
+    let ene = 0;
+    let dishName = "Clover Salad";
+
+    if (cookingRecipe === "apple_mash") {
+      fill = 45;
+      happy = 25;
+      dishName = "Apple Clover Mash";
+    } else if (cookingRecipe === "manna_cookie") {
+      fill = 65;
+      happy = 40;
+      ene = 20;
+      dishName = "Manna Cookie Treat";
+    }
+
+    setHunger((prev) => Math.min(prev + fill, 100));
+    setHappiness((prev) => Math.min(prev + happy, 100));
+    setEnergy((prev) => Math.min(prev + ene, 100));
+    setCoins((c) => c + 10); // Reward for cooking
+
+    spawnParticles("😋", 6);
+    speak(`Baa! That was delicious! You fed me ${dishName}! (+🪙 10 reward) 🍽️✨`);
+    
+    // Progress
+    progressChallenge("feed", 1);
+
+    // Reset cooking
+    setIsCooking(false);
+    setCookingRecipe(null);
+    setCookingStep("choose");
+    setTimeout(() => setLastAction("none"), 1200);
+  };
+
+  // ─── Bedtime Story Actions ──────────────────────────────────
+  const startStoryBook = () => {
+    setIsReadingStory(true);
+    setStoryPage(0);
+    speak("Baa... ready for a cozy bedtime story... 📖");
+  };
+
+  const handleStoryNext = () => {
+    if (storyPage < 3) {
+      setStoryPage((p) => p + 1);
+    } else {
+      // Final page completed: Put to sleep!
+      setIsReadingStory(false);
+      setIsSleeping(true);
+      setLastAction("sleeping");
+      speak("Goodnight, sweet sister... Zzz... 🛌🌙");
+    }
+  };
+
+  // ─── HUD Checks ─────────────────────────────────────────────
   const hasUnclaimedChallenges = challenges.some(c => c.current >= c.target && !c.claimed);
 
   const getBarColor = (val: number) => {
@@ -459,118 +513,182 @@ export function MyTalkingLamb() {
     return "bg-emerald-400";
   };
 
+  // Expressions check
+  const getExpressionProps = () => {
+    if (isSleeping) {
+      return { type: "sleep", label: "Sleeping" };
+    }
+    if (energy < 30) {
+      return { type: "sleepy", label: "Sleepy" };
+    }
+    if (hunger < 30 || happiness < 30) {
+      return { type: "sad", label: "Frowning" };
+    }
+    return { type: "happy", label: "Happy" };
+  };
+
+  const expression = getExpressionProps();
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full select-none pb-8 animate-fade-in text-warm-cocoa font-sans relative">
       
       {/* ─── SCREEN CANVAS VIEWPORT ────────────────────────────── */}
       <div className="relative w-full h-[400px] rounded-[36px] overflow-hidden border border-stone-200 shadow-lg flex flex-col justify-between p-5 bg-stone-100">
         
-        {/* ROOM BACKGROUND SVGS */}
+        {/* ROOM BACKGROUND SVGS (IMPROVED GRAPHICS) */}
         <div className="absolute inset-0 pointer-events-none z-0">
           
           {/* A. LIVING ROOM */}
           {activeRoom === "living" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill="#FFF5EB" />
-              {/* Wallpaper pattern */}
-              <line x1="0" y1="220" x2="400" y2="220" stroke="#E6D5C3" strokeWidth="6" />
-              <rect y="220" width="400" height="80" fill="#EADBC8" />
-              {/* Window */}
-              <rect x="150" y="30" width="100" height="100" rx="8" fill="#E0F2FE" stroke="#C2A58F" strokeWidth="5" />
-              <line x1="200" y1="30" x2="200" y2="130" stroke="#C2A58F" strokeWidth="3" />
-              <line x1="150" y1="80" x2="250" y2="80" stroke="#C2A58F" strokeWidth="3" />
-              <circle cx="200" cy="50" r="12" fill="#FDE047" opacity="0.6" />
-              {/* Fireplace / Heater */}
-              <rect x="40" y="140" width="70" height="80" rx="4" fill="#C2410C" />
-              <rect x="50" y="170" width="50" height="50" rx="2" fill="#3F2B1F" />
-              <circle cx="75" cy="195" r="10" fill="#F97316" className="animate-pulse" />
-              {/* Fluffy Rug */}
-              <ellipse cx="200" cy="250" rx="85" ry="30" fill="#FFFFFF" stroke="#F0E2DF" strokeWidth="2" opacity="0.8" />
+              <defs>
+                <pattern id="stripes" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <rect width="10" height="20" fill="#FFFBF7" />
+                  <rect x="10" width="10" height="20" fill="#FFF5EB" />
+                </pattern>
+              </defs>
+              <rect width="400" height="300" fill="url(#stripes)" />
+              {/* Floor Wood/Baseboard */}
+              <line x1="0" y1="210" x2="400" y2="210" stroke="#C2A58F" strokeWidth="6" />
+              <rect y="210" width="400" height="90" fill="#D4B299" />
+              {/* Wooden Plank Lines */}
+              <line x1="0" y1="240" x2="400" y2="240" stroke="#B0927C" strokeWidth="1" />
+              <line x1="0" y1="270" x2="400" y2="270" stroke="#B0927C" strokeWidth="1" />
+              
+              {/* Window & Curtains */}
+              <rect x="140" y="20" width="120" height="100" rx="8" fill="#BAE6FD" stroke="#94A3B8" strokeWidth="4" />
+              <line x1="200" y1="20" x2="200" y2="120" stroke="#94A3B8" strokeWidth="2" />
+              <line x1="140" y1="70" x2="260" y2="70" stroke="#94A3B8" strokeWidth="2" />
+              {/* Curtains */}
+              <path d="M 140 20 Q 155 70 140 120 L 125 120 L 125 20 Z" fill="#FDE2E4" />
+              <path d="M 260 20 Q 245 70 260 120 L 275 120 L 275 20 Z" fill="#FDE2E4" />
+              
+              {/* Detailed Fireplace */}
+              <rect x="40" y="125" width="80" height="90" rx="6" fill="#A83F17" stroke="#782E10" strokeWidth="2" />
+              <rect x="52" y="155" width="56" height="60" rx="4" fill="#1E1B18" />
+              {/* Fire coals */}
+              <rect x="62" y="195" width="36" height="20" rx="2" fill="#450A0A" />
+              <circle cx="74" cy="192" r="8" fill="#EA580C" className="animate-pulse" />
+              <circle cx="86" cy="194" r="7" fill="#F97316" className="animate-pulse" style={{ animationDelay: "0.4s" }} />
+              <polygon points="70,195 80,175 90,195" fill="#FACC15" className="animate-pulse" />
+              
+              {/* Shelf & Plants */}
+              <rect x="290" y="90" width="80" height="6" fill="#8C6239" />
+              <path d="M 310 90 L 315 75 L 345 75 L 350 90 Z" fill="#D97706" />
+              <path d="M 315 75 Q 330 60 330 75 Q 340 60 345 75 Z" fill="#10B981" />
+
+              {/* Cozy Rug */}
+              <ellipse cx="200" cy="245" rx="90" ry="32" fill="#FFF" stroke="#E5E7EB" strokeWidth="2" opacity="0.9" />
+              <ellipse cx="200" cy="245" rx="80" ry="26" fill="#FEE2E2" opacity="0.4" />
             </svg>
           )}
 
           {/* B. KITCHEN */}
           {activeRoom === "kitchen" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill="#F0FDF4" />
-              <line x1="0" y1="210" x2="400" y2="210" stroke="#E2E8F0" strokeWidth="5" />
-              <rect y="210" width="400" height="90" fill="#E2E8F0" />
-              {/* Counter / Cabinets */}
-              <rect x="30" y="160" width="160" height="60" fill="#CBD5E1" stroke="#94A3B8" strokeWidth="2" />
-              <line x1="110" y1="160" x2="110" y2="220" stroke="#94A3B8" strokeWidth="2" />
-              <circle cx="100" cy="190" r="3" fill="#64748B" />
-              <circle cx="120" cy="190" r="3" fill="#64748B" />
-              {/* Food Bowl */}
-              <path d="M 90 160 Q 110 178 130 160 Z" fill="#FDA4AF" stroke="#E11D48" strokeWidth="2" />
+              <rect width="400" height="300" fill="#E8F5E9" />
+              {/* Tile Grid Flooring */}
+              <rect y="200" width="400" height="100" fill="#E2E8F0" />
+              <line x1="0" y1="200" x2="400" y2="200" stroke="#CBD5E1" strokeWidth="4" />
+              {/* Diagonal tiles lines */}
+              {Array.from({ length: 9 }).map((_, i) => (
+                <line key={i} x1={i * 50 - 50} y1="200" x2={i * 50} y2="300" stroke="#94A3B8" strokeWidth="1" opacity="0.4" />
+              ))}
+              
+              {/* Kitchen Counter & Shelves */}
+              <rect x="20" y="140" width="180" height="65" fill="#94A3B8" stroke="#64748B" strokeWidth="2" />
+              <rect x="20" y="130" width="185" height="10" rx="3" fill="#334155" />
+              {/* Drawers */}
+              <line x1="110" y1="140" x2="110" y2="205" stroke="#64748B" strokeWidth="2" />
+              <rect x="40" y="155" width="45" height="8" rx="2" fill="#475569" />
+              <rect x="135" y="155" width="45" height="8" rx="2" fill="#475569" />
+              
+              {/* Bowl */}
+              <path d="M 90 130 Q 110 152 130 130 Z" fill="#FDA4AF" stroke="#E11D48" strokeWidth="2.5" />
             </svg>
           )}
 
           {/* C. BEDROOM */}
           {activeRoom === "bedroom" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill={isSleeping ? "#0F172A" : "#EEF2F6"} />
-              <rect y="220" width="400" height="80" fill={isSleeping ? "#1E293B" : "#DFE5EB"} />
-              {/* Nightstand & Lamp */}
-              <rect x="40" y="160" width="50" height="60" fill={isSleeping ? "#334155" : "#B2C3D2"} />
-              <rect x="55" y="140" width="20" height="20" rx="2" fill={isSleeping ? "#1E293B" : "#809bb0"} />
-              <path d="M 50 140 L 80 140 L 75 125 L 55 125 Z" fill={isSleeping ? "#FEF08A" : "#F87171"} opacity={isSleeping ? 0.9 : 1} />
-              {/* Sleeping light beam */}
-              {isSleeping && <polygon points="40,140 10,260 110,260 80,140" fill="#FEF08A" opacity="0.12" />}
-              {/* Cozy Bed */}
-              <rect x="200" y="170" width="170" height="60" rx="10" fill={isSleeping ? "#475569" : "#FCA5A5"} />
-              <rect x="200" y="170" width="40" height="35" rx="5" fill="#FFFFFF" />
+              <rect width="400" height="300" fill={isSleeping ? "#0F172A" : "#F5F3F0"} />
+              <rect y="210" width="400" height="90" fill={isSleeping ? "#1E293B" : "#E3DEC6"} />
+              {/* Floorboard planks */}
+              <line x1="0" y1="240" x2="400" y2="240" stroke={isSleeping ? "#0f172a" : "#C5BEA5"} strokeWidth="1" />
+              <line x1="0" y1="270" x2="400" y2="270" stroke={isSleeping ? "#0f172a" : "#C5BEA5"} strokeWidth="1" />
+              
+              {/* Bedside table & Lamp */}
+              <rect x="40" y="150" width="55" height="60" rx="4" fill={isSleeping ? "#334155" : "#A29988"} />
+              <rect x="52" y="180" width="31" height="8" rx="2" fill={isSleeping ? "#1E293B" : "#5C5446"} />
+              <line x1="68" y1="150" x2="68" y2="135" stroke={isSleeping ? "#475569" : "#D97706"} strokeWidth="3" />
+              <path d="M 54 135 L 82 135 L 76 118 L 60 118 Z" fill={isSleeping ? "#FEF08A" : "#F87171"} opacity={isSleeping ? 0.95 : 1} />
+              
+              {/* Cozy Bed frame */}
+              <rect x="200" y="160" width="180" height="70" rx="12" fill={isSleeping ? "#334155" : "#F472B6"} stroke={isSleeping ? "#1E293B" : "#DB2777"} strokeWidth="2" />
+              <rect x="200" y="160" width="45" height="40" rx="6" fill="#FFFFFF" />
             </svg>
           )}
 
           {/* D. BATHROOM */}
           {activeRoom === "bathroom" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill="#ECFEFF" />
-              {/* Bathroom Tiles */}
-              <rect y="220" width="400" height="80" fill="#CFFAFE" />
-              <line x1="0" y1="220" x2="400" y2="220" stroke="#0891B2" strokeWidth="4" />
+              <rect width="400" height="300" fill="#E0F7FA" />
+              {/* Wall tile lines */}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <line key={i} x1={i * 50} y1="0" x2={i * 50} y2="210" stroke="#B2EBF2" strokeWidth="1" />
+              ))}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <line key={i} y1={i * 45} x1="0" y2={i * 45} x2="400" stroke="#B2EBF2" strokeWidth="1" />
+              ))}
+              
+              {/* Floor */}
+              <rect y="210" width="400" height="90" fill="#B2EBF2" />
+              <line x1="0" y1="210" x2="400" y2="210" stroke="#00ACC1" strokeWidth="4" />
+              
               {/* Bathtub */}
-              <rect x="110" y="170" width="180" height="65" rx="20" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="3" />
-              <rect x="95" y="165" width="210" height="10" rx="5" fill="#E2E8F0" />
-              <circle cx="130" cy="245" r="5" fill="#94A3B8" />
-              <circle cx="270" cy="245" r="5" fill="#94A3B8" />
-              {/* Foam / Soap bubbles */}
-              <circle cx="140" cy="170" r="14" fill="#ECFEFF" opacity="0.8" />
-              <circle cx="160" cy="165" r="16" fill="#ECFEFF" opacity="0.8" />
-              <circle cx="200" cy="160" r="20" fill="#ECFEFF" opacity="0.8" />
-              <circle cx="240" cy="165" r="16" fill="#ECFEFF" opacity="0.8" />
-              <circle cx="260" cy="170" r="14" fill="#ECFEFF" opacity="0.8" />
+              <rect x="110" y="165" width="180" height="70" rx="22" fill="#FFFFFF" stroke="#CFD8DC" strokeWidth="3" />
+              <rect x="95" y="160" width="210" height="10" rx="5" fill="#CFD8DC" />
+              {/* Tap */}
+              <path d="M 125 160 L 125 145 Q 125 140 130 140 L 135 140" fill="none" stroke="#90A4AE" strokeWidth="3" />
             </svg>
           )}
 
           {/* E. BACKYARD */}
           {activeRoom === "backyard" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill="#F0F9FF" />
-              {/* Sun */}
-              <circle cx="330" cy="60" r="25" fill="#FDE047" />
-              {/* Clouds */}
-              <path d="M 60 70 Q 75 55 90 70 Q 105 55 120 70 L 60 70 Z" fill="#FFFFFF" opacity="0.9" />
+              <rect width="400" height="300" fill="#E0F2FE" />
+              <circle cx="340" cy="50" r="22" fill="#FCD34D" />
               {/* Hills */}
-              <path d="M -20 230 Q 150 170 300 240 Q 360 210 430 250 L 430 300 L -20 300 Z" fill="#34D399" />
-              <path d="M -20 250 Q 80 200 240 260 Q 340 220 430 265 L 430 300 L -20 300 Z" fill="#10B981" />
+              <path d="M -30 220 Q 120 150 280 230 Q 350 190 440 240 L 440 300 L -30 300 Z" fill="#6EE7B7" />
+              <path d="M -30 240 Q 80 180 220 250 Q 320 200 440 255 L 440 300 L -30 300 Z" fill="#34D399" />
+              
+              {/* Fence posts */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <g key={i} transform={`translate(${i * 80}, 190)`}>
+                  <rect x="0" y="0" width="10" height="40" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="1" />
+                  <polygon points="0,0 5,-8 10,0" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="1" />
+                </g>
+              ))}
+              <rect x="0" y="205" width="400" height="6" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="1" />
             </svg>
           )}
         </div>
 
-        {/* ─── VIEWPORT OVERLAYS & HUD ──────────────────────────── */}
-        {/* TOP PANEL: MAP, SHOP, TASKS */}
+        {/* TOP PANEL HUD OVERLAYS */}
         <div className="w-full flex items-center justify-between z-10 relative">
-          
-          {/* Back button */}
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-white/90 bg-[#4B3A3A]/40 backdrop-blur-xs px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+            <span className="text-[10px] font-bold text-white/95 bg-[#4B3A3A]/45 backdrop-blur-xs px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm select-none">
               🪙 {coins}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Tasks / Challenges button */}
+            {/* Expression Indicator */}
+            <span className="text-[8.5px] uppercase font-bold px-2 py-0.5 rounded-full bg-white/80 border border-stone-200/50 shadow-xs select-none">
+              Selah: {expression.label}
+            </span>
+
+            {/* Challenges board */}
             <button
               onClick={() => setIsChallengesOpen(true)}
               className="relative p-2 rounded-full bg-white/90 border border-stone-200/50 shadow-sm active:scale-90 transition-all cursor-pointer text-warm-cocoa"
@@ -581,7 +699,7 @@ export function MyTalkingLamb() {
               )}
             </button>
 
-            {/* Shop Button */}
+            {/* Shop */}
             <button
               onClick={() => setIsShopOpen(true)}
               className="p-2 rounded-full bg-white/90 border border-stone-200/50 shadow-sm active:scale-90 transition-all cursor-pointer text-warm-cocoa"
@@ -589,7 +707,7 @@ export function MyTalkingLamb() {
               <ShoppingBag className="w-3.5 h-3.5" />
             </button>
 
-            {/* Map Button */}
+            {/* Map */}
             <button
               onClick={() => setIsMapOpen(true)}
               className="px-3 py-1 rounded-full bg-[#D4A5A5] hover:bg-[#c49292] text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-90 transition-all cursor-pointer"
@@ -599,23 +717,20 @@ export function MyTalkingLamb() {
           </div>
         </div>
 
-        {/* SPEECH DIALOGUE BUBBLE */}
-        <div className="w-full flex justify-center z-10 relative">
-          <div className={`max-w-[280px] p-2.5 rounded-2xl border text-center text-[10px] leading-relaxed shadow-sm font-medium relative animate-fade-in ${
-            isSleeping
-              ? "bg-slate-950/80 border-slate-900 text-yellow-100/90"
-              : "bg-white/95 border-stone-100 text-warm-cocoa"
-          }`}>
-            {dialogue}
-            <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[8px] border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent ${
-              isSleeping ? "border-t-slate-950/80" : "border-t-white/95"
-            }`} />
-          </div>
-        </div>
+        {/* INTERACTIVE KITCHEN RECIPE BOOK & COOKING TRIGGERS */}
+        {activeRoom === "kitchen" && !isCooking && (
+          <div className="absolute right-5 top-1/4 z-10 flex flex-col gap-2">
+            <button
+              onClick={() => {
+                setIsCooking(true);
+                setCookingStep("choose");
+              }}
+              className="p-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
+            >
+              <BookOpen className="w-4 h-4" />
+              Recipe Book
+            </button>
 
-        {/* INTERACTIVE IN-ROOM KITCHEN BOWL & FRIDGE DOORS */}
-        {activeRoom === "kitchen" && (
-          <div className="absolute right-8 top-1/4 z-10 flex flex-col items-end">
             <button
               onClick={() => setIsFridgeOpen((prev) => !prev)}
               className={`p-2 py-3 rounded-2xl border-2 font-bold text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer flex flex-col items-center gap-0.5 ${
@@ -635,55 +750,24 @@ export function MyTalkingLamb() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="mt-2 bg-white/95 backdrop-blur-sm border border-stone-200 p-3 rounded-3xl shadow-xl flex flex-col gap-2 w-48 text-left z-20"
+                  className="bg-white/95 backdrop-blur-sm border border-stone-200 p-3 rounded-3xl shadow-xl flex flex-col gap-2 w-48 text-left z-20"
                 >
-                  <span className="text-[8.5px] uppercase font-bold text-warm-cocoa/40 tracking-wider">Fridge Shelves</span>
-                  
-                  {/* Clover */}
-                  <div className="flex items-center justify-between border-b pb-1.5">
-                    <span className="text-[10px] font-bold">🍀 Clover</span>
-                    <button
-                      onClick={() => handleFeed("clover")}
-                      className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
-                    >
-                      Feed (∞)
-                    </button>
+                  <span className="text-[8.5px] uppercase font-bold text-warm-cocoa/40 tracking-wider">Fridge Shelf Stock</span>
+                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                    <span>🍀 Clover Salad</span>
+                    <span className="text-emerald-600 font-bold">Infinite</span>
                   </div>
-
-                  {/* Apples */}
-                  <div className="flex items-center justify-between border-b pb-1.5">
-                    <span className="text-[10px] font-bold">🍎 Apples ({applesStock})</span>
-                    <button
-                      onClick={() => handleFeed("apple")}
-                      disabled={applesStock <= 0}
-                      className="px-2 py-1 rounded-lg bg-red-50 text-red-800 text-[9px] font-bold disabled:opacity-40 active:scale-95 transition-all cursor-pointer"
-                    >
-                      Feed
-                    </button>
+                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                    <span>🍎 Apples</span>
+                    <span className="font-bold">{applesStock} left</span>
                   </div>
-
-                  {/* Cookies */}
-                  <div className="flex items-center justify-between border-b pb-1.5">
-                    <span className="text-[10px] font-bold">🍪 Cookies ({cookieStock})</span>
-                    <button
-                      onClick={() => handleFeed("cookie")}
-                      disabled={cookieStock <= 0}
-                      className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[9px] font-bold disabled:opacity-40 active:scale-95 transition-all cursor-pointer"
-                    >
-                      Feed
-                    </button>
+                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                    <span>🍪 Cookies</span>
+                    <span className="font-bold">{cookieStock} left</span>
                   </div>
-
-                  {/* Manna */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold">🍞 Manna ({mannaStock})</span>
-                    <button
-                      onClick={() => handleFeed("manna")}
-                      disabled={mannaStock <= 0}
-                      className="px-2 py-1 rounded-lg bg-blue-50 text-blue-800 text-[9px] font-bold disabled:opacity-40 active:scale-95 transition-all cursor-pointer"
-                    >
-                      Feed
-                    </button>
+                  <div className="flex justify-between items-center text-[9.5px]">
+                    <span>🍞 Manna Bread</span>
+                    <span className="font-bold">{mannaStock} left</span>
                   </div>
                 </motion.div>
               )}
@@ -705,6 +789,27 @@ export function MyTalkingLamb() {
             <span className="text-[8px] uppercase tracking-wider font-bold text-stone-700/60 mt-1 select-none pointer-events-none">
               Play Fetch
             </span>
+          </div>
+        )}
+
+        {/* BEDROOM STORYBOOK TRIGGER & WAKE SWITCH */}
+        {activeRoom === "bedroom" && (
+          <div className="absolute left-6 top-1/4 z-10 flex flex-col gap-2">
+            {!isSleeping ? (
+              <button
+                onClick={startStoryBook}
+                className="p-2.5 rounded-2xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
+              >
+                📖 Bedtime Story
+              </button>
+            ) : (
+              <button
+                onClick={handleWakeUp}
+                className="p-2.5 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
+              >
+                💡 Turn Light On
+              </button>
+            )}
           </div>
         )}
 
@@ -737,7 +842,7 @@ export function MyTalkingLamb() {
             </div>
           )}
 
-          {/* Lamb Drawing */}
+          {/* Lamb Drawing with Dynamic Expressions & Stink Lines */}
           <div
             className={`w-36 h-36 relative transition-all duration-300 ${
               lastAction === "petting" ? "scale-105" : ""
@@ -747,6 +852,15 @@ export function MyTalkingLamb() {
             style={{ animationDuration: "0.6s" }}
           >
             <svg viewBox="0 0 200 200" width="100%" height="100%">
+              {/* STINK LINES (cleanliness < 30) */}
+              {cleanliness < 30 && (
+                <g className="animate-pulse">
+                  <path d="M 75 60 Q 70 50 75 40 Q 80 30 75 20" fill="none" stroke="#84cc16" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+                  <path d="M 100 55 Q 95 45 100 35 Q 105 25 100 15" fill="none" stroke="#84cc16" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+                  <path d="M 125 60 Q 120 50 125 40 Q 130 30 125 20" fill="none" stroke="#84cc16" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+                </g>
+              )}
+
               {/* legs */}
               <rect x="78" y="162" width="10" height="16" rx="4" fill="#FFE2E2" stroke="#E6D3D3" strokeWidth={1.5} />
               <rect x="112" y="162" width="10" height="16" rx="4" fill="#FFE2E2" stroke="#E6D3D3" strokeWidth={1.5} />
@@ -776,11 +890,28 @@ export function MyTalkingLamb() {
               <circle cx="76" cy="122" r="7" fill="#FFB7B7" opacity="0.6" />
               <circle cx="124" cy="122" r="7" fill="#FFB7B7" opacity="0.6" />
 
-              {/* eyes */}
-              {isSleeping || (activeRoom === "bedroom" && isSleeping) ? (
+              {/* WORRIED EYEBROWS (sad expression) */}
+              {expression.type === "sad" && (
+                <g>
+                  <path d="M 76 104 Q 82 101 88 106" fill="none" stroke="#4B3A3A" strokeWidth={2} strokeLinecap="round" />
+                  <path d="M 112 106 Q 118 101 124 104" fill="none" stroke="#4B3A3A" strokeWidth={2} strokeLinecap="round" />
+                </g>
+              )}
+
+              {/* EYES (DYNAMIC) */}
+              {expression.type === "sleep" ? (
+                // Happy curved closed eyes
                 <>
                   <path d="M 76 114 Q 82 108 88 114" fill="none" stroke="#4B3A3A" strokeWidth={2.5} strokeLinecap="round" />
                   <path d="M 112 114 Q 118 108 124 114" fill="none" stroke="#4B3A3A" strokeWidth={2.5} strokeLinecap="round" />
+                </>
+              ) : expression.type === "sleepy" ? (
+                // Sleepy half closed eyes
+                <>
+                  <ellipse cx="82" cy="113" rx="6" ry="2.2" fill="#4B3A3A" />
+                  <ellipse cx="118" cy="113" rx="6" ry="2.2" fill="#4B3A3A" />
+                  <line x1="75" y1="110" x2="89" y2="110" stroke="#4B3A3A" strokeWidth={1} />
+                  <line x1="111" y1="110" x2="125" y2="110" stroke="#4B3A3A" strokeWidth={1} />
                 </>
               ) : isBlinking ? (
                 <>
@@ -788,6 +919,7 @@ export function MyTalkingLamb() {
                   <path d="M 112 112 Q 118 116 124 112" fill="none" stroke="#4B3A3A" strokeWidth={3} strokeLinecap="round" />
                 </>
               ) : (
+                // Normal shiny cartoon eyes
                 <>
                   <circle cx="82" cy="112" r="6" fill="#4B3A3A" />
                   <circle cx="80" cy="110" r="2.2" fill="white" />
@@ -798,8 +930,17 @@ export function MyTalkingLamb() {
                 </>
               )}
 
-              {/* mouth */}
-              {isTalking && !isSleeping ? (
+              {/* MOUTH (DYNAMIC) */}
+              {expression.type === "sleep" ? (
+                // Sweet smile
+                <path d="M 96 123 Q 100 126 104 123" fill="none" stroke="#4B3A3A" strokeWidth={2} strokeLinecap="round" />
+              ) : expression.type === "sleepy" ? (
+                // Yawing mouth
+                <ellipse cx="100" cy="125" rx="3.5" ry="4.5" fill="#C06C84" />
+              ) : expression.type === "sad" ? (
+                // Downturned frown
+                <path d="M 96 125 Q 100 121 104 125" fill="none" stroke="#4B3A3A" strokeWidth={2.5} strokeLinecap="round" />
+              ) : isTalking ? (
                 <ellipse cx="100" cy="124" rx="3.5" ry="4.5" fill="#C06C84" />
               ) : (
                 <path d="M 96 122 Q 100 125 104 122" fill="none" stroke="#4B3A3A" strokeWidth={2} strokeLinecap="round" />
@@ -813,19 +954,11 @@ export function MyTalkingLamb() {
               <circle cx="106" cy="94" r="10" fill="#FFFFFF" />
               <circle cx="100" cy="96" r="11" fill="#FFFFFF" />
 
-              {/* MUD SPLATTERS (Visually maps to cleanliness) */}
-              {mudFactor >= 1 && (
-                <ellipse cx="88" cy="144" rx="5.5" ry="3.5" fill="#783F04" opacity="0.85" />
-              )}
-              {mudFactor >= 2 && (
-                <ellipse cx="114" cy="138" rx="6" ry="4" fill="#783F04" opacity="0.85" transform="rotate(20 114 138)" />
-              )}
-              {mudFactor >= 3 && (
-                <circle cx="100" cy="154" r="4.5" fill="#783F04" opacity="0.85" />
-              )}
-              {mudFactor >= 4 && (
-                <ellipse cx="88" cy="116" rx="4" ry="2.5" fill="#783F04" opacity="0.8" transform="rotate(-15 88 116)" />
-              )}
+              {/* MUD SPLATTERS */}
+              {mudFactor >= 1 && <ellipse cx="88" cy="144" rx="5.5" ry="3.5" fill="#783F04" opacity="0.85" />}
+              {mudFactor >= 2 && <ellipse cx="114" cy="138" rx="6" ry="4" fill="#783F04" opacity="0.85" transform="rotate(20 114 138)" />}
+              {mudFactor >= 3 && <circle cx="100" cy="154" r="4.5" fill="#783F04" opacity="0.85" />}
+              {mudFactor >= 4 && <ellipse cx="88" cy="116" rx="4" ry="2.5" fill="#783F04" opacity="0.8" transform="rotate(-15 88 116)" />}
 
               {/* ACCESSORIES */}
               {accessory === "crown" && (
@@ -881,9 +1014,8 @@ export function MyTalkingLamb() {
           </div>
         </div>
 
-        {/* BOTTOM HUD PANEL: ACTIONS & DRAWER TRIGGERS */}
+        {/* BOTTOM HUD PANEL */}
         <div className="w-full flex items-center justify-between z-10 relative">
-          {/* Bottom Left: Activities Wheel Drawer trigger */}
           <button
             onClick={() => {
               setIsActivitiesOpen((prev) => !prev);
@@ -898,7 +1030,6 @@ export function MyTalkingLamb() {
             🚪 Rooms Menu
           </button>
 
-          {/* Bottom Right: Pet Status & Wardrobe Drawer trigger */}
           <button
             onClick={() => {
               setIsStatusOpen((prev) => !prev);
@@ -914,7 +1045,7 @@ export function MyTalkingLamb() {
           </button>
         </div>
 
-        {/* ─── BOTTOM-LEFT ACTIVITIES/ROOM NAVIGATION DRAWER ─── */}
+        {/* BOTTOM-LEFT ACTIVITIES DRAWER */}
         <AnimatePresence>
           {isActivitiesOpen && (
             <motion.div
@@ -962,27 +1093,14 @@ export function MyTalkingLamb() {
                   travelToRoom("bedroom");
                   setIsActivitiesOpen(false);
                 }}
-                className={`py-2 px-3 text-[10px] font-bold rounded-xl border text-left flex items-center justify-between cursor-pointer ${
+                className={`py-2 px-3 text-[10px] font-bold rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
                   activeRoom === "bedroom" ? "bg-rose-50 border-rose-300 text-rose-600" : "bg-stone-50 hover:bg-stone-100 border-stone-200"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span>🛌</span> Bedroom (Sleep)
-                </div>
-                {activeRoom === "bedroom" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleSleep();
-                    }}
-                    className="p-1 rounded bg-[#4B3A3A] text-white text-[8px] font-bold"
-                  >
-                    {isSleeping ? "Wake" : "Sleep"}
-                  </button>
-                )}
+                <span>🛌</span> Bedroom (Sleep)
               </button>
 
-              {/* Bathroom (Wash) */}
+              {/* Bathroom */}
               <div className="flex items-center gap-1">
                 <button
                   disabled={!unlockedRooms.includes("bathroom")}
@@ -997,7 +1115,7 @@ export function MyTalkingLamb() {
                   <div className="flex items-center gap-2">
                     <span>🛁</span> Bathroom (Wash)
                   </div>
-                  {!unlockedRooms.includes("bathroom") && <Lock className="w-3 h-3 text-stone-400" />}
+                  {!unlockedRooms.includes("bathroom") && <Lock className="w-3.5 h-3.5 text-stone-400" />}
                 </button>
                 {activeRoom === "bathroom" && (
                   <button
@@ -1009,7 +1127,7 @@ export function MyTalkingLamb() {
                 )}
               </div>
 
-              {/* Backyard (Play) */}
+              {/* Backyard */}
               <button
                 disabled={!unlockedRooms.includes("backyard")}
                 onClick={() => {
@@ -1023,13 +1141,13 @@ export function MyTalkingLamb() {
                 <div className="flex items-center gap-2">
                   <span>⚽</span> Backyard (Play)
                 </div>
-                {!unlockedRooms.includes("backyard") && <Lock className="w-3 h-3 text-stone-400" />}
+                {!unlockedRooms.includes("backyard") && <Lock className="w-3.5 h-3.5 text-stone-400" />}
               </button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ─── BOTTOM-RIGHT STATS & WARDROBE DRAWER ─── */}
+        {/* BOTTOM-RIGHT STATS & WARDROBE DRAWER */}
         <AnimatePresence>
           {isStatusOpen && (
             <motion.div
@@ -1039,15 +1157,13 @@ export function MyTalkingLamb() {
               className="absolute right-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-4 rounded-[28px] shadow-2xl z-25 flex flex-col gap-3.5 w-60"
             >
               <div className="flex justify-between items-center border-b pb-2">
-                <div className="flex gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Selah Details</span>
-                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Selah Details</span>
                 <button onClick={() => setIsStatusOpen(false)} className="text-stone-400 hover:text-stone-600">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* STATS PROGRESS BARS */}
+              {/* STATS */}
               <div className="flex flex-col gap-2">
                 {/* Hunger */}
                 <div className="space-y-0.5 text-left">
@@ -1091,7 +1207,7 @@ export function MyTalkingLamb() {
                 </div>
               </div>
 
-              {/* WARDROBE (ACCESSORY TOGGLES) */}
+              {/* WARDROBE */}
               <div className="border-t pt-2 text-left">
                 <span className="text-[8.5px] uppercase font-bold text-warm-cocoa/40 tracking-wider mb-2.5 block">Accessory Wardrobe</span>
                 <div className="grid grid-cols-3 gap-1">
@@ -1128,7 +1244,7 @@ export function MyTalkingLamb() {
 
       </div>
 
-      {/* ─── CHAT DIALOG INPUT PANEL (Bottom footer) ───────────── */}
+      {/* ─── CHAT INPUT DIALOG FOOTER */}
       <div className="bg-white/60 border border-stone-100 p-4 rounded-3xl shadow-sm flex flex-col gap-2.5 backdrop-blur-sm">
         <span className="text-[9px] uppercase font-bold text-warm-cocoa/40 tracking-wider flex items-center gap-1.5">
           <MessageCircle className="w-3.5 h-3.5 text-sky-400" /> Converse with Selah the Lamb
@@ -1154,7 +1270,7 @@ export function MyTalkingLamb() {
         </form>
       </div>
 
-      {/* ─── A. TRAVEL MAP NAVIGATION MODAL ────────────────────── */}
+      {/* ─── A. TRAVEL MAP BLUEPRINT MODAL (BIRD'S-EYE VIEW) ─────── */}
       <AnimatePresence>
         {isMapOpen && (
           <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -1162,7 +1278,7 @@ export function MyTalkingLamb() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white border border-stone-150 p-6 rounded-[32px] shadow-2xl text-center max-w-sm w-full relative"
+              className="bg-white border border-stone-150 p-6 rounded-[32px] shadow-2xl text-center max-w-md w-full relative"
             >
               <button
                 onClick={() => setIsMapOpen(false)}
@@ -1172,51 +1288,129 @@ export function MyTalkingLamb() {
               </button>
 
               <h3 className="font-serif text-base font-bold text-warm-cocoa mb-1 flex items-center justify-center gap-1.5">
-                🗺️ Cozy House Map
+                🗺️ Cozy House Blueprint Map
               </h3>
               <p className="text-[10px] text-warm-grey/50 italic mb-5">
-                Quick-travel to rooms, or unlock new wings of the house.
+                Quick-travel to rooms or spend coins to expand your sanctuary.
               </p>
 
-              <div className="flex flex-col gap-2.5 text-left">
-                {/* Rooms Mapping */}
-                {([
-                  { id: "living", name: "🏠 Living Room (Main)", cost: 0 },
-                  { id: "kitchen", name: "🍳 Kitchen (Food & Fridge)", cost: 0 },
-                  { id: "bedroom", name: "🛌 Bedroom (Rest & Bed)", cost: 0 },
-                  { id: "bathroom", name: "🛁 Bathroom (Bubble Tub)", cost: 60 },
-                  { id: "backyard", name: "⚽ Backyard (Fetch Play)", cost: 100 }
-                ] as const).map((r) => {
-                  const isUnlocked = unlockedRooms.includes(r.id);
-                  return (
-                    <div
-                      key={r.id}
-                      className="p-3 rounded-2xl border border-stone-200/50 bg-stone-50/50 flex items-center justify-between"
-                    >
-                      <span className="text-xs font-bold text-warm-cocoa">{r.name}</span>
+              {/* Bird's eye house blueprint model layout grid */}
+              <div className="grid grid-cols-2 gap-4 border border-dashed border-stone-300 p-4 rounded-3xl bg-stone-50/50 relative">
+                
+                {/* 1. Bedroom (Top-Left) */}
+                <div
+                  onClick={() => travelToRoom("bedroom")}
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    activeRoom === "bedroom"
+                      ? "bg-rose-50 border-rose-300 shadow-sm"
+                      : "bg-white hover:bg-stone-50 border-stone-200"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold text-warm-cocoa">Bedroom</span>
+                    <span className="text-sm">🛌</span>
+                  </div>
+                  <span className="text-[9px] text-stone-400 italic">
+                    {activeRoom === "bedroom" ? "Selah is here" : "Click to go"}
+                  </span>
+                </div>
 
-                      {isUnlocked ? (
-                        <button
-                          onClick={() => travelToRoom(r.id)}
-                          className={`px-3 py-1 rounded-xl text-[9px] font-bold tracking-wide uppercase transition-all active:scale-95 cursor-pointer ${
-                            activeRoom === r.id
-                              ? "bg-rose-50 text-rose-700 border border-rose-200"
-                              : "bg-[#4B3A3A] text-white hover:bg-stone-850"
-                          }`}
-                        >
-                          {activeRoom === r.id ? "Here" : "Travel"}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => unlockRoom(r.id, r.cost)}
-                          className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
-                        >
-                          <Lock className="w-2.5 h-2.5" /> Unlock 🪙 {r.cost}
-                        </button>
-                      )}
+                {/* 2. Bathroom (Top-Right - Unlockable) */}
+                <div
+                  onClick={() => {
+                    if (unlockedRooms.includes("bathroom")) travelToRoom("bathroom");
+                    else unlockRoom("bathroom", 60);
+                  }}
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    !unlockedRooms.includes("bathroom")
+                      ? "bg-stone-100 border-stone-200 opacity-80"
+                      : activeRoom === "bathroom"
+                      ? "bg-cyan-50 border-cyan-300 shadow-sm"
+                      : "bg-white hover:bg-stone-50 border-stone-200"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold text-warm-cocoa">Bathroom</span>
+                    <span className="text-sm">🛁</span>
+                  </div>
+                  {unlockedRooms.includes("bathroom") ? (
+                    <span className="text-[9px] text-stone-400 italic">
+                      {activeRoom === "bathroom" ? "Selah is here" : "Click to go"}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50 flex items-center justify-center gap-1 self-start">
+                      <Lock className="w-2.5 h-2.5" /> 🪙 60
+                    </span>
+                  )}
+                </div>
+
+                {/* 3. Living Room (Bottom-Left) */}
+                <div
+                  onClick={() => travelToRoom("living")}
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    activeRoom === "living"
+                      ? "bg-rose-50 border-rose-300 shadow-sm"
+                      : "bg-white hover:bg-stone-50 border-stone-200"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold text-warm-cocoa">Living Room</span>
+                    <span className="text-sm">🏠</span>
+                  </div>
+                  <span className="text-[9px] text-stone-400 italic">
+                    {activeRoom === "living" ? "Selah is here" : "Click to go"}
+                  </span>
+                </div>
+
+                {/* 4. Kitchen (Bottom-Right) */}
+                <div
+                  onClick={() => travelToRoom("kitchen")}
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    activeRoom === "kitchen"
+                      ? "bg-emerald-50 border-emerald-300 shadow-sm"
+                      : "bg-white hover:bg-stone-50 border-stone-200"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold text-warm-cocoa">Kitchen</span>
+                    <span className="text-sm">🍳</span>
+                  </div>
+                  <span className="text-[9px] text-stone-400 italic">
+                    {activeRoom === "kitchen" ? "Selah is here" : "Click to go"}
+                  </span>
+                </div>
+
+                {/* 5. Backyard (Bottom span - Unlockable) */}
+                <div
+                  onClick={() => {
+                    if (unlockedRooms.includes("backyard")) travelToRoom("backyard");
+                    else unlockRoom("backyard", 100);
+                  }}
+                  className={`col-span-2 p-4 h-20 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    !unlockedRooms.includes("backyard")
+                      ? "bg-stone-100 border-stone-200 opacity-80"
+                      : activeRoom === "backyard"
+                      ? "bg-teal-50 border-teal-300 shadow-sm"
+                      : "bg-white hover:bg-stone-50 border-stone-200"
+                  }`}
+                >
+                  <div className="flex justify-between items-center w-full">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-warm-cocoa">Backyard Field</span>
+                      <span className="text-sm">⚽</span>
                     </div>
-                  );
-                })}
+                    {unlockedRooms.includes("backyard") ? (
+                      <span className="text-[9px] text-stone-400 italic">
+                        {activeRoom === "backyard" ? "Selah is here" : "Click to go"}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Unlock Backyard (🪙 100)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
               </div>
             </motion.div>
           </div>
@@ -1285,7 +1479,7 @@ export function MyTalkingLamb() {
                       <span className="text-xs font-bold">🍀 Clover Salad</span>
                       <span className="text-[9px] text-stone-400">Sweet garden clover</span>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Free</span>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded animate-pulse">Free</span>
                   </div>
 
                   {/* Apples */}
@@ -1296,7 +1490,7 @@ export function MyTalkingLamb() {
                     </div>
                     <button
                       onClick={() => buyFood("apple", 10)}
-                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 cursor-pointer"
+                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
                     >
                       🪙 10
                     </button>
@@ -1310,7 +1504,7 @@ export function MyTalkingLamb() {
                     </div>
                     <button
                       onClick={() => buyFood("cookie", 15)}
-                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 cursor-pointer"
+                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
                     >
                       🪙 15
                     </button>
@@ -1324,7 +1518,7 @@ export function MyTalkingLamb() {
                     </div>
                     <button
                       onClick={() => buyFood("manna", 20)}
-                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 cursor-pointer"
+                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
                     >
                       🪙 20
                     </button>
@@ -1358,7 +1552,7 @@ export function MyTalkingLamb() {
                         ) : (
                           <button
                             onClick={() => buyAccessory(acc.id, acc.cost)}
-                            className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 cursor-pointer"
+                            className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
                           >
                             🪙 {acc.cost}
                           </button>
@@ -1449,6 +1643,251 @@ export function MyTalkingLamb() {
                     </div>
                   );
                 })}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── D. KITCHEN COOKING TABLE SCREEN OVERLAY (BIRD'S-EYE) ─ */}
+      <AnimatePresence>
+        {isCooking && (
+          <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#FFF8F2] border-4 border-[#C2A58F] p-5 rounded-[40px] shadow-2xl text-center max-w-md w-full relative min-h-[380px] flex flex-col justify-between"
+            >
+              <button
+                onClick={() => {
+                  setIsCooking(false);
+                  setCookingRecipe(null);
+                  setCookingStep("choose");
+                }}
+                className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-full">
+                <h3 className="font-serif text-base font-bold text-warm-cocoa mb-0.5 flex items-center justify-center gap-1">
+                  🍳 Selah's Cooking Table
+                </h3>
+                <p className="text-[9px] text-warm-grey/50 italic mb-4">
+                  Bird's-eye view cutting board & mixing bowl
+                </p>
+              </div>
+
+              {/* STEP 1: CHOOSE A RECIPE */}
+              {cookingStep === "choose" && (
+                <div className="flex-1 flex flex-col justify-center gap-3.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1">Select a Recipe</span>
+                  
+                  {/* Recipe 1: Clover Salad */}
+                  <div
+                    onClick={() => startCooking("clover")}
+                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-emerald-50/20 hover:border-emerald-300 transition-all cursor-pointer flex justify-between items-center text-left"
+                  >
+                    <div>
+                      <span className="text-xs font-bold block text-emerald-800">🍀 Sweet Clover Salad</span>
+                      <span className="text-[8.5px] text-stone-400">Needs: Clover (∞)</span>
+                    </div>
+                    <span className="text-[10.5px] font-bold text-emerald-600">Feeds +20%</span>
+                  </div>
+
+                  {/* Recipe 2: Apple Clover Mash */}
+                  <div
+                    onClick={() => startCooking("apple_mash")}
+                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-amber-50/20 hover:border-amber-300 transition-all cursor-pointer flex justify-between items-center text-left"
+                  >
+                    <div>
+                      <span className="text-xs font-bold block text-amber-800">🍎 Apple Clover Mash</span>
+                      <span className="text-[8.5px] text-stone-400">Needs: 1 Apple ({applesStock} stock) + Clover</span>
+                    </div>
+                    <span className="text-[10.5px] font-bold text-amber-600">Feeds +45%</span>
+                  </div>
+
+                  {/* Recipe 3: Manna Cookie Treat */}
+                  <div
+                    onClick={() => startCooking("manna_cookie")}
+                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-rose-50/20 hover:border-rose-300 transition-all cursor-pointer flex justify-between items-center text-left"
+                  >
+                    <div>
+                      <span className="text-xs font-bold block text-rose-800">🍞 Manna Cookie Treat</span>
+                      <span className="text-[8.5px] text-stone-400">Needs: 1 Manna ({mannaStock} stock) + 1 Cookie ({cookieStock} stock)</span>
+                    </div>
+                    <span className="text-[10.5px] font-bold text-rose-600">Feeds +65%</span>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: SLICE THE INGREDIENTS */}
+              {cookingStep === "slice" && cookingRecipe && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 animate-pulse">
+                    Tap the board to slice the ingredients! ({sliceCount}/3)
+                  </span>
+
+                  {/* Cutting Board Table */}
+                  <div
+                    onClick={handleSliceClick}
+                    className="w-48 h-32 rounded-2xl bg-[#E6D5C3] border-4 border-[#B0927C] shadow-inner relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none"
+                  >
+                    {/* Knife detail */}
+                    <div className="absolute top-2 right-2 text-sm select-none">🔪</div>
+                    
+                    {/* Ingredients Graphic representation */}
+                    <div className="relative">
+                      {cookingRecipe === "clover" && (
+                        <div className="text-3xl select-none">🍀</div>
+                      )}
+                      {cookingRecipe === "apple_mash" && (
+                        <div className="text-3xl select-none">🍎</div>
+                      )}
+                      {cookingRecipe === "manna_cookie" && (
+                        <div className="flex gap-2 text-2xl select-none">
+                          <span>🍞</span>
+                          <span>🍪</span>
+                        </div>
+                      )}
+
+                      {/* Cut lines overlay */}
+                      {sliceCount >= 1 && (
+                        <div className="absolute top-0 left-0 w-full h-full border-l-2 border-red-500/80 translate-x-[8px] transform rotate-12" />
+                      )}
+                      {sliceCount >= 2 && (
+                        <div className="absolute top-0 left-0 w-full h-full border-r-2 border-red-500/80 -translate-x-[8px] transform -rotate-12" />
+                      )}
+                      {sliceCount >= 3 && (
+                        <div className="absolute top-1/2 left-0 w-full border-t-2 border-red-500/80 -translate-y-1/2" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: MIXING IN BOWL */}
+              {cookingStep === "mix" && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 animate-pulse">
+                    Tap the mixing bowl to stir! ({mixCount}/3)
+                  </span>
+
+                  {/* Mixing Bowl Table */}
+                  <div
+                    onClick={handleMixClick}
+                    className="w-40 h-40 rounded-full bg-stone-50 border-4 border-rose-300 shadow-md relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none"
+                  >
+                    {/* Swirly mix lines inside */}
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#FDA4AF" strokeWidth="2" strokeDasharray="10 5" className={mixCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "3s" }} />
+                      <circle cx="50" cy="50" r="30" fill="none" stroke="#FDA4AF" strokeWidth="1.5" strokeDasharray="8 4" className={mixCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "2s", animationDirection: "reverse" }} />
+                    </svg>
+
+                    {/* Sliced food elements inside */}
+                    <div className="flex gap-1 items-center z-10 text-xs">
+                      {cookingRecipe === "clover" && <span>🍀🍀🍀</span>}
+                      {cookingRecipe === "apple_mash" && <span>🍎🍀🍎</span>}
+                      {cookingRecipe === "manna_cookie" && <span>🍞🍪🍞</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: COOKED DONE SERVE */}
+              {cookingStep === "done" && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 animate-bounce">
+                    Sanctuary meal ready! 🍽️✨
+                  </span>
+
+                  {/* Served food plate */}
+                  <div className="w-36 h-36 rounded-full bg-white border-2 border-stone-200 flex flex-col items-center justify-center shadow-lg relative p-2">
+                    <span className="text-3xl">🍲</span>
+                    <span className="text-[10px] font-bold text-warm-cocoa uppercase tracking-wider mt-1 text-center leading-tight">
+                      {cookingRecipe === "clover" ? "Clover Salad" : cookingRecipe === "apple_mash" ? "Apple Clover Mash" : "Manna Cookie Treat"}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={serveCookedRecipe}
+                    className="w-full py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] uppercase tracking-wider active:scale-95 transition-all shadow-md cursor-pointer"
+                  >
+                    Feed bowl to Selah! 🐑🍽️
+                  </button>
+                </div>
+              )}
+
+              {/* Footer step indicators */}
+              {cookingStep !== "choose" && (
+                <div className="w-full flex justify-center gap-1 text-[9px] font-bold text-stone-400 mt-2">
+                  <span className={cookingStep === "slice" ? "text-amber-700" : ""}>1. Slice</span> • 
+                  <span className={cookingStep === "mix" ? "text-rose-600" : ""}>2. Stir Mix</span> • 
+                  <span className={cookingStep === "done" ? "text-emerald-700" : ""}>3. Serve</span>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── E. BEDTIME STORYBOOK READING OVERLAY ────────────────── */}
+      <AnimatePresence>
+        {isReadingStory && (
+          <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#FCF6E8] border-4 border-[#C2A58F] p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[320px] flex flex-col justify-between"
+            >
+              <button
+                onClick={() => setIsReadingStory(false)}
+                className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="w-full">
+                <span className="text-[8.5px] uppercase font-bold text-stone-400 tracking-wider">Bedtime Story Reading</span>
+                <h3 className="font-serif text-sm font-bold text-warm-cocoa mb-4">
+                  Selah the Little Lamb's Peaceful Night 🌙
+                </h3>
+              </div>
+
+              {/* STORYBOOK PAGE CONTENT */}
+              <div className="flex-1 flex items-center justify-center p-4 bg-white/70 rounded-2xl border border-stone-200/50 mb-5 leading-relaxed text-xs text-warm-cocoa font-medium font-serif italic text-left">
+                {storyPage === 0 && (
+                  <span>"Once upon a time in a beautiful green valley, there was a tiny lamb named Selah. Selah loved to run and jump all day under the warm sun, chasing butterflies."</span>
+                )}
+                {storyPage === 1 && (
+                  <span>"But as the night fell, the stars began to twinkle in the sky like tiny candles. The Good Shepherd called: 'Come back to the fold, little Selah.'"</span>
+                )}
+                {storyPage === 2 && (
+                  <span>"Selah walked slowly to the cozy bedroom, snuggling into the soft hay. The Shepherd covered Selah with a warm blanket, whispering: 'Do not fear, you are safe.'"</span>
+                )}
+                {storyPage === 3 && (
+                  <span>"Selah listened to the gentle night wind outside, closed her eyes, and smiled. 'He watches over His sheep.' Goodnight, sweet Selah. Zzz..."</span>
+                )}
+              </div>
+
+              {/* CONTROLS */}
+              <div className="flex items-center justify-between w-full">
+                <button
+                  disabled={storyPage === 0}
+                  onClick={() => setStoryPage((p) => p - 1)}
+                  className="px-4 py-1.5 rounded-xl border border-stone-250 text-stone-600 font-bold text-[9px] uppercase tracking-wider disabled:opacity-30 active:scale-95 transition-all cursor-pointer"
+                >
+                  ← Back
+                </button>
+                <span className="text-[9px] font-bold text-stone-450">Page {storyPage + 1} of 4</span>
+                <button
+                  onClick={handleStoryNext}
+                  className="px-4 py-1.5 rounded-xl bg-[#4B3A3A] text-white font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all cursor-pointer"
+                >
+                  {storyPage === 3 ? "Sleep 🛌💤" : "Next Page →"}
+                </button>
               </div>
             </motion.div>
           </div>
