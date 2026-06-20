@@ -159,7 +159,7 @@ export function CreateRoomModal({
                     Choose a Game
                   </h2>
 
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="max-h-[280px] overflow-y-auto -mr-1.5 pr-1.5 space-y-2.5 scrollbar-thin scrollbar-thumb-warm-cocoa/10">
                     {GAMES.map((game) => {
                       const isSelected = selectedGame === game.game_type;
                       return (
