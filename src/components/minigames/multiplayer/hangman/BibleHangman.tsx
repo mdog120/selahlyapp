@@ -446,26 +446,20 @@ export function BibleHangman({ room, currentUserId, isHost, onGameEnd, onCloseRo
     setSolveInput("");
   };
 
-  // Render Petal Helpers
-  const renderPetal = (index: number, cx: number, cy: number, rx: number, ry: number, rotate: string) => {
+  const renderPetal = (index: number, rotate: number) => {
     const isWithered = wrongGuesses > index;
     return (
-      <motion.ellipse
-        key={index}
-        cx={cx}
-        cy={cy}
-        rx={rx}
-        ry={ry}
-        transform={`rotate(${rotate} ${cx} ${cy})`}
-        className={`origin-center ${
-          isWithered
-            ? "fill-stone-300 stroke-stone-400 opacity-40"
-            : "fill-rose-300 stroke-rose-400 drop-shadow-sm"
-        }`}
-        strokeWidth={1.5}
-        animate={isWithered ? { y: 25, rotate: 15, opacity: 0 } : { y: 0, rotate: 0, opacity: 1 }}
-        transition={{ duration: 1.2, type: "spring" }}
-      />
+      <g key={index} transform={`translate(100, 75) rotate(${rotate})`}>
+        <ellipse
+          cx={0}
+          cy={-19}
+          rx={12}
+          ry={16}
+          className="fill-rose-300 stroke-rose-400 drop-shadow-sm transition-opacity duration-300"
+          strokeWidth={1.5}
+          style={{ opacity: isWithered ? 0 : 1 }}
+        />
+      </g>
     );
   };
 
@@ -597,12 +591,12 @@ export function BibleHangman({ room, currentUserId, isHost, onGameEnd, onCloseRo
                     <path d="M 101 105 Q 120 100, 115 90 Q 105 95, 101 102" fill="#34d399" stroke="#10b981" strokeWidth={1} />
                   )}
 
-                  {renderPetal(0, 100, 56, 12, 16, "0")}
-                  {renderPetal(1, 116, 65, 12, 16, "60")}
-                  {renderPetal(2, 116, 85, 12, 16, "120")}
-                  {renderPetal(3, 100, 94, 12, 16, "180")}
-                  {renderPetal(4, 84, 85, 12, 16, "240")}
-                  {renderPetal(5, 84, 65, 12, 16, "300")}
+                  {renderPetal(0, 0)}
+                  {renderPetal(1, 60)}
+                  {renderPetal(2, 120)}
+                  {renderPetal(3, 180)}
+                  {renderPetal(4, 240)}
+                  {renderPetal(5, 300)}
 
                   <circle cx={100} cy={75} r={11} fill="#FCD34D" stroke="#F59E0B" strokeWidth={1.5} className="drop-shadow-sm" />
                 </svg>
