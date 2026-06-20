@@ -87,6 +87,8 @@ export function MyTalkingLamb() {
   const [particles, setParticles] = useState<Particle[]>([]);
   const particleIdRef = useRef(0);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sleepyMusicRef = useRef<HTMLAudioElement | null>(null);
+  const snoreIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // ─── Local Storage persistence ─────────────────────────────
   useEffect(() => {
@@ -177,6 +179,108 @@ export function MyTalkingLamb() {
     return () => clearInterval(blinkInterval);
   }, [isSleeping]);
 
+  // Sleep sound effects & quiet lullaby music box player
+  useEffect(() => {
+    let audioCtx: AudioContext | null = null;
+    
+    const playSnoreNode = () => {
+      try {
+        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtxClass) return;
+        if (!audioCtx) {
+          audioCtx = new AudioCtxClass();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        
+        const now = audioCtx.currentTime;
+        
+        // Inhale (low pitched growl/snore vibration)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(65, now);
+        
+        const rattle = audioCtx.createOscillator();
+        const rattleGain = audioCtx.createGain();
+        rattle.frequency.value = 16;
+        rattleGain.gain.value = 6;
+        rattle.connect(rattleGain);
+        rattleGain.connect(osc1.frequency);
+        
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.12, now + 1.2);
+        gain1.gain.linearRampToValueAtTime(0, now + 2.0);
+        
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        
+        rattle.start(now);
+        osc1.start(now);
+        rattle.stop(now + 2.0);
+        osc1.stop(now + 2.0);
+        
+        // Exhale (soft puff/sigh)
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(55, now + 2.2);
+        
+        gain2.gain.setValueAtTime(0, now + 2.2);
+        gain2.gain.linearRampToValueAtTime(0.06, now + 3.0);
+        gain2.gain.linearRampToValueAtTime(0, now + 4.0);
+        
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        
+        osc2.start(now + 2.2);
+        osc2.stop(now + 4.0);
+      } catch (e) {
+        console.warn("Snoring synthesis failed", e);
+      }
+    };
+
+    if (isSleeping) {
+      // 1. Play sleepy musicbox lullaby
+      if (!sleepyMusicRef.current) {
+        const audio = new Audio("/audio/musicbox.mp3");
+        audio.loop = true;
+        audio.volume = 0.45;
+        sleepyMusicRef.current = audio;
+      }
+      
+      sleepyMusicRef.current.play().catch((err) => {
+        console.warn("Autoplay sleepy music blocked", err);
+      });
+      
+      // 2. Snore periodically
+      playSnoreNode();
+      snoreIntervalRef.current = setInterval(() => {
+        playSnoreNode();
+      }, 6000);
+    } else {
+      // Waking up
+      if (sleepyMusicRef.current) {
+        sleepyMusicRef.current.pause();
+        sleepyMusicRef.current.currentTime = 0;
+      }
+      if (snoreIntervalRef.current) {
+        clearInterval(snoreIntervalRef.current);
+        snoreIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (snoreIntervalRef.current) {
+        clearInterval(snoreIntervalRef.current);
+      }
+      if (audioCtx) {
+        audioCtx.close();
+      }
+    };
+  }, [isSleeping]);
+
   // ─── Talk & Particle Helpers ─────────────────────────────────
   const speak = (text: string) => {
     setDialogue(text);
@@ -190,19 +294,6 @@ export function MyTalkingLamb() {
     speechTimeoutRef.current = setTimeout(() => {
       setDialogue("");
     }, 6000);
-
-    // Cute TTS voice output using Web Speech API
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.pitch = 1.65; // High pitch for cutesy lamb voice
-        utterance.rate = 1.15;  // Slightly faster for cuteness
-        window.speechSynthesis.speak(utterance);
-      } catch (e) {
-        console.warn("Speech synthesis failed", e);
-      }
-    }
 
     let count = 0;
     const interval = setInterval(() => {
@@ -230,6 +321,118 @@ export function MyTalkingLamb() {
     setTimeout(() => {
       setParticles((prev) => prev.filter((p) => !newParticles.find((np) => np.id === p.id)));
     }, 1500);
+  };
+
+  // ─── Web Audio API Sound Synthesizers ─────────────────────────
+  const playBaaSound = () => {
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const ctx = new AudioCtxClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(260, ctx.currentTime);
+      
+      const vibrato = ctx.createOscillator();
+      const vibratoGain = ctx.createGain();
+      vibrato.frequency.value = 10;
+      vibratoGain.gain.value = 14;
+      
+      vibrato.connect(vibratoGain);
+      vibratoGain.connect(osc.frequency);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+      
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.05);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.2);
+      gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + 0.35);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.5);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.7);
+      
+      osc.start();
+      vibrato.start();
+      osc.stop(ctx.currentTime + 0.7);
+      vibrato.stop(ctx.currentTime + 0.7);
+    } catch (e) {
+      console.warn("Baa sound synth failed", e);
+    }
+  };
+
+  const playEatingSound = () => {
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const ctx = new AudioCtxClass();
+      
+      const playCrunch = (delay: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(550, ctx.currentTime + delay);
+        osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + delay + 0.08);
+        
+        gain.gain.setValueAtTime(0.18, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.08);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.09);
+      };
+      
+      playCrunch(0.0);
+      playCrunch(0.22);
+      playCrunch(0.44);
+      playCrunch(0.66);
+    } catch (e) {
+      console.warn("Eating sound synth failed", e);
+    }
+  };
+
+  const playShowerSound = () => {
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const ctx = new AudioCtxClass();
+      
+      const bufferSize = ctx.sampleRate * 2.0;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(1000, ctx.currentTime);
+      filter.Q.value = 1.0;
+      
+      filter.frequency.linearRampToValueAtTime(1300, ctx.currentTime + 0.5);
+      filter.frequency.linearRampToValueAtTime(950, ctx.currentTime + 1.2);
+      filter.frequency.linearRampToValueAtTime(1100, ctx.currentTime + 2.0);
+      
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 1.6);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 2.0);
+      
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      
+      noise.start();
+    } catch (e) {
+      console.warn("Shower sound synth failed", e);
+    }
   };
 
   // ─── Progress Challenge Helper ───────────────────────────────
@@ -278,6 +481,7 @@ export function MyTalkingLamb() {
     setLastAction("petting");
     setHappiness((prev) => Math.min(prev + 12, 100));
     spawnParticles("❤️", 6);
+    playBaaSound();
     speak("Baa! *giggles* That tickles! You are the bestest shepherd! 🥰");
     setTimeout(() => setLastAction("none"), 1000);
   };
@@ -298,6 +502,7 @@ export function MyTalkingLamb() {
       setMudFactor((prev) => prev - 1);
     }
     spawnParticles("🫧", 8);
+    playShowerSound();
     speak("Splish splash! Bubbles everywhere! Selah is squeaky clean! 🧼🫧");
     progressChallenge("wash", 1);
     setTimeout(() => setLastAction("none"), 1500);
@@ -505,6 +710,7 @@ export function MyTalkingLamb() {
     setCoins((c) => c + 10); // Reward for cooking
 
     spawnParticles("😋", 6);
+    playEatingSound();
     speak(`Baa! That was so delicious! Fluffy tummy is full! (+🪙 10 reward) 🍽️✨`);
     
     // Progress
