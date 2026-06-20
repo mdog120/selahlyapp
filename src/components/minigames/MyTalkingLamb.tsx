@@ -21,7 +21,7 @@ interface Challenge {
 }
 
 type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "backyard";
-type RecipeType = "clover" | "apple_mash" | "manna_cookie";
+type RecipeType = "clover" | "apple_mash" | "manna_cookie" | "berry_pancake" | "honey_glaze";
 
 export function MyTalkingLamb() {
   // ─── Currency & Unlocking States ────────────────────────────
@@ -53,6 +53,9 @@ export function MyTalkingLamb() {
   const [applesStock, setApplesStock] = useState(2);
   const [mannaStock, setMannaStock] = useState(1);
   const [cookieStock, setCookieStock] = useState(3);
+  const [berryStock, setBerryStock] = useState(2);
+  const [honeyStock, setHoneyStock] = useState(1);
+  const [milkStock, setMilkStock] = useState(1);
   const [isFridgeOpen, setIsFridgeOpen] = useState(false);
 
   // ─── Mud & Ball Interactions ────────────────────────────────
@@ -62,9 +65,11 @@ export function MyTalkingLamb() {
   // ─── Cooking Table States ───────────────────────────────────
   const [isCooking, setIsCooking] = useState(false);
   const [cookingRecipe, setCookingRecipe] = useState<RecipeType | null>(null);
-  const [cookingStep, setCookingStep] = useState<"choose" | "slice" | "mix" | "done">("choose");
-  const [sliceCount, setSliceCount] = useState(0);
-  const [mixCount, setMixCount] = useState(0);
+  const [cookingStep, setCookingStep] = useState<"choose" | "chop" | "stove" | "stir" | "garnish" | "done">("choose");
+  const [chopCount, setChopCount] = useState(0);
+  const [stoveCount, setStoveCount] = useState(0);
+  const [stirCount, setStirCount] = useState(0);
+  const [garnishCount, setGarnishCount] = useState(0);
 
   // ─── Bedtime Story States ───────────────────────────────────
   const [isReadingStory, setIsReadingStory] = useState(false);
@@ -76,7 +81,22 @@ export function MyTalkingLamb() {
   const [isBlinking, setIsBlinking] = useState(false);
   const [isTalking, setIsTalking] = useState(false);
 
-  // ─── Challenges list ────────────────────────────────────────
+  // ─── Challenges pool and list ────────────────────────────────
+  const CHALLENGE_POOL = [
+    { id: "feed", text: "Feed the lamb 3 times", target: 3, reward: 20 },
+    { id: "play", text: "Play fetch in backyard 2 times", target: 2, reward: 15 },
+    { id: "wash", text: "Give a warm bubble bath", target: 1, reward: 15 },
+    { id: "pet", text: "Pet Selah 5 times", target: 5, reward: 10 },
+    { id: "story", text: "Read a bedtime story", target: 1, reward: 15 },
+    { id: "buy_food", text: "Buy food from the shop", target: 1, reward: 10 },
+    { id: "buy_accessory", text: "Buy a new accessory", target: 1, reward: 25 },
+    { id: "cook_clover", text: "Make Clover Salad", target: 1, reward: 15 },
+    { id: "cook_apple", text: "Make Apple Clover Mash", target: 1, reward: 20 },
+    { id: "cook_manna", text: "Make Manna Cookie Treat", target: 1, reward: 25 },
+    { id: "cook_berry", text: "Make Sweet Berry Pancake", target: 1, reward: 30 },
+    { id: "cook_honey", text: "Make Honey Glazed Oats", target: 1, reward: 30 }
+  ];
+
   const [challenges, setChallenges] = useState<Challenge[]>([
     { id: "feed", text: "Feed the lamb 3 times", target: 3, current: 0, reward: 20, claimed: false },
     { id: "play", text: "Play fetch in backyard 2 times", target: 2, current: 0, reward: 15, claimed: false },
@@ -108,6 +128,9 @@ export function MyTalkingLamb() {
         setApplesStock(p.applesStock ?? 2);
         setMannaStock(p.mannaStock ?? 1);
         setCookieStock(p.cookieStock ?? 3);
+        setBerryStock(p.berryStock ?? 2);
+        setHoneyStock(p.honeyStock ?? 1);
+        setMilkStock(p.milkStock ?? 1);
         setMudFactor(p.mudFactor ?? 0);
         setActiveRoom(p.activeRoom ?? "living");
         if (p.challenges) setChallenges(p.challenges);
@@ -142,12 +165,15 @@ export function MyTalkingLamb() {
         applesStock,
         mannaStock,
         cookieStock,
+        berryStock,
+        honeyStock,
+        milkStock,
         mudFactor,
         activeRoom,
         challenges
       })
     );
-  }, [coins, unlockedRooms, purchasedAccessories, hunger, happiness, cleanliness, energy, accessory, isSleeping, applesStock, mannaStock, cookieStock, mudFactor, activeRoom, challenges]);
+  }, [coins, unlockedRooms, purchasedAccessories, hunger, happiness, cleanliness, energy, accessory, isSleeping, applesStock, mannaStock, cookieStock, berryStock, honeyStock, milkStock, mudFactor, activeRoom, challenges]);
 
   // ─── Dynamic Draining / Sleep refilling ──────────────────────
   useEffect(() => {
@@ -283,6 +309,9 @@ export function MyTalkingLamb() {
 
   // ─── Talk & Particle Helpers ─────────────────────────────────
   const speak = (text: string) => {
+    if (text) {
+      playBaaSound();
+    }
     setDialogue(text);
     setIsTalking(true);
 
@@ -459,16 +488,29 @@ export function MyTalkingLamb() {
     );
     speak(`Baa! Challenge completed! You earned 🪙 ${reward} coins! 🎉`);
     
-    // Regenerate task after 4 seconds
+    // Rotate to a new challenge after 4 seconds
     setTimeout(() => {
-      setChallenges((prev) =>
-        prev.map((c) => {
+      setChallenges((prev) => {
+        const activeIds = prev.filter((c) => c.id !== id).map((c) => c.id);
+        const availableTemplates = CHALLENGE_POOL.filter((t) => !activeIds.includes(t.id));
+        const template = availableTemplates.length > 0
+          ? availableTemplates[Math.floor(Math.random() * availableTemplates.length)]
+          : CHALLENGE_POOL[Math.floor(Math.random() * CHALLENGE_POOL.length)];
+        
+        return prev.map((c) => {
           if (c.id === id) {
-            return { ...c, claimed: false, current: 0 };
+            return {
+              id: template.id,
+              text: template.text,
+              target: template.target,
+              current: 0,
+              reward: template.reward,
+              claimed: false
+            };
           }
           return c;
-        })
-      );
+        });
+      });
     }, 4000);
   };
 
@@ -481,8 +523,8 @@ export function MyTalkingLamb() {
     setLastAction("petting");
     setHappiness((prev) => Math.min(prev + 12, 100));
     spawnParticles("❤️", 6);
-    playBaaSound();
     speak("Baa! *giggles* That tickles! You are the bestest shepherd! 🥰");
+    progressChallenge("pet", 1);
     setTimeout(() => setLastAction("none"), 1000);
   };
 
@@ -542,7 +584,7 @@ export function MyTalkingLamb() {
   };
 
   // ─── Shop Actions ───────────────────────────────────────────
-  const buyFood = (type: "apple" | "manna" | "cookie", cost: number) => {
+  const buyFood = (type: "apple" | "manna" | "cookie" | "berry" | "honey" | "milk", cost: number) => {
     if (coins < cost) {
       speak("Baa! We need more coins! Let's do some chores! 🪙");
       return;
@@ -551,8 +593,12 @@ export function MyTalkingLamb() {
     if (type === "apple") setApplesStock((s) => s + 1);
     else if (type === "manna") setMannaStock((s) => s + 1);
     else if (type === "cookie") setCookieStock((s) => s + 1);
+    else if (type === "berry") setBerryStock((s) => s + 1);
+    else if (type === "honey") setHoneyStock((s) => s + 1);
+    else if (type === "milk") setMilkStock((s) => s + 1);
     spawnParticles("🪙", 3);
     speak(`Yummy! Purchased a premium ${type}! Added to fridge! 🍎`);
+    progressChallenge("buy_food", 1);
   };
 
   const buyAccessory = (acc: string, cost: number) => {
@@ -564,6 +610,7 @@ export function MyTalkingLamb() {
     setPurchasedAccessories((prev) => [...prev, acc]);
     spawnParticles("🪙", 4);
     speak(`Ooh! You bought the premium ${acc}! Let's try it on, baa! 🎀`);
+    progressChallenge("buy_accessory", 1);
   };
 
   // ─── Map Room Navigation & Unlocks ──────────────────────────
@@ -647,40 +694,82 @@ export function MyTalkingLamb() {
       speak("Baa! We need 1 Manna Bread & 1 Cookie. Let's shop! 🍪");
       return;
     }
+    if (recipe === "berry_pancake" && (berryStock <= 0 || milkStock <= 0)) {
+      speak("Baa! We need 1 Sweet Berry & 1 Fresh Milk. Let's shop! 🍓");
+      return;
+    }
+    if (recipe === "honey_glaze" && (honeyStock <= 0 || milkStock <= 0)) {
+      speak("Baa! We need 1 Golden Honey & 1 Fresh Milk. Let's shop! 🍯");
+      return;
+    }
 
     // Deduct stock
     if (recipe === "apple_mash") setApplesStock((s) => s - 1);
     else if (recipe === "manna_cookie") {
       setMannaStock((s) => s - 1);
       setCookieStock((s) => s - 1);
+    } else if (recipe === "berry_pancake") {
+      setBerryStock((s) => s - 1);
+      setMilkStock((s) => s - 1);
+    } else if (recipe === "honey_glaze") {
+      setHoneyStock((s) => s - 1);
+      setMilkStock((s) => s - 1);
     }
 
     setCookingRecipe(recipe);
-    setCookingStep("slice");
-    setSliceCount(0);
-    setMixCount(0);
-    speak("Recipe book open! Let's slice-slice the ingredients! 🔪");
+    setCookingStep("chop");
+    setChopCount(0);
+    setStoveCount(0);
+    setStirCount(0);
+    setGarnishCount(0);
+    speak("Recipe selected! First, chop the ingredients on the board! 🔪");
   };
 
-  const handleSliceClick = () => {
-    if (sliceCount < 3) {
-      const next = sliceCount + 1;
-      setSliceCount(next);
+  const handleChopClick = () => {
+    if (chopCount < 3) {
+      const next = chopCount + 1;
+      setChopCount(next);
       spawnParticles("🔪", 2);
       if (next === 3) {
-        setCookingStep("mix");
-        speak("Nicely sliced! Now let's mixy-mix them in the bowl! 🥣");
+        setCookingStep("stove");
+        speak("All chopped! Let's put them on the stove to boil! 🫕🔥");
       }
     }
   };
 
-  const handleMixClick = () => {
-    const next = mixCount + 1;
-    setMixCount(next);
-    spawnParticles("🫧", 3);
-    if (next >= 3) {
-      setCookingStep("done");
-      speak("Mixy-mix complete! I'm ready to eat, feed me please! 🍽️");
+  const handleStoveClick = () => {
+    if (stoveCount < 3) {
+      const next = stoveCount + 1;
+      setStoveCount(next);
+      spawnParticles("🔥", 2);
+      if (next === 3) {
+        setCookingStep("stir");
+        speak("Hot and boiling! Now grab the spoon and stir mix it! 🥣🥄");
+      }
+    }
+  };
+
+  const handleStirClick = () => {
+    if (stirCount < 3) {
+      const next = stirCount + 1;
+      setStirCount(next);
+      spawnParticles("🌀", 2);
+      if (next === 3) {
+        setCookingStep("garnish");
+        speak("Perfect consistency! Let's add some pretty toppings to garnish! 🌸✨");
+      }
+    }
+  };
+
+  const handleGarnishClick = () => {
+    if (garnishCount < 2) {
+      const next = garnishCount + 1;
+      setGarnishCount(next);
+      spawnParticles("✨", 3);
+      if (next === 2) {
+        setCookingStep("done");
+        speak("So beautiful! Selah's meal is ready to be served! 🍽️✨");
+      }
     }
   };
 
@@ -702,6 +791,16 @@ export function MyTalkingLamb() {
       happy = 40;
       ene = 20;
       dishName = "Manna Cookie Treat";
+    } else if (cookingRecipe === "berry_pancake") {
+      fill = 75;
+      happy = 50;
+      ene = 15;
+      dishName = "Sweet Berry Pancake";
+    } else if (cookingRecipe === "honey_glaze") {
+      fill = 80;
+      happy = 45;
+      ene = 25;
+      dishName = "Honey Glazed Oats";
     }
 
     setHunger((prev) => Math.min(prev + fill, 100));
@@ -713,8 +812,13 @@ export function MyTalkingLamb() {
     playEatingSound();
     speak(`Baa! That was so delicious! Fluffy tummy is full! (+🪙 10 reward) 🍽️✨`);
     
-    // Progress
+    // Progress challenges
     progressChallenge("feed", 1);
+    if (cookingRecipe === "clover") progressChallenge("cook_clover", 1);
+    else if (cookingRecipe === "apple_mash") progressChallenge("cook_apple", 1);
+    else if (cookingRecipe === "manna_cookie") progressChallenge("cook_manna", 1);
+    else if (cookingRecipe === "berry_pancake") progressChallenge("cook_berry", 1);
+    else if (cookingRecipe === "honey_glaze") progressChallenge("cook_honey", 1);
 
     // Reset cooking
     setIsCooking(false);
@@ -739,6 +843,7 @@ export function MyTalkingLamb() {
       setIsSleeping(true);
       setLastAction("sleeping");
       speak("Goodnight, sweet shepherd... Zzz... I love you... 🛌🌙");
+      progressChallenge("story", 1);
     }
   };
 
@@ -1003,9 +1108,21 @@ export function MyTalkingLamb() {
                     <span>🍪 Cookies</span>
                     <span className="font-bold">{cookieStock} left</span>
                   </div>
-                  <div className="flex justify-between items-center text-[9.5px]">
+                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
                     <span>🍞 Manna Bread</span>
                     <span className="font-bold">{mannaStock} left</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                    <span>🍓 Berries</span>
+                    <span className="font-bold">{berryStock} left</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                    <span>🍯 Honey Jar</span>
+                    <span className="font-bold">{honeyStock} left</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9.5px]">
+                    <span>🥛 Milk Bottle</span>
+                    <span className="font-bold">{milkStock} left</span>
                   </div>
                 </motion.div>
               )}
@@ -1106,7 +1223,7 @@ export function MyTalkingLamb() {
             className={`w-36 h-36 relative transition-all duration-300 focus:outline-none pointer-events-auto ${
               lastAction === "petting" ? "scale-105" : ""
             } ${lastAction === "feeding" ? "origin-bottom animate-bounce" : ""} ${
-              isSleeping && activeRoom === "bedroom" ? "translate-x-12 translate-y-6 rotate-[75deg] scale-95 opacity-80" : ""
+              isSleeping && activeRoom === "bedroom" ? "translate-x-24 -translate-y-6 rotate-[75deg] scale-85 opacity-95" : ""
             } ${activeRoom === "bathroom" ? "translate-y-4" : ""}`}
             style={{ animationDuration: "0.6s" }}
           >
@@ -1133,6 +1250,22 @@ export function MyTalkingLamb() {
               <circle cx="100" cy="142" r="18" fill="#FFFFFF" />
               <circle cx="90" cy="144" r="12" fill="#FFFFFF" />
               <circle cx="110" cy="144" r="12" fill="#FFFFFF" />
+
+              {/* Blanket overlay (only when sleeping in bedroom) */}
+              {isSleeping && activeRoom === "bedroom" && (
+                <g>
+                  {/* Blanket body covering legs & lower body */}
+                  <rect x="44" y="132" width="112" height="48" rx="8" fill="#F472B6" stroke="#DB2777" strokeWidth="2" />
+                  {/* Folded sheet top */}
+                  <rect x="44" y="128" width="112" height="10" rx="3" fill="#FFFFFF" stroke="#DB2777" strokeWidth="1.5" />
+                  {/* Cute blanket pattern (white stars/dots) */}
+                  <circle cx="65" cy="145" r="2" fill="#FFFFFF" />
+                  <circle cx="100" cy="145" r="2" fill="#FFFFFF" />
+                  <circle cx="135" cy="145" r="2" fill="#FFFFFF" />
+                  <circle cx="82" cy="160" r="2" fill="#FFFFFF" />
+                  <circle cx="118" cy="160" r="2" fill="#FFFFFF" />
+                </g>
+              )}
 
               {/* ears */}
               <g>
@@ -1311,7 +1444,7 @@ export function MyTalkingLamb() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              className="absolute left-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-4 rounded-[28px] shadow-2xl z-20 flex flex-col gap-2 w-52"
+              className="absolute left-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-4 rounded-[28px] shadow-2xl z-40 flex flex-col gap-2 w-52"
             >
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[9px] uppercase font-bold text-warm-cocoa/40 tracking-wider">Select Activity Room</span>
@@ -1413,7 +1546,7 @@ export function MyTalkingLamb() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              className="absolute right-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-4 rounded-[28px] shadow-2xl z-25 flex flex-col gap-3.5 w-60"
+              className="absolute right-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-4 rounded-[28px] shadow-2xl z-45 flex flex-col gap-3.5 w-60"
             >
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Selah Details</span>
@@ -1787,6 +1920,48 @@ export function MyTalkingLamb() {
                       🪙 20
                     </button>
                   </div>
+
+                  {/* Berries */}
+                  <div className="p-2.5 rounded-xl border border-stone-150 flex items-center justify-between bg-stone-50/20">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold">🍓 Sweet Berries (Stock: {berryStock})</span>
+                      <span className="text-[9px] text-stone-400">Sweet wild forest berries</span>
+                    </div>
+                    <button
+                      onClick={() => buyFood("berry", 15)}
+                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
+                    >
+                      🪙 15
+                    </button>
+                  </div>
+
+                  {/* Honey */}
+                  <div className="p-2.5 rounded-xl border border-stone-150 flex items-center justify-between bg-stone-50/20">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold">🍯 Golden Honey (Stock: {honeyStock})</span>
+                      <span className="text-[9px] text-stone-400">Pure organic clover honey</span>
+                    </div>
+                    <button
+                      onClick={() => buyFood("honey", 20)}
+                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
+                    >
+                      🪙 20
+                    </button>
+                  </div>
+
+                  {/* Milk */}
+                  <div className="p-2.5 rounded-xl border border-stone-150 flex items-center justify-between bg-stone-50/20">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold">🥛 Fresh Milk (Stock: {milkStock})</span>
+                      <span className="text-[9px] text-stone-400">Organic creamy pasture milk</span>
+                    </div>
+                    <button
+                      onClick={() => buyFood("milk", 12)}
+                      className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[9px] font-bold active:scale-95 transition-all cursor-pointer"
+                    >
+                      🪙 12
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1945,14 +2120,14 @@ export function MyTalkingLamb() {
 
               {/* STEP 1: CHOOSE A RECIPE */}
               {cookingStep === "choose" && (
-                <div className="flex-1 flex flex-col justify-center gap-3.5">
+                <div className="flex-1 flex flex-col justify-center gap-2.5 max-h-[300px] overflow-y-auto pr-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1">Select a Recipe</span>
                   
                   {/* Recipe 1: Clover Salad */}
                   <button
                     type="button"
                     onClick={() => startCooking("clover")}
-                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-emerald-50/20 hover:border-emerald-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
+                    className="p-3 rounded-2xl border border-stone-200 bg-white hover:bg-emerald-50/20 hover:border-emerald-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
                   >
                     <span className="flex flex-col text-left">
                       <span className="text-xs font-bold block text-emerald-800">🍀 Sweet Clover Salad</span>
@@ -1965,7 +2140,7 @@ export function MyTalkingLamb() {
                   <button
                     type="button"
                     onClick={() => startCooking("apple_mash")}
-                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-amber-50/20 hover:border-amber-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
+                    className="p-3 rounded-2xl border border-stone-200 bg-white hover:bg-amber-50/20 hover:border-amber-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
                   >
                     <span className="flex flex-col text-left">
                       <span className="text-xs font-bold block text-amber-800">🍎 Apple Clover Mash</span>
@@ -1978,7 +2153,7 @@ export function MyTalkingLamb() {
                   <button
                     type="button"
                     onClick={() => startCooking("manna_cookie")}
-                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-rose-50/20 hover:border-rose-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
+                    className="p-3 rounded-2xl border border-stone-200 bg-white hover:bg-rose-50/20 hover:border-rose-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
                   >
                     <span className="flex flex-col text-left">
                       <span className="text-xs font-bold block text-rose-800">🍞 Manna Cookie Treat</span>
@@ -1986,27 +2161,66 @@ export function MyTalkingLamb() {
                     </span>
                     <span className="text-[10.5px] font-bold text-rose-600">Feeds +65%</span>
                   </button>
+
+                  {/* Recipe 4: Sweet Berry Pancake */}
+                  <button
+                    type="button"
+                    onClick={() => startCooking("berry_pancake")}
+                    className="p-3 rounded-2xl border border-stone-200 bg-white hover:bg-rose-50/20 hover:border-rose-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
+                  >
+                    <span className="flex flex-col text-left">
+                      <span className="text-xs font-bold block text-rose-800">🍓 Sweet Berry Pancake</span>
+                      <span className="text-[8.5px] text-stone-400">Needs: 1 Berry ({berryStock} stock) + 1 Milk ({milkStock} stock)</span>
+                    </span>
+                    <span className="text-[10.5px] font-bold text-rose-600">Feeds +75%</span>
+                  </button>
+
+                  {/* Recipe 5: Honey Glazed Oats */}
+                  <button
+                    type="button"
+                    onClick={() => startCooking("honey_glaze")}
+                    className="p-3 rounded-2xl border border-stone-200 bg-white hover:bg-amber-50/20 hover:border-amber-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
+                  >
+                    <span className="flex flex-col text-left">
+                      <span className="text-xs font-bold block text-amber-800">🍯 Honey Glazed Oats</span>
+                      <span className="text-[8.5px] text-stone-400">Needs: 1 Honey ({honeyStock} stock) + 1 Milk ({milkStock} stock)</span>
+                    </span>
+                    <span className="text-[10.5px] font-bold text-amber-600">Feeds +80%</span>
+                  </button>
                 </div>
               )}
 
-              {/* STEP 2: SLICE THE INGREDIENTS */}
-              {cookingStep === "slice" && cookingRecipe && (
+              {/* STEP 2: CHOP THE INGREDIENTS */}
+              {cookingStep === "chop" && cookingRecipe && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 animate-pulse">
-                    Tap the board to slice the ingredients! ({sliceCount}/3)
+                    Tap the board to chop the ingredients! ({chopCount}/3)
                   </span>
 
                   {/* Cutting Board Table */}
                   <button
                     type="button"
-                    onClick={handleSliceClick}
-                    className="w-48 h-32 rounded-2xl bg-[#E6D5C3] border-4 border-[#B0927C] shadow-inner relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none"
+                    onClick={handleChopClick}
+                    className="w-56 h-36 rounded-2xl bg-[#E6D5C3] border-4 border-[#B0927C] shadow-inner relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none overflow-hidden"
                   >
-                    {/* Knife detail */}
-                    <span className="absolute top-2 right-2 text-sm select-none">🔪</span>
+                    <div className="absolute inset-0 bg-repeat opacity-10 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M0 5h10M5 0v10' stroke='%23000' stroke-width='0.5'/%3E%3C/svg%3E")` }} />
+
+                    {/* Animated Knife */}
+                    <motion.div
+                      animate={chopCount > 0 ? {
+                        rotate: [0, -35, 0],
+                        y: [0, -20, 0],
+                        x: [0, -5, 0]
+                      } : {}}
+                      key={chopCount}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="absolute right-6 top-6 text-3xl select-none z-20"
+                    >
+                      🔪
+                    </motion.div>
                     
                     {/* Ingredients Graphic representation */}
-                    <span className="relative">
+                    <span className="relative z-10 flex gap-2 items-center">
                       {cookingRecipe === "clover" && (
                         <span className="text-3xl select-none block">🍀</span>
                       )}
@@ -2019,15 +2233,27 @@ export function MyTalkingLamb() {
                           <span>🍪</span>
                         </span>
                       )}
+                      {cookingRecipe === "berry_pancake" && (
+                        <span className="flex gap-2 text-2xl select-none">
+                          <span>🍓</span>
+                          <span>🥛</span>
+                        </span>
+                      )}
+                      {cookingRecipe === "honey_glaze" && (
+                        <span className="flex gap-2 text-2xl select-none">
+                          <span>🍯</span>
+                          <span>🥛</span>
+                        </span>
+                      )}
 
                       {/* Cut lines overlay */}
-                      {sliceCount >= 1 && (
-                        <span className="absolute top-0 left-0 w-full h-full border-l-2 border-red-500/80 translate-x-[8px] transform rotate-12 block" />
+                      {chopCount >= 1 && (
+                        <span className="absolute top-0 left-0 w-full h-full border-l-2 border-red-500/80 translate-x-[10px] transform rotate-12 block" />
                       )}
-                      {sliceCount >= 2 && (
-                        <span className="absolute top-0 left-0 w-full h-full border-r-2 border-red-500/80 -translate-x-[8px] transform -rotate-12 block" />
+                      {chopCount >= 2 && (
+                        <span className="absolute top-0 left-0 w-full h-full border-r-2 border-red-500/80 -translate-x-[10px] transform -rotate-12 block" />
                       )}
-                      {sliceCount >= 3 && (
+                      {chopCount >= 3 && (
                         <span className="absolute top-1/2 left-0 w-full border-t-2 border-red-500/80 -translate-y-1/2 block" />
                       )}
                     </span>
@@ -2035,36 +2261,157 @@ export function MyTalkingLamb() {
                 </div>
               )}
 
-              {/* STEP 3: MIXING IN BOWL */}
-              {cookingStep === "mix" && (
+              {/* STEP 3: STOVE BOIL/COOK */}
+              {cookingStep === "stove" && cookingRecipe && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 animate-pulse">
+                    Tap the stove to boil and cook! ({stoveCount}/3)
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleStoveClick}
+                    className="w-52 h-44 rounded-3xl bg-stone-800 border-4 border-stone-700 shadow-xl relative flex flex-col items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none p-4"
+                  >
+                    {/* Glowing stove burner */}
+                    <div className="absolute w-32 h-32 rounded-full border-4 border-dashed border-red-600/30 flex items-center justify-center">
+                      <div className="w-24 h-24 rounded-full bg-radial from-red-500/30 to-transparent animate-pulse" />
+                    </div>
+                    {/* Hot glowing rings */}
+                    <div className={`absolute w-28 h-28 rounded-full border-2 border-red-500 transition-all duration-500 ${
+                      stoveCount === 1 ? "opacity-40 animate-pulse" :
+                      stoveCount === 2 ? "opacity-70 scale-105 border-red-600 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
+                      stoveCount === 3 ? "opacity-100 scale-110 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)] animate-pulse" :
+                      "opacity-20"
+                    }`} />
+
+                    {/* Boiling Pot */}
+                    <div className="relative z-10 flex flex-col items-center">
+                      {/* Floating Steam Particles */}
+                      <div className="absolute -top-12 flex gap-1 justify-center w-full">
+                        <motion.span
+                          animate={{ y: [-10, -40], x: [0, -5, 5, 0], opacity: [0, 0.8, 0], scale: [0.6, 1.2, 0.8] }}
+                          transition={{ repeat: Infinity, duration: 1.8, delay: 0.1 }}
+                          className="text-lg select-none filter blur-[0.5px]"
+                        >
+                          💨
+                        </motion.span>
+                        <motion.span
+                          animate={{ y: [-10, -35], x: [0, 5, -5, 0], opacity: [0, 0.8, 0], scale: [0.8, 1.1, 0.6] }}
+                          transition={{ repeat: Infinity, duration: 1.5, delay: 0.5 }}
+                          className="text-base select-none filter blur-[0.5px]"
+                        >
+                          💨
+                        </motion.span>
+                        <motion.span
+                          animate={{ y: [-10, -45], x: [0, -3, 3, 0], opacity: [0, 0.9, 0], scale: [0.5, 1, 0.5] }}
+                          transition={{ repeat: Infinity, duration: 2, delay: 0.9 }}
+                          className="text-xs select-none filter blur-[0.5px]"
+                        >
+                          💨
+                        </motion.span>
+                      </div>
+
+                      {/* Pot representation */}
+                      <div className="text-5xl select-none animate-bounce" style={{ animationDuration: "1s" }}>
+                        🍲
+                      </div>
+                      
+                      <span className="text-[8px] uppercase tracking-wider font-bold text-white/50 mt-1.5">
+                        {stoveCount === 3 ? "Fully Heated!" : "Boiling..."}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 4: STIR MIX */}
+              {cookingStep === "stir" && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 animate-pulse">
-                    Tap the mixing bowl to stir! ({mixCount}/3)
+                    Tap the mixing bowl to stir! ({stirCount}/3)
                   </span>
 
                   {/* Mixing Bowl Table */}
                   <button
                     type="button"
-                    onClick={handleMixClick}
-                    className="w-40 h-40 rounded-full bg-stone-50 border-4 border-rose-300 shadow-md relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none"
+                    onClick={handleStirClick}
+                    className="w-44 h-44 rounded-full bg-white border-4 border-rose-300 shadow-md relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none overflow-hidden"
                   >
                     {/* Swirly mix lines inside */}
-                    <svg width="100%" height="100%" viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none">
-                      <circle cx="50" cy="50" r="42" fill="none" stroke="#FDA4AF" strokeWidth="2" strokeDasharray="10 5" className={mixCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "3s" }} />
-                      <circle cx="50" cy="50" r="30" fill="none" stroke="#FDA4AF" strokeWidth="1.5" strokeDasharray="8 4" className={mixCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "2s", animationDirection: "reverse" }} />
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none z-0">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#FDA4AF" strokeWidth="2" strokeDasharray="10 5" className={stirCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "3s" }} />
+                      <circle cx="50" cy="50" r="30" fill="none" stroke="#FDA4AF" strokeWidth="1.5" strokeDasharray="8 4" className={stirCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "2s", animationDirection: "reverse" }} />
                     </svg>
 
+                    {/* Spoon animation overlay */}
+                    <motion.div
+                      animate={stirCount > 0 ? {
+                        rotate: [0, 360],
+                        x: [0, 10, 0, -10, 0],
+                        y: [0, -10, 0, 10, 0]
+                      } : {}}
+                      key={stirCount}
+                      transition={{ duration: 0.4, ease: "linear" }}
+                      className="absolute text-4xl select-none z-20 pointer-events-none"
+                    >
+                      🥄
+                    </motion.div>
+
                     {/* Sliced food elements inside */}
-                    <span className="flex gap-1 items-center z-10 text-xs">
+                    <span className="flex gap-1.5 items-center z-10 text-xs font-bold bg-white/40 p-1.5 rounded-full backdrop-blur-xs select-none">
                       {cookingRecipe === "clover" && <span>🍀🍀🍀</span>}
                       {cookingRecipe === "apple_mash" && <span>🍎🍀🍎</span>}
                       {cookingRecipe === "manna_cookie" && <span>🍞🍪🍞</span>}
+                      {cookingRecipe === "berry_pancake" && <span>🍓🥞🍓</span>}
+                      {cookingRecipe === "honey_glaze" && <span>🍯🥣🥛</span>}
                     </span>
                   </button>
                 </div>
               )}
 
-              {/* STEP 4: COOKED DONE SERVE */}
+              {/* STEP 5: GARNISH */}
+              {cookingStep === "garnish" && cookingRecipe && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4A5A5] animate-pulse">
+                    Tap to sprinkle pretty garnish toppings! ({garnishCount}/2)
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleGarnishClick}
+                    className="w-48 h-48 rounded-full bg-[#FCF8F2] border-4 border-dashed border-[#D4A5A5]/80 shadow-md relative flex flex-col items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none"
+                  >
+                    {/* Plate */}
+                    <div className="w-36 h-36 rounded-full bg-white border-2 border-stone-200 flex flex-col items-center justify-center shadow-md relative p-2">
+                      <span className="text-4xl animate-pulse">🍲</span>
+                      <span className="text-[8.5px] font-bold text-stone-500 uppercase tracking-wider mt-1 text-center">
+                        {cookingRecipe === "clover" ? "Clover Salad" :
+                         cookingRecipe === "apple_mash" ? "Apple Clover Mash" :
+                         cookingRecipe === "manna_cookie" ? "Manna Cookie Treat" :
+                         cookingRecipe === "berry_pancake" ? "Sweet Berry Pancake" :
+                         "Honey Glazed Oats"}
+                      </span>
+
+                      {/* Garnish elements overlay */}
+                      {garnishCount >= 1 && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-sm top-8 left-10">🌸</motion.span>
+                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-sm top-6 right-10">✨</motion.span>
+                        </div>
+                      )}
+                      {garnishCount >= 2 && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-xs bottom-8 left-12">🌿</motion.span>
+                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-xs bottom-10 right-12">🍓</motion.span>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 6: COOKED DONE SERVE */}
               {cookingStep === "done" && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 animate-bounce">
@@ -2074,8 +2421,12 @@ export function MyTalkingLamb() {
                   {/* Served food plate */}
                   <div className="w-36 h-36 rounded-full bg-white border-2 border-stone-200 flex flex-col items-center justify-center shadow-lg relative p-2">
                     <span className="text-3xl">🍲</span>
-                    <span className="text-[10px] font-bold text-warm-cocoa uppercase tracking-wider mt-1 text-center leading-tight">
-                      {cookingRecipe === "clover" ? "Clover Salad" : cookingRecipe === "apple_mash" ? "Apple Clover Mash" : "Manna Cookie Treat"}
+                    <span className="text-[10.5px] font-bold text-warm-cocoa uppercase tracking-wider mt-1.5 text-center leading-tight">
+                      {cookingRecipe === "clover" ? "Clover Salad" : 
+                       cookingRecipe === "apple_mash" ? "Apple Clover Mash" : 
+                       cookingRecipe === "manna_cookie" ? "Manna Cookie Treat" :
+                       cookingRecipe === "berry_pancake" ? "Sweet Berry Pancake" :
+                       "Honey Glazed Oats"}
                     </span>
                   </div>
 
@@ -2090,10 +2441,12 @@ export function MyTalkingLamb() {
 
               {/* Footer step indicators */}
               {cookingStep !== "choose" && (
-                <div className="w-full flex justify-center gap-1 text-[9px] font-bold text-stone-400 mt-2">
-                  <span className={cookingStep === "slice" ? "text-amber-700" : ""}>1. Slice</span> • 
-                  <span className={cookingStep === "mix" ? "text-rose-600" : ""}>2. Stir Mix</span> • 
-                  <span className={cookingStep === "done" ? "text-emerald-700" : ""}>3. Serve</span>
+                <div className="w-full flex justify-center gap-1.5 text-[9px] font-bold text-stone-400 mt-2">
+                  <span className={cookingStep === "chop" ? "text-amber-700 font-extrabold" : ""}>1. Chop</span> • 
+                  <span className={cookingStep === "stove" ? "text-red-600 font-extrabold" : ""}>2. Stove</span> • 
+                  <span className={cookingStep === "stir" ? "text-rose-600 font-extrabold" : ""}>3. Stir Mix</span> • 
+                  <span className={cookingStep === "garnish" ? "text-[#D4A5A5] font-extrabold" : ""}>4. Garnish</span> • 
+                  <span className={cookingStep === "done" ? "text-emerald-700 font-extrabold" : ""}>5. Serve</span>
                 </div>
               )}
             </motion.div>
