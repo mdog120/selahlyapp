@@ -778,14 +778,15 @@ export function MyTalkingLamb() {
         {/* TOY BALL FOR BACKYARD FETCH */}
         {activeRoom === "backyard" && (
           <div className="absolute left-10 bottom-16 z-10 flex flex-col items-center">
-            <motion.div
+            <motion.button
+              type="button"
               animate={isChasingBall ? { x: [0, 180, 0], y: [0, -60, 0], rotate: [0, 360, 0] } : {}}
               transition={{ duration: 2.0, ease: "easeInOut" }}
               onClick={handlePlayBall}
-              className="w-9 h-9 rounded-full bg-red-400 border border-red-500 flex items-center justify-center text-lg shadow-md cursor-pointer active:scale-90 select-none"
+              className="w-9 h-9 rounded-full bg-red-400 border border-red-500 flex items-center justify-center text-lg shadow-md cursor-pointer active:scale-90 select-none focus:outline-none"
             >
               ⚽
-            </motion.div>
+            </motion.button>
             <span className="text-[8px] uppercase tracking-wider font-bold text-stone-700/60 mt-1 select-none pointer-events-none">
               Play Fetch
             </span>
@@ -843,8 +844,10 @@ export function MyTalkingLamb() {
           )}
 
           {/* Lamb Drawing with Dynamic Expressions & Stink Lines */}
-          <div
-            className={`w-36 h-36 relative transition-all duration-300 ${
+          <button
+            type="button"
+            onClick={handlePet}
+            className={`w-36 h-36 relative transition-all duration-300 focus:outline-none ${
               lastAction === "petting" ? "scale-105" : ""
             } ${lastAction === "feeding" ? "origin-bottom animate-bounce" : ""} ${
               isSleeping && activeRoom === "bedroom" ? "translate-x-12 translate-y-6 rotate-[75deg] scale-95 opacity-80" : ""
@@ -1011,7 +1014,7 @@ export function MyTalkingLamb() {
                 </g>
               )}
             </svg>
-          </div>
+          </button>
         </div>
 
         {/* BOTTOM HUD PANEL */}
@@ -1298,30 +1301,32 @@ export function MyTalkingLamb() {
               <div className="grid grid-cols-2 gap-4 border border-dashed border-stone-300 p-4 rounded-3xl bg-stone-50/50 relative">
                 
                 {/* 1. Bedroom (Top-Left) */}
-                <div
+                <button
+                  type="button"
                   onClick={() => travelToRoom("bedroom")}
-                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all text-left w-full focus:outline-none ${
                     activeRoom === "bedroom"
                       ? "bg-rose-50 border-rose-300 shadow-sm"
                       : "bg-white hover:bg-stone-50 border-stone-200"
                   }`}
                 >
-                  <div className="flex justify-between items-start">
+                  <span className="flex justify-between items-start w-full">
                     <span className="text-[11px] font-bold text-warm-cocoa">Bedroom</span>
                     <span className="text-sm">🛌</span>
-                  </div>
+                  </span>
                   <span className="text-[9px] text-stone-400 italic">
                     {activeRoom === "bedroom" ? "Selah is here" : "Click to go"}
                   </span>
-                </div>
+                </button>
 
                 {/* 2. Bathroom (Top-Right - Unlockable) */}
-                <div
+                <button
+                  type="button"
                   onClick={() => {
                     if (unlockedRooms.includes("bathroom")) travelToRoom("bathroom");
                     else unlockRoom("bathroom", 60);
                   }}
-                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all text-left w-full focus:outline-none ${
                     !unlockedRooms.includes("bathroom")
                       ? "bg-stone-100 border-stone-200 opacity-80"
                       : activeRoom === "bathroom"
@@ -1329,10 +1334,10 @@ export function MyTalkingLamb() {
                       : "bg-white hover:bg-stone-50 border-stone-200"
                   }`}
                 >
-                  <div className="flex justify-between items-start">
+                  <span className="flex justify-between items-start w-full">
                     <span className="text-[11px] font-bold text-warm-cocoa">Bathroom</span>
                     <span className="text-sm">🛁</span>
-                  </div>
+                  </span>
                   {unlockedRooms.includes("bathroom") ? (
                     <span className="text-[9px] text-stone-400 italic">
                       {activeRoom === "bathroom" ? "Selah is here" : "Click to go"}
@@ -1342,51 +1347,54 @@ export function MyTalkingLamb() {
                       <Lock className="w-2.5 h-2.5" /> 🪙 60
                     </span>
                   )}
-                </div>
+                </button>
 
                 {/* 3. Living Room (Bottom-Left) */}
-                <div
+                <button
+                  type="button"
                   onClick={() => travelToRoom("living")}
-                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all text-left w-full focus:outline-none ${
                     activeRoom === "living"
                       ? "bg-rose-50 border-rose-300 shadow-sm"
                       : "bg-white hover:bg-stone-50 border-stone-200"
                   }`}
                 >
-                  <div className="flex justify-between items-start">
+                  <span className="flex justify-between items-start w-full">
                     <span className="text-[11px] font-bold text-warm-cocoa">Living Room</span>
                     <span className="text-sm">🏠</span>
-                  </div>
+                  </span>
                   <span className="text-[9px] text-stone-400 italic">
                     {activeRoom === "living" ? "Selah is here" : "Click to go"}
                   </span>
-                </div>
+                </button>
 
                 {/* 4. Kitchen (Bottom-Right) */}
-                <div
+                <button
+                  type="button"
                   onClick={() => travelToRoom("kitchen")}
-                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all text-left w-full focus:outline-none ${
                     activeRoom === "kitchen"
                       ? "bg-emerald-50 border-emerald-300 shadow-sm"
                       : "bg-white hover:bg-stone-50 border-stone-200"
                   }`}
                 >
-                  <div className="flex justify-between items-start">
+                  <span className="flex justify-between items-start w-full">
                     <span className="text-[11px] font-bold text-warm-cocoa">Kitchen</span>
                     <span className="text-sm">🍳</span>
-                  </div>
+                  </span>
                   <span className="text-[9px] text-stone-400 italic">
                     {activeRoom === "kitchen" ? "Selah is here" : "Click to go"}
                   </span>
-                </div>
+                </button>
 
                 {/* 5. Backyard (Bottom span - Unlockable) */}
-                <div
+                <button
+                  type="button"
                   onClick={() => {
                     if (unlockedRooms.includes("backyard")) travelToRoom("backyard");
                     else unlockRoom("backyard", 100);
                   }}
-                  className={`col-span-2 p-4 h-20 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`col-span-2 p-4 h-20 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all text-left w-full focus:outline-none ${
                     !unlockedRooms.includes("backyard")
                       ? "bg-stone-100 border-stone-200 opacity-80"
                       : activeRoom === "backyard"
@@ -1394,11 +1402,11 @@ export function MyTalkingLamb() {
                       : "bg-white hover:bg-stone-50 border-stone-200"
                   }`}
                 >
-                  <div className="flex justify-between items-center w-full">
-                    <div className="flex items-center gap-2">
+                  <span className="flex justify-between items-center w-full">
+                    <span className="flex items-center gap-2">
                       <span className="text-xs font-bold text-warm-cocoa">Backyard Field</span>
                       <span className="text-sm">⚽</span>
-                    </div>
+                    </span>
                     {unlockedRooms.includes("backyard") ? (
                       <span className="text-[9px] text-stone-400 italic">
                         {activeRoom === "backyard" ? "Selah is here" : "Click to go"}
@@ -1408,8 +1416,8 @@ export function MyTalkingLamb() {
                         <Lock className="w-2.5 h-2.5" /> Unlock Backyard (🪙 100)
                       </span>
                     )}
-                  </div>
-                </div>
+                  </span>
+                </button>
 
               </div>
             </motion.div>
@@ -1685,40 +1693,43 @@ export function MyTalkingLamb() {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1">Select a Recipe</span>
                   
                   {/* Recipe 1: Clover Salad */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => startCooking("clover")}
-                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-emerald-50/20 hover:border-emerald-300 transition-all cursor-pointer flex justify-between items-center text-left"
+                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-emerald-50/20 hover:border-emerald-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
                   >
-                    <div>
+                    <span className="flex flex-col text-left">
                       <span className="text-xs font-bold block text-emerald-800">🍀 Sweet Clover Salad</span>
                       <span className="text-[8.5px] text-stone-400">Needs: Clover (∞)</span>
-                    </div>
+                    </span>
                     <span className="text-[10.5px] font-bold text-emerald-600">Feeds +20%</span>
-                  </div>
+                  </button>
 
                   {/* Recipe 2: Apple Clover Mash */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => startCooking("apple_mash")}
-                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-amber-50/20 hover:border-amber-300 transition-all cursor-pointer flex justify-between items-center text-left"
+                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-amber-50/20 hover:border-amber-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
                   >
-                    <div>
+                    <span className="flex flex-col text-left">
                       <span className="text-xs font-bold block text-amber-800">🍎 Apple Clover Mash</span>
                       <span className="text-[8.5px] text-stone-400">Needs: 1 Apple ({applesStock} stock) + Clover</span>
-                    </div>
+                    </span>
                     <span className="text-[10.5px] font-bold text-amber-600">Feeds +45%</span>
-                  </div>
+                  </button>
 
                   {/* Recipe 3: Manna Cookie Treat */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => startCooking("manna_cookie")}
-                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-rose-50/20 hover:border-rose-300 transition-all cursor-pointer flex justify-between items-center text-left"
+                    className="p-3.5 rounded-2xl border border-stone-200 bg-white hover:bg-rose-50/20 hover:border-rose-300 transition-all cursor-pointer flex justify-between items-center text-left w-full focus:outline-none"
                   >
-                    <div>
+                    <span className="flex flex-col text-left">
                       <span className="text-xs font-bold block text-rose-800">🍞 Manna Cookie Treat</span>
                       <span className="text-[8.5px] text-stone-400">Needs: 1 Manna ({mannaStock} stock) + 1 Cookie ({cookieStock} stock)</span>
-                    </div>
+                    </span>
                     <span className="text-[10.5px] font-bold text-rose-600">Feeds +65%</span>
-                  </div>
+                  </button>
                 </div>
               )}
 
@@ -1730,40 +1741,41 @@ export function MyTalkingLamb() {
                   </span>
 
                   {/* Cutting Board Table */}
-                  <div
+                  <button
+                    type="button"
                     onClick={handleSliceClick}
-                    className="w-48 h-32 rounded-2xl bg-[#E6D5C3] border-4 border-[#B0927C] shadow-inner relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none"
+                    className="w-48 h-32 rounded-2xl bg-[#E6D5C3] border-4 border-[#B0927C] shadow-inner relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none"
                   >
                     {/* Knife detail */}
-                    <div className="absolute top-2 right-2 text-sm select-none">🔪</div>
+                    <span className="absolute top-2 right-2 text-sm select-none">🔪</span>
                     
                     {/* Ingredients Graphic representation */}
-                    <div className="relative">
+                    <span className="relative">
                       {cookingRecipe === "clover" && (
-                        <div className="text-3xl select-none">🍀</div>
+                        <span className="text-3xl select-none block">🍀</span>
                       )}
                       {cookingRecipe === "apple_mash" && (
-                        <div className="text-3xl select-none">🍎</div>
+                        <span className="text-3xl select-none block">🍎</span>
                       )}
                       {cookingRecipe === "manna_cookie" && (
-                        <div className="flex gap-2 text-2xl select-none">
+                        <span className="flex gap-2 text-2xl select-none">
                           <span>🍞</span>
                           <span>🍪</span>
-                        </div>
+                        </span>
                       )}
 
                       {/* Cut lines overlay */}
                       {sliceCount >= 1 && (
-                        <div className="absolute top-0 left-0 w-full h-full border-l-2 border-red-500/80 translate-x-[8px] transform rotate-12" />
+                        <span className="absolute top-0 left-0 w-full h-full border-l-2 border-red-500/80 translate-x-[8px] transform rotate-12 block" />
                       )}
                       {sliceCount >= 2 && (
-                        <div className="absolute top-0 left-0 w-full h-full border-r-2 border-red-500/80 -translate-x-[8px] transform -rotate-12" />
+                        <span className="absolute top-0 left-0 w-full h-full border-r-2 border-red-500/80 -translate-x-[8px] transform -rotate-12 block" />
                       )}
                       {sliceCount >= 3 && (
-                        <div className="absolute top-1/2 left-0 w-full border-t-2 border-red-500/80 -translate-y-1/2" />
+                        <span className="absolute top-1/2 left-0 w-full border-t-2 border-red-500/80 -translate-y-1/2 block" />
                       )}
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                 </div>
               )}
 
@@ -1775,9 +1787,10 @@ export function MyTalkingLamb() {
                   </span>
 
                   {/* Mixing Bowl Table */}
-                  <div
+                  <button
+                    type="button"
                     onClick={handleMixClick}
-                    className="w-40 h-40 rounded-full bg-stone-50 border-4 border-rose-300 shadow-md relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none"
+                    className="w-40 h-40 rounded-full bg-stone-50 border-4 border-rose-300 shadow-md relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none"
                   >
                     {/* Swirly mix lines inside */}
                     <svg width="100%" height="100%" viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none">
@@ -1786,12 +1799,12 @@ export function MyTalkingLamb() {
                     </svg>
 
                     {/* Sliced food elements inside */}
-                    <div className="flex gap-1 items-center z-10 text-xs">
+                    <span className="flex gap-1 items-center z-10 text-xs">
                       {cookingRecipe === "clover" && <span>🍀🍀🍀</span>}
                       {cookingRecipe === "apple_mash" && <span>🍎🍀🍎</span>}
                       {cookingRecipe === "manna_cookie" && <span>🍞🍪🍞</span>}
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                 </div>
               )}
 
