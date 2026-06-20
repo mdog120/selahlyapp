@@ -58,6 +58,12 @@ const GAMES = [
     game_type: "bible_monopoly",
     description: "Buy Bible lands and collect rent",
   },
+  {
+    emoji: "🌸",
+    label: "Bible Hangman",
+    game_type: "hangman",
+    description: "Guess Bible terms together to save the blooming flower",
+  },
 ];
 
 const MAX_INVITES = 4;
