@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingBag, Heart, Lock, Check, Sparkles, RefreshCw } from "lucide-react";
+import { X, ShoppingBag, Heart, Lock, Check, Sparkles, Coffee, ChefHat, Trash2 } from "lucide-react";
 
 // --- Types & Data ---
 type AnimalType = "bunny" | "bear" | "kitty" | "fox" | "lamb";
+type CustState = "walking_in" | "waiting_food" | "eating" | "leaving";
 
 interface MenuItem {
   id: string;
@@ -33,7 +34,17 @@ interface Customer {
   order: string[]; // item IDs
   patience: number; // 0 to 100
   maxPatience: number;
-  joinedTime: number;
+  state: CustState;
+  targetTableId: number | null; // null if take-out register queue
+  x: number;
+}
+
+interface Table {
+  id: number;
+  name: string;
+  x: number;
+  status: "vacant" | "occupied" | "dirty";
+  customerId: string | null;
 }
 
 interface UpgradeItem {
@@ -62,11 +73,12 @@ const SCRAMBLE_WORDS: ScrambleWord[] = [
 ];
 
 // --- Cute Animal SVG Component ---
-const CustomerAnimal: React.FC<{ type: AnimalType; patience: number }> = ({ type, patience }) => {
-  const isSad = patience < 35;
+const CustomerAnimal: React.FC<{ type: AnimalType; patience: number; state: CustState }> = ({ type, patience, state }) => {
+  const isSad = patience < 35 && state !== "eating";
+  const isEating = state === "eating";
 
   return (
-    <svg viewBox="0 0 100 100" className="w-16 h-16 filter drop-shadow-md select-none pointer-events-none">
+    <svg viewBox="0 0 100 100" className="w-14 h-14 filter drop-shadow-md select-none pointer-events-none">
       {/* 1. Bunny */}
       {type === "bunny" && (
         <g>
@@ -80,7 +92,12 @@ const CustomerAnimal: React.FC<{ type: AnimalType; patience: number }> = ({ type
           {/* Head */}
           <circle cx="50" cy="55" r="24" fill="#FFF8FB" stroke="#F5D3E3" strokeWidth="1.5" />
           {/* Eyes */}
-          {isSad ? (
+          {isEating ? (
+            <>
+              <path d="M 38 48 Q 41 53 44 48" fill="none" stroke="#4A343F" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 56 48 Q 59 53 62 48" fill="none" stroke="#4A343F" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
             <>
               <path d="M 38 52 Q 43 47 45 53" fill="none" stroke="#4A343F" strokeWidth="2" strokeLinecap="round" />
               <path d="M 55 53 Q 57 47 62 52" fill="none" stroke="#4A343F" strokeWidth="2" strokeLinecap="round" />
@@ -115,7 +132,12 @@ const CustomerAnimal: React.FC<{ type: AnimalType; patience: number }> = ({ type
           {/* Snout */}
           <ellipse cx="50" cy="64" rx="8" ry="6" fill="#FFF" stroke="#E0D7D7" strokeWidth="1" />
           {/* Eyes */}
-          {isSad ? (
+          {isEating ? (
+            <>
+              <path d="M 38 50 Q 41 54 44 50" fill="none" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 56 50 Q 59 54 62 50" fill="none" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
             <>
               <path d="M 39 54 L 44 54" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M 56 54 L 61 54" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
@@ -145,7 +167,12 @@ const CustomerAnimal: React.FC<{ type: AnimalType; patience: number }> = ({ type
           {/* Head */}
           <ellipse cx="50" cy="58" rx="23" ry="20" fill="#F5F5F5" stroke="#E0E0E0" strokeWidth="1.5" />
           {/* Eyes */}
-          {isSad ? (
+          {isEating ? (
+            <>
+              <path d="M 37 50 Q 40 55 43 50" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 57 50 Q 60 55 63 50" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
             <>
               <path d="M 37 54 C 37 50, 43 50, 43 54" fill="none" stroke="#37474F" strokeWidth="2" strokeLinecap="round" />
               <path d="M 57 54 C 57 50, 63 50, 63 54" fill="none" stroke="#37474F" strokeWidth="2" strokeLinecap="round" />
@@ -182,7 +209,12 @@ const CustomerAnimal: React.FC<{ type: AnimalType; patience: number }> = ({ type
           <polygon points="74,50 62,50 72,64" fill="#FFF" />
           
           {/* Eyes */}
-          {isSad ? (
+          {isEating ? (
+            <>
+              <path d="M 35 45 Q 39 49 43 45" fill="none" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 57 45 Q 61 49 65 45" fill="none" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
             <>
               <path d="M 36 48 L 42 50" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M 64 48 L 58 50" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
@@ -213,7 +245,12 @@ const CustomerAnimal: React.FC<{ type: AnimalType; patience: number }> = ({ type
           {/* Head */}
           <ellipse cx="50" cy="56" rx="20" ry="17" fill="#FFFAFA" stroke="#E6D3D3" strokeWidth="1.5" />
           {/* Eyes */}
-          {isSad ? (
+          {isEating ? (
+            <>
+              <path d="M 39 49 Q 42 53 45 49" fill="none" stroke="#4E342E" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 55 49 Q 58 53 61 49" fill="none" stroke="#4E342E" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
             <>
               <path d="M 40 54 Q 44 50 46 55" fill="none" stroke="#4E342E" strokeWidth="2" strokeLinecap="round" />
               <path d="M 60 54 Q 56 50 54 55" fill="none" stroke="#4E342E" strokeWidth="2" strokeLinecap="round" />
@@ -244,7 +281,14 @@ export const GraceCafe: React.FC = () => {
   const [shopRating, setShopRating] = useState(90); // 0-100%
   const [customers, setCustomers] = useState<Customer[]>([]);
 
-  // Stations
+  // Tables State (3 Tables: Table 1 at x=380, Table 2 at x=500, Table 3 at x=620)
+  const [tables, setTables] = useState<Table[]>([
+    { id: 1, name: "Cozy Table 1", x: 390, status: "vacant", customerId: null },
+    { id: 2, name: "Cozy Table 2", x: 510, status: "vacant", customerId: null },
+    { id: 3, name: "Cozy Table 3", x: 630, status: "vacant", customerId: null }
+  ]);
+
+  // Stations queues and Counter items
   const [brewQueue, setBrewQueue] = useState<{ id: string; name: string; progress: number; duration: number }[]>([]);
   const [bakeQueue, setBakeQueue] = useState<{ id: string; name: string; progress: number; duration: number }[]>([]);
   const [pickupCounter, setPickupCounter] = useState<{ id: string; name: string; emoji: string }[]>([]);
@@ -279,7 +323,7 @@ export const GraceCafe: React.FC = () => {
 
   // --- Local Storage Sync ---
   useEffect(() => {
-    const saved = localStorage.getItem("selahly_grace_cafe_v1");
+    const saved = localStorage.getItem("selahly_grace_cafe_v2");
     if (saved) {
       try {
         const data = JSON.parse(saved);
@@ -295,7 +339,7 @@ export const GraceCafe: React.FC = () => {
 
   const saveStats = (updatedCoins: number, updatedDay: number, updatedRating: number, updatedUpgrades: UpgradeItem[]) => {
     localStorage.setItem(
-      "selahly_grace_cafe_v1",
+      "selahly_grace_cafe_v2",
       JSON.stringify({
         coins: updatedCoins,
         day: updatedDay,
@@ -307,13 +351,14 @@ export const GraceCafe: React.FC = () => {
 
   // --- Customer Spawn System ---
   const spawnCustomer = () => {
+    if (!isShiftActive) return;
+
     setCustomers((prev) => {
-      if (prev.length >= 4) return prev;
-      
+      if (prev.length >= 5) return prev; // Limit total active screen characters to 5
+
       const animalPool: AnimalType[] = ["bunny", "bear", "kitty", "fox", "lamb"];
       const randAnimal = animalPool[Math.floor(Math.random() * animalPool.length)];
-      
-      // Determine order: 1 or 2 items
+
       const orderSize = Math.random() > 0.65 ? 2 : 1;
       const orderItems: string[] = [];
       for (let i = 0; i < orderSize; i++) {
@@ -321,9 +366,24 @@ export const GraceCafe: React.FC = () => {
         orderItems.push(item.id);
       }
 
-      // Check if decor upgrades increase patience limit
+      // Check decor upgrades for patience
       const hasFrame = upgrades.find((u) => u.id === "scripture_frame")?.purchased;
       const baseMax = hasFrame ? 120 : 100;
+
+      // Find a vacant dining table
+      let chosenTableId: number | null = null;
+      let targetX = 220; // Default register queue position
+
+      setTables((currTables) => {
+        const vacantTable = currTables.find((t) => t.status === "vacant");
+        if (vacantTable) {
+          chosenTableId = vacantTable.id;
+          targetX = vacantTable.x;
+          // Set table as occupied
+          return currTables.map((t) => (t.id === vacantTable.id ? { ...t, status: "occupied" } : t));
+        }
+        return currTables;
+      });
 
       const newCust: Customer = {
         id: Math.random().toString(),
@@ -331,10 +391,20 @@ export const GraceCafe: React.FC = () => {
         order: orderItems,
         patience: baseMax,
         maxPatience: baseMax,
-        joinedTime: Date.now()
+        state: "walking_in",
+        targetTableId: chosenTableId,
+        x: targetX
       };
 
-      setTextLog(`A cute ${randAnimal} customer has arrived and ordered: ${orderItems.map(id => MENU.find(m => m.id === id)?.name).join(", ")}!`);
+      // Set state to waiting food after arrival animation (2 seconds)
+      setTimeout(() => {
+        setCustomers((curr) => 
+          curr.map((cust) => (cust.id === newCust.id && cust.state === "walking_in" ? { ...cust, state: "waiting_food" } : cust))
+        );
+      }, 2000);
+
+      const tableText = chosenTableId ? `taking seat at Cozy Table ${chosenTableId}` : "standing in the counter register queue";
+      setTextLog(`A cute ${randAnimal} customer walked in, ${tableText}, and ordered: ${orderItems.map(id => MENU.find(m => m.id === id)?.name).join(", ")}!`);
       return [...prev, newCust];
     });
   };
@@ -343,7 +413,7 @@ export const GraceCafe: React.FC = () => {
   useEffect(() => {
     if (!isShiftActive) return;
 
-    // Helper Joy brews basic living water tea automatically every 5.5s if requested in queue
+    // Helper Joy brews Living Water Tea automatically
     const joyHired = upgrades.find(u => u.id === "helper_joy")?.purchased;
     let joyTimer: NodeJS.Timeout;
     if (joyHired) {
@@ -351,12 +421,12 @@ export const GraceCafe: React.FC = () => {
         const needsTea = customers.some(c => c.order.includes("living_water"));
         if (needsTea) {
           startBrew("living_water");
-          setTextLog("Assistant Joy brews Living Water Tea for the queue!");
+          setTextLog("Joy the Barista automatically brews Living Water Tea!");
         }
       }, 5500);
     }
 
-    // Helper Grace bakes Muffin automatically every 7.5s
+    // Helper Grace bakes Daily Bread Muffins automatically
     const graceHired = upgrades.find(u => u.id === "helper_grace")?.purchased;
     let graceTimer: NodeJS.Timeout;
     if (graceHired) {
@@ -364,7 +434,7 @@ export const GraceCafe: React.FC = () => {
         const needsMuffin = customers.some(c => c.order.includes("daily_bread"));
         if (needsMuffin) {
           startBake("daily_bread");
-          setTextLog("Baker Grace slides a Daily Bread Muffin into the oven!");
+          setTextLog("Baker Grace automatically slots a Daily Bread Muffin in the oven!");
         }
       }, 7500);
     }
@@ -378,7 +448,7 @@ export const GraceCafe: React.FC = () => {
   // --- Core Game Loops (Time & Patience) ---
   useEffect(() => {
     if (isShiftActive) {
-      // 1. Shift Timer (60s countdown)
+      // 1. Shift Timer
       shiftIntervalRef.current = setInterval(() => {
         setDayTime((prev) => {
           if (prev <= 1) {
@@ -389,10 +459,10 @@ export const GraceCafe: React.FC = () => {
         });
       }, 1000);
 
-      // 2. Spawn Customers periodically
+      // 2. Spawn Customers
       queueIntervalRef.current = setInterval(() => {
         spawnCustomer();
-      }, 7000 + Math.random() * 4000);
+      }, 8000 + Math.random() * 4000);
     }
 
     return () => {
@@ -401,29 +471,42 @@ export const GraceCafe: React.FC = () => {
     };
   }, [isShiftActive]);
 
-  // 3. Customer patience countdown loop
+  // 3. Customer patience and table state cleanup
   useEffect(() => {
     let patienceInterval: NodeJS.Timeout;
     if (isShiftActive) {
       patienceInterval = setInterval(() => {
         const hasVines = upgrades.find(u => u.id === "hanging_plants")?.purchased;
-        // Drains 15% slower if they bought Vines
         const drainAmount = hasVines ? 1.7 : 2.0;
 
         setCustomers((prev) => {
-          const updated = prev.map((c) => ({
-            ...c,
-            patience: Math.max(0, c.patience - drainAmount)
-          }));
+          const updated = prev.map((c) => {
+            if (c.state === "eating" || c.state === "leaving") return c;
+            return {
+              ...c,
+              patience: Math.max(0, c.patience - drainAmount)
+            };
+          });
 
-          // Remove customers who lost all patience
-          const angryCustomers = updated.filter((c) => c.patience <= 0);
-          if (angryCustomers.length > 0) {
-            setShopRating((r) => Math.max(30, r - 5 * angryCustomers.length));
-            setTextLog("Oh no! A customer lost patience and left. Ratings decreased.");
+          // Identify leaving customers
+          const lostPatience = updated.filter((c) => c.patience <= 0 && c.state !== "eating" && c.state !== "leaving");
+          if (lostPatience.length > 0) {
+            setShopRating((r) => Math.max(30, r - 5 * lostPatience.length));
+            setTextLog("A customer lost patience and walked out! Ratings dropped.");
+            
+            // Clean table ownership
+            setTables((currTables) => 
+              currTables.map((t) => {
+                const associatedLeaving = lostPatience.find((l) => l.targetTableId === t.id);
+                if (associatedLeaving) {
+                  return { ...t, status: "vacant", customerId: null };
+                }
+                return t;
+              })
+            );
           }
 
-          return updated.filter((c) => c.patience > 0);
+          return updated.filter((c) => c.patience > 0 || c.state === "eating" || c.state === "leaving");
         });
       }, 1000);
     }
@@ -446,7 +529,7 @@ export const GraceCafe: React.FC = () => {
             completed.forEach((c) => {
               setPickupCounter((curr) => [...curr, { id: c.id, name: c.name, emoji: MENU.find(m => m.id === c.id)?.emoji || "☕" }]);
             });
-            setTextLog(`Brew finished! Pickup counter loaded with fresh beverages.`);
+            setTextLog("Fresh beverage prepared and placed on counter.");
           }
           return next.filter((item) => item.progress < item.duration);
         });
@@ -459,7 +542,7 @@ export const GraceCafe: React.FC = () => {
             completed.forEach((c) => {
               setPickupCounter((curr) => [...curr, { id: c.id, name: c.name, emoji: MENU.find(m => m.id === c.id)?.emoji || "🧁" }]);
             });
-            setTextLog(`Oven DING! Pastries finished baking.`);
+            setTextLog("Oven DING! Baked pastry added to pickup counter.");
           }
           return next.filter((item) => item.progress < item.duration);
         });
@@ -476,11 +559,16 @@ export const GraceCafe: React.FC = () => {
     setIsShiftActive(true);
     setDayTime(60);
     setCustomers([]);
+    setTables([
+      { id: 1, name: "Cozy Table 1", x: 390, status: "vacant", customerId: null },
+      { id: 2, name: "Cozy Table 2", x: 510, status: "vacant", customerId: null },
+      { id: 3, name: "Cozy Table 3", x: 630, status: "vacant", customerId: null }
+    ]);
     setBrewQueue([]);
     setBakeQueue([]);
     setPickupCounter([]);
     setCoinsEarnedToday(0);
-    setTextLog(`Day ${day} started! Preparing to open registers... ☕`);
+    setTextLog(`Day ${day} started! Preparing dining tables and registers... ☕`);
     spawnCustomer();
   };
 
@@ -502,7 +590,6 @@ export const GraceCafe: React.FC = () => {
       saveStats(nextCoins, nextDay, shopRating, upgrades);
       setTextLog(`Rent of 15 Gold Coins paid successfully! Ready for Day ${nextDay}.`);
     } else {
-      // Trigger Grace Period unscramble mini-game!
       setIsScrambleActive(true);
       startScrambleWord();
     }
@@ -513,48 +600,59 @@ export const GraceCafe: React.FC = () => {
     const recipe = MENU.find((m) => m.id === itemId);
     if (!recipe) return;
 
-    // Check cost
     if (coins < recipe.cost) {
-      setTextLog("Baa! Not enough Gold Coins to buy ingredients for this recipe!");
+      setTextLog("Baa! Not enough Gold Coins for ingredients!");
       return;
     }
 
-    // Pro machine modifier (40% speed up)
     const hasProMachine = upgrades.find((u) => u.id === "espresso_pro")?.purchased;
     const duration = hasProMachine ? Math.round(recipe.prepTime * 0.6) : recipe.prepTime;
 
     setCoins((c) => c - recipe.cost);
     setBrewQueue((prev) => [...prev, { id: recipe.id, name: recipe.name, progress: 0, duration }]);
-    setTextLog(`Started brewing: ${recipe.name} (${duration}s timer)`);
+    setTextLog(`Started brewing: ${recipe.name}`);
   };
 
   const startBake = (itemId: string) => {
     const recipe = MENU.find((m) => m.id === itemId);
     if (!recipe) return;
 
-    // Check cost
     if (coins < recipe.cost) {
-      setTextLog("Baa! Not enough Gold Coins to buy ingredients for this recipe!");
+      setTextLog("Baa! Not enough Gold Coins for ingredients!");
       return;
     }
 
-    // Pro oven modifier (35% speed up)
     const hasProOven = upgrades.find((u) => u.id === "oven_pro")?.purchased;
     const duration = hasProOven ? Math.round(recipe.prepTime * 0.65) : recipe.prepTime;
 
     setCoins((c) => c - recipe.cost);
     setBakeQueue((prev) => [...prev, { id: recipe.id, name: recipe.name, progress: 0, duration }]);
-    setTextLog(`Baking in progress: ${recipe.name} (${duration}s timer)`);
+    setTextLog(`Started baking: ${recipe.name}`);
   };
 
   const discardPickup = (index: number) => {
     setPickupCounter((prev) => prev.filter((_, i) => i !== index));
-    setTextLog("Discarded food item from pickup counter.");
+    setTextLog("Discarded food item.");
+  };
+
+  // --- Dining Table bussing / Clean table ---
+  const busTable = (tableId: number) => {
+    setTables((curr) => 
+      curr.map((t) => {
+        if (t.id === tableId && t.status === "dirty") {
+          setCoins((c) => c + 1); // small cleaning reward
+          setTextLog(`Table cleaned! Earned +1 Gold Coin. Table is now vacant. ✨`);
+          return { ...t, status: "vacant" };
+        }
+        return t;
+      })
+    );
   };
 
   // --- Serve Customer ---
   const serveCustomer = (customer: Customer) => {
-    // Check if pickup counter has all elements requested by the customer
+    if (customer.state !== "waiting_food") return;
+
     const orderList = [...customer.order];
     const pickupList = [...pickupCounter];
 
@@ -579,25 +677,56 @@ export const GraceCafe: React.FC = () => {
         return acc + (item ? item.price : 0);
       }, 0);
 
-      // Patience bonus (extra coins if served quickly)
       const patienceBonus = customer.patience > customer.maxPatience * 0.75 ? 3 : 0;
       const finalEarning = totalEarned + patienceBonus;
 
-      setCoins((c) => c + finalEarning);
-      setCoinsEarnedToday((c) => c + finalEarning);
-      setShopRating((r) => Math.min(100, r + 2));
+      // Update customer state to eating
+      setCustomers((prev) => 
+        prev.map((c) => (c.id === customer.id ? { ...c, state: "eating", patience: c.maxPatience } : c))
+      );
 
-      // Remove served customer and consumed items
-      setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+      // Clean matched counter items
       setPickupCounter((prev) => prev.filter((_, idx) => !matchedIndices.includes(idx)));
+      setTextLog(`Yummy! Customer is enjoying their meal.`);
 
-      setTextLog(`Success! Served cute animal customer. Earned +${finalEarning} Gold Coins! 🪙✨`);
+      // Let them eat for 4 seconds, then leave tip & make table dirty (or just walk away)
+      setTimeout(() => {
+        setCustomers((curr) => {
+          const targetCust = curr.find((c) => c.id === customer.id);
+          if (!targetCust) return curr;
+
+          // Set customer state to leaving
+          return curr.map((c) => (c.id === customer.id ? { ...c, state: "leaving" } : c));
+        });
+
+        // Add coins
+        setCoins((c) => c + finalEarning);
+        setCoinsEarnedToday((c) => c + finalEarning);
+        setShopRating((r) => Math.min(100, r + 4));
+
+        // Mark table as dirty (if they had a table)
+        if (customer.targetTableId) {
+          setTables((currTables) => 
+            currTables.map((t) => (t.id === customer.targetTableId ? { ...t, status: "dirty" } : t))
+          );
+          setTextLog(`Customer finished eating! Left +${finalEarning} Gold Coins tip. Table is now dirty! 🧹`);
+        } else {
+          setTextLog(`Take-out customer finished! Left +${finalEarning} Gold Coins.`);
+        }
+
+        // Clean customer from state after exit walk (2 seconds)
+        setTimeout(() => {
+          setCustomers((curr) => curr.filter((c) => c.id !== customer.id));
+        }, 2000);
+
+      }, 4000);
+
     } else {
       setTextLog("Baa! You don't have the correct orders prepared on the pickup counter yet!");
     }
   };
 
-  // --- Shop & Upgrades Actions ---
+  // --- Shop Upgrades Actions ---
   const buyUpgrade = (item: UpgradeItem) => {
     if (coins < item.cost) {
       setTextLog("Baa! Not enough Gold Coins for this upgrade.");
@@ -617,7 +746,6 @@ export const GraceCafe: React.FC = () => {
     const wordInfo = SCRAMBLE_WORDS[Math.floor(Math.random() * SCRAMBLE_WORDS.length)];
     setScrambleInfo(wordInfo);
     
-    // Scramble letters
     const letters = wordInfo.scrambled.split("").map((c, i) => ({
       id: i,
       char: c,
@@ -638,7 +766,6 @@ export const GraceCafe: React.FC = () => {
     const removedChar = scrambleAnswer[scrambleAnswer.length - 1];
     setScrambleAnswer((prev) => prev.slice(0, -1));
 
-    // Reset first clicked match in letters
     setScrambleLetters((prev) => {
       let found = false;
       return prev.map((l) => {
@@ -655,8 +782,7 @@ export const GraceCafe: React.FC = () => {
     if (!scrambleInfo) return;
     const guess = scrambleAnswer.join("");
     if (guess === scrambleInfo.word) {
-      // Unscramble success!
-      const bonusCoins = 20; // rewards enough emergency cash
+      const bonusCoins = 20;
       const finalCoins = coins + bonusCoins;
       const nextDay = day + 1;
       setCoins(finalCoins);
@@ -671,7 +797,7 @@ export const GraceCafe: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-[#FFF9F2] border-4 border-[#D3BFA7] rounded-[48px] overflow-hidden shadow-2xl relative select-none flex flex-col min-h-[580px]">
+    <div className="w-full max-w-3xl mx-auto bg-[#FFF9F2] border-4 border-[#D3BFA7] rounded-[36px] overflow-hidden shadow-2xl relative select-none flex flex-col min-h-[520px]">
       
       {/* ─── HUD Top Status Bar ─── */}
       <div className="bg-[#4E342E] text-[#FFF9F2] p-4 flex items-center justify-between border-b-4 border-[#3D2723]">
@@ -683,126 +809,200 @@ export const GraceCafe: React.FC = () => {
         </div>
         
         {/* Day shift indicator */}
-        <div className="flex items-center gap-2 text-right">
+        <div className="flex items-center gap-3 text-right">
           <div className="flex flex-col text-right">
             <span className="text-[9px] font-bold text-amber-200">DAY {day}</span>
             <span className="text-[10px] font-extrabold text-stone-100 flex items-center gap-0.5">
               ⭐ {shopRating}% Rating
             </span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-[#3D2723] flex items-center justify-center border border-amber-300/40 text-xs">
-            {isShiftActive ? `⏰${dayTime}` : "💤"}
+          <div className="w-8 h-8 rounded-full bg-[#3D2723] flex items-center justify-center border border-amber-300/40 text-xs font-bold">
+            {isShiftActive ? `${dayTime}s` : "💤"}
           </div>
         </div>
       </div>
 
-      {/* ─── Main Shop View Backdrop Graphic ─── */}
-      <div className="relative w-full h-48 bg-gradient-to-b from-[#EFEBE9] to-[#D7CCC8] border-b-4 border-[#A1887F] overflow-hidden flex items-end justify-center">
-        {/* Soft Cafe Background elements */}
-        {/* Chalkboard Menu */}
-        <div className="absolute top-2 left-6 w-32 bg-stone-900 border border-stone-850 p-1.5 rounded-md text-[#F5F5F5] font-serif leading-tight shadow-md text-left z-0">
-          <span className="text-[6.5px] uppercase font-bold text-amber-300 tracking-wider block border-b border-stone-800 pb-0.5 mb-0.5">Today's Grace</span>
-          <span className="text-[6.5px] block">🍵 Living Water - Free</span>
-          <span className="text-[6.5px] block">☕ Latte - $14</span>
-          <span className="text-[6.5px] block">🧁 Daily Bread - $12</span>
-        </div>
+      {/* ─── Cozy Cafe Room Floor View (Horizontal Aspect scrollable on small viewports) ─── */}
+      <div className="relative w-full overflow-x-auto select-none scrollbar-thin">
+        <div className="relative w-[760px] h-60 bg-gradient-to-b from-[#EFEBE9] to-[#D7CCC8] border-b-4 border-[#A1887F] overflow-hidden flex items-end">
+          
+          {/* Cafe wall details */}
+          {/* String Lights */}
+          <div className="absolute top-1 right-2 left-2 flex justify-between pointer-events-none opacity-85 z-0">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <div key={i} className="w-2 h-2 rounded-full bg-amber-200/90 shadow-[0_0_6px_#fde047] animate-pulse" style={{ animationDelay: `${i * 0.25}s` }} />
+            ))}
+          </div>
 
-        {/* Cafe String Lights */}
-        <div className="absolute top-1 right-2 left-2 flex justify-between pointer-events-none opacity-85 z-0">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="w-2.5 h-2.5 rounded-full bg-amber-200/90 shadow-[0_0_6px_#fde047] animate-pulse" style={{ animationDelay: `${i * 0.25}s` }} />
-          ))}
-        </div>
-
-        {/* Cozy Placed Decors */}
-        <div className="absolute bottom-16 right-4 flex items-center gap-2 pointer-events-none z-0">
-          {upgrades.map((u) => u.type === "decor" && u.purchased && (
-            <span key={u.id} className="text-3xl animate-bounce filter drop-shadow-sm" style={{ animationDuration: u.id === "hanging_plants" ? "4s" : "6s" }}>
-              {u.id === "hanging_plants" ? "🌿" : "🖼️"}
-            </span>
-          ))}
-        </div>
-
-        {/* Hired Staff behind counter */}
-        <div className="absolute bottom-14 left-8 flex items-center gap-2.5 pointer-events-none z-10">
-          {upgrades.map((u) => u.type === "staff" && u.purchased && (
-            <div key={u.id} className="flex flex-col items-center">
-              <span className="text-[6px] font-bold text-stone-700 bg-white/70 px-1 rounded-sm shadow-xs mb-0.5">Helper</span>
-              <span className="text-2xl animate-bounce" style={{ animationDuration: u.id === "helper_joy" ? "2.5s" : "3s" }}>🐑</span>
+          {/* Purchased Wall Decor Frame */}
+          {upgrades.find(u => u.id === "scripture_frame")?.purchased && (
+            <div className="absolute top-6 left-[280px] w-24 h-16 bg-[#FFF9F2] border-2 border-amber-800 rounded-sm shadow-md flex flex-col items-center justify-center p-1 z-0 rotate-1">
+              <span className="text-[6.5px] uppercase font-bold text-amber-900 tracking-wider">Blessed</span>
+              <span className="text-[5.5px] text-stone-600 font-serif italic text-center leading-none mt-1">"The Lord is my strength"</span>
             </div>
-          ))}
-        </div>
+          )}
 
-        {/* Main Serving Counter */}
-        <div className="w-full h-14 bg-gradient-to-r from-[#8D6E63] via-[#795548] to-[#8D6E63] border-t-2 border-t-[#5D4037] shadow-inner relative z-20 flex items-center px-4 justify-between">
-          <div className="w-2.5 h-5 bg-[#3D2723] rounded-sm absolute left-1/2 top-0" />
-          <div className="text-[8.5px] text-[#FFF] font-serif uppercase tracking-widest font-extrabold opacity-60">Selahly Grace Counter</div>
-        </div>
+          {/* Purchased Hanging Plants */}
+          {upgrades.find(u => u.id === "hanging_plants")?.purchased && (
+            <div className="absolute top-0 right-[220px] text-3xl pointer-events-none z-0 animate-bounce" style={{ animationDuration: "5s" }}>
+              🌿
+            </div>
+          )}
 
-        {/* Customer Queues (cute Animal vectors sitting/standing at counter) */}
-        <div className="absolute bottom-0 right-4 left-4 flex gap-4 justify-end items-end z-30 pointer-events-auto">
-          {customers.map((c) => (
-            <div 
-              key={c.id} 
-              onClick={() => serveCustomer(c)} 
-              className="flex flex-col items-center cursor-pointer hover:scale-105 active:scale-95 transition-all relative group"
-            >
-              {/* Customer Order Speech Bubble */}
-              <div className="absolute bottom-16 bg-white border border-stone-250 p-1.5 rounded-2xl shadow-md text-[8.5px] font-bold text-stone-700 leading-tight w-24 text-center z-45 group-hover:scale-105 transition-all">
-                <span className="block border-b border-stone-100 pb-0.5 mb-0.5 uppercase tracking-wide text-[7px] text-[#8D6E63]">wants:</span>
-                {c.order.map((id) => {
-                  const item = MENU.find((m) => m.id === id);
-                  return (
-                    <div key={id} className="flex justify-between">
-                      <span>{item?.emoji}</span>
-                      <span className="truncate">{item?.name}</span>
-                    </div>
-                  );
-                })}
+          {/* Kitchen counter chalkboard */}
+          <div className="absolute top-3 left-4 w-32 bg-stone-900 border border-stone-850 p-1.5 rounded-md text-[#F5F5F5] font-serif leading-tight shadow-md text-left z-0">
+            <span className="text-[6px] uppercase font-bold text-amber-300 tracking-wider block border-b border-stone-800 pb-0.5 mb-0.5">Cafe Menu</span>
+            <span className="text-[5.5px] block">🍵 Living Water - Free</span>
+            <span className="text-[5.5px] block">☕ Latte - $14</span>
+            <span className="text-[5.5px] block">🧁 Muffin - $12</span>
+          </div>
+
+          {/* Hired Staff behind counter */}
+          <div className="absolute bottom-14 left-[90px] flex items-center gap-4 pointer-events-none z-10">
+            {upgrades.find(u => u.id === "helper_joy")?.purchased && (
+              <div className="flex flex-col items-center">
+                <span className="text-[5.5px] font-bold text-teal-850 bg-teal-50 px-1 rounded-sm shadow-xs mb-0.5">Joy</span>
+                <span className="text-xl animate-pulse">🐑</span>
               </div>
+            )}
+            {upgrades.find(u => u.id === "helper_grace")?.purchased && (
+              <div className="flex flex-col items-center">
+                <span className="text-[5.5px] font-bold text-rose-850 bg-rose-50 px-1 rounded-sm shadow-xs mb-0.5">Grace</span>
+                <span className="text-xl animate-pulse">🐑</span>
+              </div>
+            )}
+          </div>
 
-              {/* Animal Character */}
-              <CustomerAnimal type={c.type} patience={c.patience} />
+          {/* Kitchen Counter */}
+          <div className="w-[320px] h-14 bg-gradient-to-r from-[#8D6E63] via-[#795548] to-[#8D6E63] border-t-2 border-[#5D4037] shadow-inner relative z-20 flex items-center px-4 justify-between shrink-0">
+            <div className="flex gap-2.5 items-center">
+              <span className="text-xs">📠</span>
+              <span className="text-[7.5px] text-[#FFF] font-serif uppercase tracking-widest font-extrabold opacity-60">Brewer Counter</span>
+            </div>
+            
+            {/* Appliance graphics */}
+            <div className="flex gap-2">
+              <span className={`text-lg transition-transform ${brewQueue.length > 0 ? "animate-bounce" : ""}`}>☕</span>
+              <span className={`text-lg transition-transform ${bakeQueue.length > 0 ? "animate-pulse" : ""}`}>🍳</span>
+            </div>
+          </div>
 
-              {/* Patience Hearts */}
-              <div className="h-1.5 w-12 bg-stone-250 rounded-full overflow-hidden border border-stone-300 mt-1 shadow-inner relative">
+          {/* Dining Area Tables (rendering wood tables & chairs) */}
+          <div className="flex-1 h-14 bg-[#BCAAA4] border-t-2 border-[#8D6E63] relative z-10 flex justify-around px-4">
+            {tables.map((t) => (
+              <div key={t.id} className="relative w-20 flex justify-center z-15">
+                {/* Table structure rendering */}
                 <div 
-                  className={`h-full transition-all duration-300 ${c.patience < 35 ? "bg-red-400" : "bg-emerald-400"}`} 
-                  style={{ width: `${(c.patience / c.maxPatience) * 100}%` }} 
-                />
+                  className={`absolute -top-12 w-16 h-8 rounded-full border flex flex-col items-center justify-center shadow-md transition-all ${
+                    t.status === "dirty" 
+                      ? "bg-[#D7CCC8] border-amber-500 hover:bg-amber-100/50 cursor-pointer" 
+                      : "bg-[#FFF9F2] border-stone-200"
+                  }`}
+                  onClick={() => t.status === "dirty" && busTable(t.id)}
+                >
+                  {t.status === "dirty" ? (
+                    <span className="text-[8px] font-extrabold text-amber-800 flex flex-col items-center leading-none">
+                      <span>🍽️🧹</span>
+                      <span className="text-[6px] tracking-wide mt-0.5">CLEAN</span>
+                    </span>
+                  ) : (
+                    <span className="text-[6.5px] text-[#8D6E63] font-bold uppercase tracking-wider">{t.name}</span>
+                  )}
+                </div>
+                {/* Chair right next to the table */}
+                <div className="absolute -top-6 -right-1 w-6 h-6 rounded-md bg-[#8D6E63]/80 border border-[#5D4037] shadow-sm z-0" />
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Customer Animations viewport */}
+          <div className="absolute inset-x-0 bottom-0 top-0 pointer-events-none z-30">
+            <AnimatePresence>
+              {customers.map((c) => {
+                const isWaiting = c.state === "waiting_food";
+                const isLeaving = c.state === "leaving";
+                const startX = 0;
+                const endX = isLeaving ? 760 : c.x;
+
+                return (
+                  <motion.div
+                    key={c.id}
+                    initial={{ x: startX, opacity: 0 }}
+                    animate={{ x: endX, opacity: 1 }}
+                    exit={{ x: 760, opacity: 0 }}
+                    transition={{ duration: isLeaving ? 2.0 : 2.0, ease: "easeOut" }}
+                    onClick={() => serveCustomer(c)}
+                    className="absolute bottom-2 flex flex-col items-center pointer-events-auto cursor-pointer"
+                    style={{ left: 0 }}
+                  >
+                    {/* Order Speech bubble */}
+                    {isWaiting && (
+                      <div className="absolute bottom-16 bg-white border border-stone-250 p-1.5 rounded-2xl shadow-md text-[8px] font-bold text-stone-700 leading-tight w-24 text-center z-45 animate-bounce flex flex-col gap-0.5">
+                        <span className="text-[6.5px] uppercase tracking-wide text-amber-700 block border-b pb-0.5 mb-0.5">Order:</span>
+                        {c.order.map((id) => {
+                          const item = MENU.find((m) => m.id === id);
+                          return (
+                            <div key={id} className="flex justify-between items-center">
+                              <span>{item?.emoji}</span>
+                              <span className="truncate">{item?.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Happy Sparkle overlay if eating */}
+                    {c.state === "eating" && (
+                      <div className="absolute bottom-16 text-xs text-emerald-500 font-extrabold animate-bounce">
+                        😋💖 Delicious!
+                      </div>
+                    )}
+
+                    {/* Animal Character rendering */}
+                    <CustomerAnimal type={c.type} patience={c.patience} state={c.state} />
+
+                    {/* Patience bar if waiting */}
+                    {isWaiting && (
+                      <div className="h-1.5 w-12 bg-stone-200 rounded-full overflow-hidden border border-stone-300 mt-1 shadow-inner relative">
+                        <div 
+                          className={`h-full transition-all duration-300 ${c.patience < 35 ? "bg-red-400" : "bg-emerald-450"}`} 
+                          style={{ width: `${(c.patience / c.maxPatience) * 100}%` }} 
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+
         </div>
       </div>
 
       {/* ─── HUD Gold Coins display ─── */}
-      <div className="bg-[#FAF0E6] py-2.5 px-4 flex justify-between items-center border-b border-[#D7CCC8] shadow-sm select-none">
-        <span className="text-[10px] font-extrabold text-stone-900 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 px-3 py-1 rounded-full flex items-center gap-1 shadow-md border border-amber-300">
+      <div className="bg-[#FAF0E6] py-3 px-6 flex justify-between items-center border-b border-[#D7CCC8] shadow-sm select-none">
+        <span className="text-[10px] font-extrabold text-stone-900 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 px-3.5 py-1 rounded-full flex items-center gap-1 shadow-md border border-amber-300">
           ✨ 🪙 {coins} Gold Coins
         </span>
 
-        <div className="flex gap-2">
-          {/* Shop Toggle */}
-          <button
-            onClick={() => setIsShopOpen(true)}
-            className="p-1.5 rounded-full bg-white hover:bg-stone-50 border border-stone-250 text-[#8D6E63] shadow-xs active:scale-90 transition-all cursor-pointer flex items-center gap-1 text-[9.5px] font-bold uppercase tracking-wider px-3"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" /> Shop
-          </button>
-        </div>
+        <button
+          onClick={() => setIsShopOpen(true)}
+          className="p-1.5 rounded-full bg-white hover:bg-stone-50 border border-stone-250 text-[#8D6E63] shadow-xs active:scale-90 transition-all cursor-pointer flex items-center gap-1 text-[9.5px] font-bold uppercase tracking-wider px-3.5"
+        >
+          <ShoppingBag className="w-3.5 h-3.5" /> Upgrades Shop
+        </button>
       </div>
 
-      {/* ─── Text Log / Shepherd Dialogues ─── */}
+      {/* ─── Status Text Logs ─── */}
       <div className="bg-[#FCF6E8] p-3 text-left border-b border-[#EFEBE9] text-[9.5px] leading-relaxed font-serif text-warm-cocoa font-medium italic min-h-[44px]">
         💬 {textLog}
       </div>
 
       {/* ─── Active Station Grid Areas ─── */}
-      <div className="flex-1 p-3 flex flex-col gap-3 max-h-[300px] overflow-y-auto">
+      <div className="flex-1 p-4 flex flex-col gap-4">
         {!isShiftActive ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 py-8">
-            <span className="text-[10.5px] text-stone-400 font-bold uppercase tracking-widest">Store Closed</span>
+            <span className="text-[10.5px] text-stone-400 font-bold uppercase tracking-widest">Sanctuary Café Closed</span>
             <button
               onClick={startDayShift}
               className="px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs uppercase tracking-widest shadow-md transition-all active:scale-95 cursor-pointer"
@@ -813,12 +1013,12 @@ export const GraceCafe: React.FC = () => {
         ) : (
           <>
             {/* 1. PICKUP COUNTER */}
-            <div className="bg-white border border-stone-200 p-2.5 rounded-2xl flex flex-col text-left">
+            <div className="bg-white border border-stone-200 p-3 rounded-2xl flex flex-col text-left">
               <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1">Serving Pickup Counter</span>
               {pickupCounter.length === 0 ? (
-                <span className="text-[9px] text-stone-400 italic py-1 block">Prepared orders load here...</span>
+                <span className="text-[9.5px] text-stone-400 italic py-1 block">Ready beverages and pastries load here...</span>
               ) : (
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-2 flex-wrap">
                   {pickupCounter.map((item, idx) => (
                     <div 
                       key={idx} 
@@ -826,7 +1026,7 @@ export const GraceCafe: React.FC = () => {
                       onClick={() => discardPickup(idx)}
                     >
                       <span className="text-xs">{item.emoji}</span>
-                      <span className="text-[9px] font-bold text-stone-700">{item.name}</span>
+                      <span className="text-[9.5px] font-bold text-stone-700">{item.name}</span>
                       <span className="absolute -top-1.5 -right-1.5 bg-red-400 text-white w-3 h-3 rounded-full text-[6.5px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-xs">X</span>
                     </div>
                   ))}
@@ -835,18 +1035,17 @@ export const GraceCafe: React.FC = () => {
             </div>
 
             {/* 2. BREWING & BAKING QUEUES */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Brewing station queue list */}
-              <div className="bg-[#FAF4EE]/75 border border-[#EFE5DC] p-2.5 rounded-2xl flex flex-col text-left">
-                <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5">Brew Progress</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#FAF4EE]/75 border border-[#EFE5DC] p-3 rounded-2xl flex flex-col text-left">
+                <span className="text-[8.5px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5 flex items-center gap-1"><Coffee className="w-3.5 h-3.5" /> Brew Progress</span>
                 {brewQueue.length === 0 ? (
-                  <span className="text-[8.5px] text-stone-400 italic">No drinks brewing...</span>
+                  <span className="text-[9px] text-stone-400 italic">No drinks brewing...</span>
                 ) : (
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2">
                     {brewQueue.map((item, i) => (
-                      <div key={i} className="flex flex-col gap-0.5">
-                        <span className="text-[8.5px] font-bold text-stone-700 truncate">{item.name}</span>
-                        <div className="h-1 bg-stone-200 rounded-full overflow-hidden relative">
+                      <div key={i} className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-stone-750 truncate">{item.name}</span>
+                        <div className="h-1.5 bg-stone-200 rounded-full overflow-hidden relative">
                           <div className="h-full bg-amber-500 transition-all duration-300" style={{ width: `${(item.progress / item.duration) * 100}%` }} />
                         </div>
                       </div>
@@ -855,17 +1054,16 @@ export const GraceCafe: React.FC = () => {
                 )}
               </div>
 
-              {/* Baking station queue list */}
-              <div className="bg-[#FAF4EE]/75 border border-[#EFE5DC] p-2.5 rounded-2xl flex flex-col text-left">
-                <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5">Bake Progress</span>
+              <div className="bg-[#FAF4EE]/75 border border-[#EFE5DC] p-3 rounded-2xl flex flex-col text-left">
+                <span className="text-[8.5px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5 flex items-center gap-1"><ChefHat className="w-3.5 h-3.5" /> Bake Progress</span>
                 {bakeQueue.length === 0 ? (
-                  <span className="text-[8.5px] text-stone-400 italic">Oven empty...</span>
+                  <span className="text-[9px] text-stone-400 italic">Oven empty...</span>
                 ) : (
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2">
                     {bakeQueue.map((item, i) => (
-                      <div key={i} className="flex flex-col gap-0.5">
-                        <span className="text-[8.5px] font-bold text-stone-700 truncate">{item.name}</span>
-                        <div className="h-1 bg-stone-200 rounded-full overflow-hidden relative">
+                      <div key={i} className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-stone-750 truncate">{item.name}</span>
+                        <div className="h-1.5 bg-stone-200 rounded-full overflow-hidden relative">
                           <div className="h-full bg-rose-500 transition-all duration-300" style={{ width: `${(item.progress / item.duration) * 100}%` }} />
                         </div>
                       </div>
@@ -876,23 +1074,23 @@ export const GraceCafe: React.FC = () => {
             </div>
 
             {/* 3. MENU STATIONS */}
-            <div className="bg-white border border-stone-200 p-2.5 rounded-2xl flex flex-col text-left">
-              <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-450 block mb-1.5">Prepare Menu Items</span>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white border border-stone-200 p-3 rounded-2xl flex flex-col text-left">
+              <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-450 block mb-2">Order Recipes Stations</span>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {MENU.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => item.type === "drink" ? startBrew(item.id) : startBake(item.id)}
-                    className="p-1.5 rounded-xl border border-stone-200 hover:border-amber-300 bg-white hover:bg-amber-50/10 text-left cursor-pointer transition-all active:scale-98 flex justify-between items-center group"
+                    className="p-2 rounded-xl border border-stone-200 hover:border-amber-300 bg-white hover:bg-amber-50/10 text-left cursor-pointer transition-all active:scale-98 flex justify-between items-center group"
                   >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-sm select-none">{item.emoji}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-base select-none">{item.emoji}</span>
                       <div className="flex flex-col truncate">
-                        <span className="text-[9px] font-bold text-stone-700 truncate">{item.name}</span>
-                        <span className="text-[7.5px] text-stone-450">Cost: 🪙 {item.cost}</span>
+                        <span className="text-[9.5px] font-bold text-stone-750 truncate">{item.name}</span>
+                        <span className="text-[8px] text-stone-450">Cost: 🪙 {item.cost}</span>
                       </div>
                     </div>
-                    <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded-md shrink-0 group-hover:scale-105 transition-all">
+                    <span className="text-[9px] font-bold text-[#8D6E63] bg-[#FAF0E6] px-1.5 py-0.5 rounded-md shrink-0 group-hover:scale-105 transition-all">
                       {item.type === "drink" ? "Brew" : "Bake"}
                     </span>
                   </button>
@@ -903,7 +1101,7 @@ export const GraceCafe: React.FC = () => {
         )}
       </div>
 
-      {/* ─── A. SHOP UPGRADES DRAWER OVERLAY ─── */}
+      {/* ─── A. SHOP UPGRADES OVERLAY ─── */}
       <AnimatePresence>
         {isShopOpen && (
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-xs flex items-end justify-center z-50 animate-fade-in">
@@ -911,7 +1109,7 @@ export const GraceCafe: React.FC = () => {
               initial={{ y: 80 }}
               animate={{ y: 0 }}
               exit={{ y: 80 }}
-              className="bg-white rounded-t-[36px] w-full max-h-[85%] flex flex-col justify-between p-5 border-t-4 border-[#D3BFA7] shadow-2xl relative"
+              className="bg-white rounded-t-[36px] w-full max-h-[85%] flex flex-col justify-between p-6 border-t-4 border-[#D3BFA7] shadow-2xl relative"
             >
               <button
                 onClick={() => setIsShopOpen(false)}
@@ -921,30 +1119,30 @@ export const GraceCafe: React.FC = () => {
               </button>
 
               <div className="w-full text-left">
-                <span className="text-[8px] uppercase tracking-wider font-extrabold text-amber-600 block">Expand Sanctuary</span>
+                <span className="text-[8px] uppercase tracking-wider font-extrabold text-amber-600 block">Expand Cafe Shop</span>
                 <h3 className="font-serif text-sm font-bold text-warm-cocoa mb-4">
                   🛍️ Cozy Cafe Upgrades
                 </h3>
               </div>
 
-              {/* Upgrades List Container */}
+              {/* Upgrades list */}
               <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto pr-1 pb-4">
                 {upgrades.map((item) => (
-                  <div key={item.id} className="p-3 rounded-2xl border border-stone-150 bg-stone-50/20 flex justify-between items-center text-left">
+                  <div key={item.id} className="p-3.5 rounded-2xl border border-stone-150 bg-stone-50/20 flex justify-between items-center text-left">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{item.emoji}</span>
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-stone-800">{item.name}</span>
-                        <span className="text-[8.5px] text-stone-450 max-w-[200px] leading-tight">{item.description}</span>
+                        <span className="text-[9px] text-stone-450 max-w-[220px] leading-tight">{item.description}</span>
                       </div>
                     </div>
 
                     {item.purchased ? (
-                      <span className="text-[9.5px] font-bold text-stone-400 bg-stone-100 px-3 py-1 rounded-xl">Owned</span>
+                      <span className="text-[9.5px] font-bold text-stone-450 bg-stone-100 px-3.5 py-1 rounded-xl">Owned</span>
                     ) : (
                       <button
                         onClick={() => buyUpgrade(item)}
-                        className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[10px] font-extrabold active:scale-95 transition-all cursor-pointer border border-amber-200/50"
+                        className="px-3.5 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-905 text-[10px] font-extrabold active:scale-95 transition-all cursor-pointer border border-amber-200/50"
                       >
                         🪙 {item.cost}
                       </button>
@@ -957,7 +1155,7 @@ export const GraceCafe: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ─── B. DAY SHIFT REPORT MODAL OVERLAY ─── */}
+      {/* ─── B. SHIFT SUMMARY REPORT OVERLAY ─── */}
       <AnimatePresence>
         {isReportOpen && (
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -965,16 +1163,15 @@ export const GraceCafe: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#FFF9F2] border-4 border-[#A1887F] p-5 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[280px] flex flex-col justify-between"
+              className="bg-[#FFF9F2] border-4 border-[#A1887F] p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[280px] flex flex-col justify-between"
             >
               <div className="w-full">
                 <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#795548] block">Shift Summary</span>
-                <h3 className="font-serif text-sm font-bold text-stone-800 mb-4">
+                <h3 className="font-serif text-sm font-bold text-stone-850 mb-4">
                   📋 Day Completed!
                 </h3>
               </div>
 
-              {/* Stats Sheet */}
               <div className="flex-1 flex flex-col gap-2.5 py-4 border-y border-[#EFEBE9] my-2 text-left text-xs text-stone-700">
                 <div className="flex justify-between">
                   <span>Gold Coins Earned:</span>
@@ -990,10 +1187,9 @@ export const GraceCafe: React.FC = () => {
                 </div>
               </div>
 
-              {/* Controls */}
               <button
                 onClick={handlePayRent}
-                className="w-full py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] uppercase tracking-wider active:scale-95 transition-all shadow-md cursor-pointer mt-4"
+                className="w-full py-2.5 rounded-2xl bg-[#795548] hover:bg-[#5D4037] text-white font-bold text-[11px] uppercase tracking-wider active:scale-95 transition-all shadow-md cursor-pointer mt-4"
               >
                 {coins >= 15 ? "Pay Rent 🪙15" : "Request Grace Period 🙏"}
               </button>
@@ -1002,7 +1198,7 @@ export const GraceCafe: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ─── C. GRACE PERIOD SCRIPTURE SCRAMBLE OVERLAY ─── */}
+      {/* ─── C. SCRIPTURE UNSCRAMBLE DRAWER (GRACE PERIOD) ─── */}
       <AnimatePresence>
         {isScrambleActive && scrambleInfo && (
           <div className="absolute inset-0 bg-stone-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-60 animate-fade-in">
@@ -1010,7 +1206,7 @@ export const GraceCafe: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white border-4 border-amber-300 p-5 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[340px] flex flex-col justify-between"
+              className="bg-white border-4 border-amber-300 p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[340px] flex flex-col justify-between"
             >
               <div className="w-full">
                 <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-600 block">Grace Period Challenge</span>
@@ -1027,7 +1223,7 @@ export const GraceCafe: React.FC = () => {
                 💡 Clue: "{scrambleInfo.clue}"
               </div>
 
-              {/* Scrambled input display */}
+              {/* Input display */}
               <div className="flex flex-col gap-1 items-center justify-center my-2">
                 <span className="text-[8.5px] uppercase font-bold text-stone-400 tracking-wider">Your Answer:</span>
                 <div className="flex gap-1 h-9 items-center justify-center border-b-2 border-dashed border-stone-300 w-full px-4 text-sm font-extrabold text-stone-850 tracking-widest">
@@ -1039,7 +1235,7 @@ export const GraceCafe: React.FC = () => {
                 </div>
               </div>
 
-              {/* Clickable letter blocks */}
+              {/* Letters selection */}
               <div className="flex gap-2 justify-center flex-wrap my-3">
                 {scrambleLetters.map((l) => (
                   <button
@@ -1057,12 +1253,10 @@ export const GraceCafe: React.FC = () => {
                 ))}
               </div>
 
-              {/* Scramble status/error messages */}
               {scrambleMessage && (
                 <span className="text-[9px] font-bold text-red-500 italic block py-0.5">{scrambleMessage}</span>
               )}
 
-              {/* Buttons */}
               <div className="flex gap-3 w-full mt-4">
                 <button
                   onClick={handleScrambleUndo}
