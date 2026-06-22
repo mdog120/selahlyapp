@@ -133,7 +133,11 @@ export function MyTalkingLamb() {
       try {
         const p = JSON.parse(saved);
         setCoins(p.coins ?? 50);
-        setUnlockedRooms(p.unlockedRooms ?? ["living", "kitchen", "bedroom", "vet"]);
+        const loadedRooms = p.unlockedRooms ?? ["living", "kitchen", "bedroom", "vet"];
+        if (!loadedRooms.includes("vet")) {
+          loadedRooms.push("vet");
+        }
+        setUnlockedRooms(loadedRooms);
         setPurchasedAccessories(p.purchasedAccessories ?? ["none", "bow"]);
         setHunger(p.hunger ?? 70);
         setHappiness(p.happiness ?? 60);
