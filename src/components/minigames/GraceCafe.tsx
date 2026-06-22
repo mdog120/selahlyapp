@@ -16,16 +16,28 @@ interface MenuItem {
   cost: number;
   price: number;
   prepTime: number; // in seconds
+  supply: number; // batch size
+  unlockedAtDay: number;
   description: string;
 }
 
 const MENU: MenuItem[] = [
-  { id: "living_water", name: "Living Water Tea", emoji: "🍵", type: "drink", cost: 0, price: 8, prepTime: 2, description: "Refreshing and always free to brew." },
-  { id: "faith_latte", name: "Faith Latte", emoji: "☕", type: "drink", cost: 4, price: 14, prepTime: 4, description: "Warm espresso with steamed milk." },
-  { id: "peace_herbal", name: "Peace Herbal Tea", emoji: "🫖", type: "drink", cost: 5, price: 18, prepTime: 5, description: "Calming chamomile lavender brew." },
-  { id: "daily_bread", name: "Daily Bread Muffin", emoji: "🧁", type: "food", cost: 3, price: 12, prepTime: 6, description: "Cozy cinnamon honey muffin." },
-  { id: "grace_roll", name: "Grace Cinnamon Roll", emoji: "🍥", type: "food", cost: 5, price: 18, prepTime: 8, description: "Frosted warm swirl pastry." },
-  { id: "spirit_tart", name: "Fruit of Spirit Tart", emoji: "🥧", type: "food", cost: 7, price: 25, prepTime: 10, description: "Rich fresh double-berry tart." }
+  { id: "choco_cookies", name: "Covenant Choco Chip Cookies", emoji: "🍪", type: "food", cost: 10, price: 15, prepTime: 0.5, supply: 4, unlockedAtDay: 1, description: "Classic chocolate chip cookies baked in a covenant of love." },
+  { id: "frosted_cookies", name: "Faith Frosted Cookies", emoji: "🍪", type: "food", cost: 15, price: 30, prepTime: 1.0, supply: 6, unlockedAtDay: 1, description: "Sweet frosted cookies to fuel your faith." },
+  { id: "cherub_cupcake", name: "Cherub Cupcakes", emoji: "🧁", type: "food", cost: 20, price: 5, prepTime: 2.0, supply: 25, unlockedAtDay: 1, description: "Bite-sized sweet cupcakes, fit for angels." },
+  { id: "sanctuary_latte", name: "Sanctuary Latte", emoji: "☕", type: "drink", cost: 100, price: 120, prepTime: 3.0, supply: 3, unlockedAtDay: 1, description: "A warm cup of coffee brewed in the sanctuary." },
+  
+  { id: "pentecost_pancakes", name: "Pentecost Pancakes", emoji: "🥞", type: "food", cost: 25, price: 10, prepTime: 3.5, supply: 20, unlockedAtDay: 2, description: "Fluffy pancakes served with maple syrup." },
+  { id: "divine_donuts", name: "Divine Donuts", emoji: "🍩", type: "food", cost: 25, price: 20, prepTime: 2.0, supply: 10, unlockedAtDay: 2, description: "Glazed donuts with divine sprinkles." },
+  { id: "green_tea", name: "Living Water Green Tea", emoji: "🍵", type: "drink", cost: 120, price: 150, prepTime: 3.5, supply: 4, unlockedAtDay: 2, description: "A calming green tea brewed with living water." },
+  
+  { id: "grace_rolls", name: "Grace Cinnamon Rolls", emoji: "🍥", type: "food", cost: 30, price: 5, prepTime: 6.0, supply: 50, unlockedAtDay: 3, description: "Frosted warm rolls packed with grace." },
+  { id: "manna_milkshake", name: "Manna Milkshake", emoji: "🥤", type: "drink", cost: 200, price: 300, prepTime: 1.0, supply: 3, unlockedAtDay: 3, description: "Rich creamy milkshake made of manna from heaven." },
+  
+  { id: "strawberry_cake", name: "Selah Strawberry Cake", emoji: "🍰", type: "food", cost: 45, price: 40, prepTime: 3.5, supply: 15, unlockedAtDay: 4, description: "Fresh strawberry layered cake." },
+  { id: "bubble_tea", name: "Beatitude Bubble Tea", emoji: "🧋", type: "drink", cost: 200, price: 250, prepTime: 4.5, supply: 10, unlockedAtDay: 4, description: "Refreshing bubble tea with tapioca pearls." },
+  
+  { id: "hot_chocolate", name: "Heavenly Hot Chocolate", emoji: "🍫", type: "drink", cost: 250, price: 270, prepTime: 3.0, supply: 5, unlockedAtDay: 5, description: "Hot cocoa topped with whipped cream." }
 ];
 
 interface Customer {
@@ -274,14 +286,14 @@ const CustomerAnimal: React.FC<{ type: AnimalType; patience: number; state: Cust
 
 export const GraceCafe: React.FC = () => {
   // --- States ---
-  const [coins, setCoins] = useState(60);
+  const [coins, setCoins] = useState(100);
   const [day, setDay] = useState(1);
-  const [dayTime, setDayTime] = useState(60); // 60 seconds day shift
+  const [dayTime, setDayTime] = useState(25); // default day shift: 25 seconds
   const [isShiftActive, setIsShiftActive] = useState(false);
-  const [shopRating, setShopRating] = useState(90); // 0-100%
+  const [shopRating, setShopRating] = useState(100); // 0-100%
   const [customers, setCustomers] = useState<Customer[]>([]);
 
-  // Tables State (3 Tables: Table 1 at x=380, Table 2 at x=500, Table 3 at x=620)
+  // Tables State (3 Tables: Table 1 at x=390, Table 2 at x=510, Table 3 at x=630)
   const [tables, setTables] = useState<Table[]>([
     { id: 1, name: "Cozy Table 1", x: 390, status: "vacant", customerId: null },
     { id: 2, name: "Cozy Table 2", x: 510, status: "vacant", customerId: null },
@@ -296,12 +308,17 @@ export const GraceCafe: React.FC = () => {
   // Shop & Upgrades
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [upgrades, setUpgrades] = useState<UpgradeItem[]>([
-    { id: "oven_pro", name: "Pro Turbo Oven", emoji: "⚡🍪", cost: 40, type: "appliance", description: "Bakes cookies and tarts 35% faster.", purchased: false },
-    { id: "espresso_pro", name: "Premium Espresso Machine", emoji: "⚡☕", cost: 50, type: "appliance", description: "Brews lattes and tea 40% faster.", purchased: false },
-    { id: "scripture_frame", name: "Verses Frame", emoji: "🖼️✨", cost: 30, type: "decor", description: "Cozy scripture frame. Boosts customer max patience by +20%.", purchased: false },
-    { id: "hanging_plants", name: "Pothos Vines", emoji: "🌿💚", cost: 25, type: "decor", description: "Cozy plants. Customer patience drains 15% slower.", purchased: false },
-    { id: "helper_joy", name: "Assistant Joy", emoji: "🐑☕", cost: 80, type: "staff", description: "Brews basic Iced Tea automatically.", purchased: false },
-    { id: "helper_grace", name: "Baker Grace", emoji: "🐑🧁", cost: 95, type: "staff", description: "Bakes Muffins automatically.", purchased: false }
+    { id: "oven_pro", name: "Pro Turbo Oven", emoji: "⚡🍳", cost: 250, type: "appliance", description: "Bakes cookies and cakes 35% faster.", purchased: false },
+    { id: "espresso_pro", name: "Premium Espresso Machine", emoji: "⚡☕", cost: 300, type: "appliance", description: "Brews lattes and tea 40% faster.", purchased: false },
+    { id: "scripture_frame", name: "Verses Frame", emoji: "🖼️✨", cost: 120, type: "decor", description: "Cozy scripture frame. Boosts customer starting patience by +20%.", purchased: false },
+    { id: "hanging_plants", name: "Pothos Vines", emoji: "🌿💚", cost: 180, type: "decor", description: "Cozy plants. Customer patience drains 15% slower.", purchased: false },
+    
+    // Hired Staff
+    { id: "staff_floofer", name: "Floofer", emoji: "🐶", cost: 160, type: "staff", description: "Dog helper. Reduces customer eating duration from 12s to 8.4s. (Wages: 🪙160/day)", purchased: false },
+    { id: "staff_flash", name: "Flash", emoji: "🦥", cost: 100, type: "staff", description: "Sloth helper. Speeds up the day cycle, reducing shift from 25s to 20s. (Wages: 🪙60/day)", purchased: false },
+    { id: "staff_cherry", name: "Cherry", emoji: "🐱", cost: 200, type: "staff", description: "Cat helper. Negates rating and tip penalties for slow service. (Wages: 🪙200/day)", purchased: false },
+    { id: "staff_goldie", name: "Goldie", emoji: "🐹", cost: 300, type: "staff", description: "Hamster helper. Grants a 15% money multiplier at the end of each day. (Wages: 🪙300/day)", purchased: false },
+    { id: "staff_muffin", name: "Muffin", emoji: "🐰", cost: 80, type: "staff", description: "Bunny helper. Automatically cleans dirty tables after 3 seconds. (Wages: 🪙20/day)", purchased: false }
   ]);
 
   // Report states
@@ -321,16 +338,38 @@ export const GraceCafe: React.FC = () => {
   const shiftIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const queueIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Calculate day deductions
+  const getStaffWages = () => {
+    let wages = 0;
+    if (upgrades.find(u => u.id === "staff_floofer")?.purchased) wages += 160;
+    if (upgrades.find(u => u.id === "staff_flash")?.purchased) wages += 60;
+    if (upgrades.find(u => u.id === "staff_cherry")?.purchased) wages += 200;
+    if (upgrades.find(u => u.id === "staff_goldie")?.purchased) wages += 300;
+    if (upgrades.find(u => u.id === "staff_muffin")?.purchased) wages += 20;
+    return wages;
+  };
+
+  const getDayTotalDeductions = () => {
+    return 10 + getStaffWages(); // Rent 10 + wages
+  };
+
   // --- Local Storage Sync ---
   useEffect(() => {
     const saved = localStorage.getItem("selahly_grace_cafe_v2");
     if (saved) {
       try {
         const data = JSON.parse(saved);
-        setCoins(data.coins ?? 60);
+        setCoins(data.coins ?? 100);
         setDay(data.day ?? 1);
-        setShopRating(data.shopRating ?? 90);
-        if (data.upgrades) setUpgrades(data.upgrades);
+        setShopRating(data.shopRating ?? 100);
+        if (data.upgrades) {
+          setUpgrades((prev) =>
+            prev.map((u) => {
+              const savedU = data.upgrades.find((su: any) => su.id === u.id);
+              return savedU ? { ...u, purchased: savedU.purchased } : u;
+            })
+          );
+        }
       } catch (e) {
         console.error("Failed to load Grace Cafe save stats", e);
       }
@@ -359,10 +398,14 @@ export const GraceCafe: React.FC = () => {
       const animalPool: AnimalType[] = ["bunny", "bear", "kitty", "fox", "lamb"];
       const randAnimal = animalPool[Math.floor(Math.random() * animalPool.length)];
 
-      const orderSize = Math.random() > 0.65 ? 2 : 1;
+      // Choose order items from unlocked menu
+      const unlockedMenu = MENU.filter((m) => m.unlockedAtDay <= day);
+      if (unlockedMenu.length === 0) return prev;
+
+      const orderSize = Math.random() > 0.7 ? 2 : 1;
       const orderItems: string[] = [];
       for (let i = 0; i < orderSize; i++) {
-        const item = MENU[Math.floor(Math.random() * MENU.length)];
+        const item = unlockedMenu[Math.floor(Math.random() * unlockedMenu.length)];
         orderItems.push(item.id);
       }
 
@@ -409,41 +452,20 @@ export const GraceCafe: React.FC = () => {
     });
   };
 
-  // --- Automation (Hired Staff) logic ---
+  // --- Automation: Muffin clean-up routine ---
   useEffect(() => {
-    if (!isShiftActive) return;
+    const hasMuffin = upgrades.find((u) => u.id === "staff_muffin")?.purchased;
+    if (!hasMuffin || !isShiftActive) return;
 
-    // Helper Joy brews Living Water Tea automatically
-    const joyHired = upgrades.find(u => u.id === "helper_joy")?.purchased;
-    let joyTimer: NodeJS.Timeout;
-    if (joyHired) {
-      joyTimer = setInterval(() => {
-        const needsTea = customers.some(c => c.order.includes("living_water"));
-        if (needsTea) {
-          startBrew("living_water");
-          setTextLog("Joy the Barista automatically brews Living Water Tea!");
-        }
-      }, 5500);
+    const dirtyTable = tables.find((t) => t.status === "dirty");
+    if (dirtyTable) {
+      const timer = setTimeout(() => {
+        busTable(dirtyTable.id);
+        setTextLog(`Muffin clean-up: Automatically cleaned Cozy Table ${dirtyTable.id}! 🧹`);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-
-    // Helper Grace bakes Daily Bread Muffins automatically
-    const graceHired = upgrades.find(u => u.id === "helper_grace")?.purchased;
-    let graceTimer: NodeJS.Timeout;
-    if (graceHired) {
-      graceTimer = setInterval(() => {
-        const needsMuffin = customers.some(c => c.order.includes("daily_bread"));
-        if (needsMuffin) {
-          startBake("daily_bread");
-          setTextLog("Baker Grace automatically slots a Daily Bread Muffin in the oven!");
-        }
-      }, 7500);
-    }
-
-    return () => {
-      if (joyTimer) clearInterval(joyTimer);
-      if (graceTimer) clearInterval(graceTimer);
-    };
-  }, [isShiftActive, customers, upgrades]);
+  }, [tables, upgrades, isShiftActive]);
 
   // --- Core Game Loops (Time & Patience) ---
   useEffect(() => {
@@ -462,21 +484,21 @@ export const GraceCafe: React.FC = () => {
       // 2. Spawn Customers
       queueIntervalRef.current = setInterval(() => {
         spawnCustomer();
-      }, 8000 + Math.random() * 4000);
+      }, 7000 + Math.random() * 3000);
     }
 
     return () => {
       if (shiftIntervalRef.current) clearInterval(shiftIntervalRef.current);
       if (queueIntervalRef.current) clearInterval(queueIntervalRef.current);
     };
-  }, [isShiftActive]);
+  }, [isShiftActive, day]);
 
-  // 3. Customer patience and table state cleanup
+  // 3. Customer patience draining and leaving
   useEffect(() => {
     let patienceInterval: NodeJS.Timeout;
     if (isShiftActive) {
       patienceInterval = setInterval(() => {
-        const hasVines = upgrades.find(u => u.id === "hanging_plants")?.purchased;
+        const hasVines = upgrades.find((u) => u.id === "hanging_plants")?.purchased;
         const drainAmount = hasVines ? 1.7 : 2.0;
 
         setCustomers((prev) => {
@@ -527,7 +549,14 @@ export const GraceCafe: React.FC = () => {
           const completed = next.filter((item) => item.progress >= item.duration);
           if (completed.length > 0) {
             completed.forEach((c) => {
-              setPickupCounter((curr) => [...curr, { id: c.id, name: c.name, emoji: MENU.find(m => m.id === c.id)?.emoji || "☕" }]);
+              const recipe = MENU.find((m) => m.id === c.id);
+              const supplyCount = recipe ? recipe.supply : 1;
+              const newItems = Array.from({ length: supplyCount }).map(() => ({
+                id: c.id,
+                name: c.name,
+                emoji: recipe?.emoji || "🍵"
+              }));
+              setPickupCounter((curr) => [...curr, ...newItems]);
             });
             setTextLog("Fresh beverage prepared and placed on counter.");
           }
@@ -540,7 +569,14 @@ export const GraceCafe: React.FC = () => {
           const completed = next.filter((item) => item.progress >= item.duration);
           if (completed.length > 0) {
             completed.forEach((c) => {
-              setPickupCounter((curr) => [...curr, { id: c.id, name: c.name, emoji: MENU.find(m => m.id === c.id)?.emoji || "🧁" }]);
+              const recipe = MENU.find((m) => m.id === c.id);
+              const supplyCount = recipe ? recipe.supply : 1;
+              const newItems = Array.from({ length: supplyCount }).map(() => ({
+                id: c.id,
+                name: c.name,
+                emoji: recipe?.emoji || "🧁"
+              }));
+              setPickupCounter((curr) => [...curr, ...newItems]);
             });
             setTextLog("Oven DING! Baked pastry added to pickup counter.");
           }
@@ -557,7 +593,11 @@ export const GraceCafe: React.FC = () => {
   // --- Day Management ---
   const startDayShift = () => {
     setIsShiftActive(true);
-    setDayTime(60);
+    
+    // Check if Flash is hired to shorten day duration
+    const hasFlash = upgrades.find((u) => u.id === "staff_flash")?.purchased;
+    setDayTime(hasFlash ? 20 : 25);
+    
     setCustomers([]);
     setTables([
       { id: 1, name: "Cozy Table 1", x: 390, status: "vacant", customerId: null },
@@ -580,15 +620,23 @@ export const GraceCafe: React.FC = () => {
   };
 
   const handlePayRent = () => {
-    const rentCost = 15;
-    if (coins >= rentCost) {
-      const nextCoins = coins - rentCost;
+    const totalDeduction = getDayTotalDeductions();
+    
+    if (coins >= totalDeduction) {
+      let nextCoins = coins - totalDeduction;
+      
+      // Apply Goldie multiplier
+      const hasGoldie = upgrades.find((u) => u.id === "staff_goldie")?.purchased;
+      if (hasGoldie) {
+        nextCoins = Math.round(nextCoins * 1.15);
+      }
+      
       const nextDay = day + 1;
       setCoins(nextCoins);
       setDay(nextDay);
       setIsReportOpen(false);
       saveStats(nextCoins, nextDay, shopRating, upgrades);
-      setTextLog(`Rent of 15 Gold Coins paid successfully! Ready for Day ${nextDay}.`);
+      setTextLog(`Rent and staff wages of ${totalDeduction} paid! ${hasGoldie ? "Goldie granted 15% balance multiplier!" : ""} Ready for Day ${nextDay}.`);
     } else {
       setIsScrambleActive(true);
       startScrambleWord();
@@ -635,7 +683,7 @@ export const GraceCafe: React.FC = () => {
     setTextLog("Discarded food item.");
   };
 
-  // --- Dining Table bussing / Clean table ---
+  // --- Dining Table cleaning ---
   const busTable = (tableId: number) => {
     setTables((curr) => 
       curr.map((t) => {
@@ -678,7 +726,20 @@ export const GraceCafe: React.FC = () => {
       }, 0);
 
       const patienceBonus = customer.patience > customer.maxPatience * 0.75 ? 3 : 0;
-      const finalEarning = totalEarned + patienceBonus;
+      let finalEarning = totalEarned + patienceBonus;
+
+      // Check for slow service penalty
+      const isSlow = customer.patience < customer.maxPatience * 0.35;
+      const stopSlow = upgrades.find((u) => u.id === "staff_cherry")?.purchased;
+      
+      let ratingEarned = 4;
+      if (isSlow && !stopSlow) {
+        finalEarning = Math.round(finalEarning * 0.5);
+        ratingEarned = 1;
+        setTextLog(`Slow service! Tip reduced by 50%. (Hire Cherry to stop this penalty).`);
+      } else if (isSlow && stopSlow) {
+        setTextLog(`Cherry prevented the slow service penalty! Full tip earned.`);
+      }
 
       // Update customer state to eating
       setCustomers((prev) => 
@@ -687,9 +748,11 @@ export const GraceCafe: React.FC = () => {
 
       // Clean matched counter items
       setPickupCounter((prev) => prev.filter((_, idx) => !matchedIndices.includes(idx)));
-      setTextLog(`Yummy! Customer is enjoying their meal.`);
 
-      // Let them eat for 4 seconds, then leave tip & make table dirty (or just walk away)
+      // Check eating duration (Floofer helper reduces eating duration)
+      const hasFloofer = upgrades.find((u) => u.id === "staff_floofer")?.purchased;
+      const eatDuration = hasFloofer ? 8400 : 12000;
+
       setTimeout(() => {
         setCustomers((curr) => {
           const targetCust = curr.find((c) => c.id === customer.id);
@@ -702,7 +765,7 @@ export const GraceCafe: React.FC = () => {
         // Add coins
         setCoins((c) => c + finalEarning);
         setCoinsEarnedToday((c) => c + finalEarning);
-        setShopRating((r) => Math.min(100, r + 4));
+        setShopRating((r) => Math.min(100, r + ratingEarned));
 
         // Mark table as dirty (if they had a table)
         if (customer.targetTableId) {
@@ -719,7 +782,7 @@ export const GraceCafe: React.FC = () => {
           setCustomers((curr) => curr.filter((c) => c.id !== customer.id));
         }, 2000);
 
-      }, 4000);
+      }, eatDuration);
 
     } else {
       setTextLog("Baa! You don't have the correct orders prepared on the pickup counter yet!");
@@ -737,7 +800,7 @@ export const GraceCafe: React.FC = () => {
     const nextUpgrades = upgrades.map((u) => (u.id === item.id ? { ...u, purchased: true } : u));
     setCoins(nextCoins);
     setUpgrades(nextUpgrades);
-    setTextLog(`Unlocked: ${item.name}! Applied cozy stat benefits.`);
+    setTextLog(`Unlocked: ${item.name}! Applied cozy tycoon benefits.`);
     saveStats(nextCoins, day, shopRating, nextUpgrades);
   };
 
@@ -782,15 +845,24 @@ export const GraceCafe: React.FC = () => {
     if (!scrambleInfo) return;
     const guess = scrambleAnswer.join("");
     if (guess === scrambleInfo.word) {
-      const bonusCoins = 20;
-      const finalCoins = coins + bonusCoins;
+      const totalDeduction = getDayTotalDeductions();
+      const bonusCoins = totalDeduction + 10; // Give enough to pay bills + 10 pocket coins
+      
+      let finalCoins = coins + bonusCoins - totalDeduction;
+      
+      // Apply Goldie multiplier
+      const hasGoldie = upgrades.find((u) => u.id === "staff_goldie")?.purchased;
+      if (hasGoldie) {
+        finalCoins = Math.round(finalCoins * 1.15);
+      }
+      
       const nextDay = day + 1;
       setCoins(finalCoins);
       setDay(nextDay);
       setIsScrambleActive(false);
       setIsReportOpen(false);
       saveStats(finalCoins, nextDay, shopRating, upgrades);
-      setTextLog(`Grace Period complete! Unscrambled correctly! (+20 Gold Coins) Paid Rent & advanced to Day ${nextDay}! 🎉`);
+      setTextLog(`Grace Period complete! Unscrambled correctly! Paid Rent and wages & advanced to Day ${nextDay}! 🎉`);
     } else {
       setScrambleMessage("Not quite correct. Try checking the letters order again!");
     }
@@ -850,25 +922,43 @@ export const GraceCafe: React.FC = () => {
           )}
 
           {/* Kitchen counter chalkboard */}
-          <div className="absolute top-3 left-4 w-32 bg-stone-900 border border-stone-850 p-1.5 rounded-md text-[#F5F5F5] font-serif leading-tight shadow-md text-left z-0">
-            <span className="text-[6px] uppercase font-bold text-amber-300 tracking-wider block border-b border-stone-800 pb-0.5 mb-0.5">Cafe Menu</span>
-            <span className="text-[5.5px] block">🍵 Living Water - Free</span>
-            <span className="text-[5.5px] block">☕ Latte - $14</span>
-            <span className="text-[5.5px] block">🧁 Muffin - $12</span>
+          <div className="absolute top-3 left-4 w-36 bg-stone-900 border border-stone-800 p-1.5 rounded-md text-[#F5F5F5] font-serif leading-tight shadow-md text-left z-0">
+            <span className="text-[6.5px] uppercase font-bold text-amber-300 tracking-wider block border-b border-stone-850 pb-0.5 mb-0.5">Unlocked Recipes</span>
+            <span className="text-[5.5px] block truncate">🍪 Cookies (Day 1)</span>
+            <span className="text-[5.5px] block truncate">🥞 Pancakes (Day 2)</span>
+            <span className="text-[5.5px] block truncate">☕ Latte (Day 1)</span>
           </div>
 
           {/* Hired Staff behind counter */}
-          <div className="absolute bottom-14 left-[90px] flex items-center gap-4 pointer-events-none z-10">
-            {upgrades.find(u => u.id === "helper_joy")?.purchased && (
+          <div className="absolute bottom-14 left-[50px] flex items-end gap-3 pointer-events-none z-10">
+            {upgrades.find(u => u.id === "staff_floofer")?.purchased && (
               <div className="flex flex-col items-center">
-                <span className="text-[5.5px] font-bold text-teal-850 bg-teal-50 px-1 rounded-sm shadow-xs mb-0.5">Joy</span>
-                <span className="text-xl animate-pulse">🐑</span>
+                <span className="text-[5.5px] font-bold text-amber-900 bg-amber-50 px-1 rounded-sm shadow-xs mb-0.5">Floofer</span>
+                <span className="text-xl animate-bounce" style={{ animationDuration: "2.5s" }}>🐶</span>
               </div>
             )}
-            {upgrades.find(u => u.id === "helper_grace")?.purchased && (
+            {upgrades.find(u => u.id === "staff_flash")?.purchased && (
               <div className="flex flex-col items-center">
-                <span className="text-[5.5px] font-bold text-rose-850 bg-rose-50 px-1 rounded-sm shadow-xs mb-0.5">Grace</span>
-                <span className="text-xl animate-pulse">🐑</span>
+                <span className="text-[5.5px] font-bold text-stone-900 bg-stone-50 px-1 rounded-sm shadow-xs mb-0.5">Flash</span>
+                <span className="text-xl animate-pulse" style={{ animationDuration: "4s" }}>🦥</span>
+              </div>
+            )}
+            {upgrades.find(u => u.id === "staff_cherry")?.purchased && (
+              <div className="flex flex-col items-center">
+                <span className="text-[5.5px] font-bold text-rose-900 bg-rose-50 px-1 rounded-sm shadow-xs mb-0.5">Cherry</span>
+                <span className="text-xl animate-pulse" style={{ animationDuration: "1.5s" }}>🐱</span>
+              </div>
+            )}
+            {upgrades.find(u => u.id === "staff_goldie")?.purchased && (
+              <div className="flex flex-col items-center">
+                <span className="text-[5.5px] font-bold text-yellow-900 bg-yellow-50 px-1 rounded-sm shadow-xs mb-0.5">Goldie</span>
+                <span className="text-xl animate-bounce" style={{ animationDuration: "3s" }}>🐹</span>
+              </div>
+            )}
+            {upgrades.find(u => u.id === "staff_muffin")?.purchased && (
+              <div className="flex flex-col items-center">
+                <span className="text-[5.5px] font-bold text-blue-900 bg-blue-50 px-1 rounded-sm shadow-xs mb-0.5">Muffin</span>
+                <span className="text-xl animate-bounce" style={{ animationDuration: "2s" }}>🐰</span>
               </div>
             )}
           </div>
@@ -877,7 +967,7 @@ export const GraceCafe: React.FC = () => {
           <div className="w-[320px] h-14 bg-gradient-to-r from-[#8D6E63] via-[#795548] to-[#8D6E63] border-t-2 border-[#5D4037] shadow-inner relative z-20 flex items-center px-4 justify-between shrink-0">
             <div className="flex gap-2.5 items-center">
               <span className="text-xs">📠</span>
-              <span className="text-[7.5px] text-[#FFF] font-serif uppercase tracking-widest font-extrabold opacity-60">Brewer Counter</span>
+              <span className="text-[7.5px] text-[#FFF] font-serif uppercase tracking-widest font-extrabold opacity-60">Prep Station</span>
             </div>
             
             {/* Appliance graphics */}
@@ -901,7 +991,7 @@ export const GraceCafe: React.FC = () => {
                   onClick={() => t.status === "dirty" && busTable(t.id)}
                 >
                   {t.status === "dirty" ? (
-                    <span className="text-[8px] font-extrabold text-amber-800 flex flex-col items-center leading-none">
+                    <span className="text-[8px] font-extrabold text-amber-800 flex flex-col items-center leading-none animate-pulse">
                       <span>🍽️🧹</span>
                       <span className="text-[6px] tracking-wide mt-0.5">CLEAN</span>
                     </span>
@@ -930,7 +1020,7 @@ export const GraceCafe: React.FC = () => {
                     initial={{ x: startX, opacity: 0 }}
                     animate={{ x: endX, opacity: 1 }}
                     exit={{ x: 760, opacity: 0 }}
-                    transition={{ duration: isLeaving ? 2.0 : 2.0, ease: "easeOut" }}
+                    transition={{ duration: 2.0, ease: "easeOut" }}
                     onClick={() => serveCustomer(c)}
                     className="absolute bottom-2 flex flex-col items-center pointer-events-auto cursor-pointer"
                     style={{ left: 0 }}
@@ -953,7 +1043,7 @@ export const GraceCafe: React.FC = () => {
 
                     {/* Happy Sparkle overlay if eating */}
                     {c.state === "eating" && (
-                      <div className="absolute bottom-16 text-xs text-emerald-500 font-extrabold animate-bounce">
+                      <div className="absolute bottom-16 text-xs text-[#8D6E63] font-extrabold animate-bounce">
                         😋💖 Delicious!
                       </div>
                     )}
@@ -965,7 +1055,7 @@ export const GraceCafe: React.FC = () => {
                     {isWaiting && (
                       <div className="h-1.5 w-12 bg-stone-200 rounded-full overflow-hidden border border-stone-300 mt-1 shadow-inner relative">
                         <div 
-                          className={`h-full transition-all duration-300 ${c.patience < 35 ? "bg-red-400" : "bg-emerald-450"}`} 
+                          className={`h-full transition-all duration-300 ${c.patience < 35 ? "bg-red-400" : "bg-emerald-400"}`} 
                           style={{ width: `${(c.patience / c.maxPatience) * 100}%` }} 
                         />
                       </div>
@@ -989,7 +1079,7 @@ export const GraceCafe: React.FC = () => {
           onClick={() => setIsShopOpen(true)}
           className="p-1.5 rounded-full bg-white hover:bg-stone-50 border border-stone-250 text-[#8D6E63] shadow-xs active:scale-90 transition-all cursor-pointer flex items-center gap-1 text-[9.5px] font-bold uppercase tracking-wider px-3.5"
         >
-          <ShoppingBag className="w-3.5 h-3.5" /> Upgrades Shop
+          <ShoppingBag className="w-3.5 h-3.5" /> Hired Staff & Shop
         </button>
       </div>
 
@@ -1014,7 +1104,7 @@ export const GraceCafe: React.FC = () => {
           <>
             {/* 1. PICKUP COUNTER */}
             <div className="bg-white border border-stone-200 p-3 rounded-2xl flex flex-col text-left">
-              <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1">Serving Pickup Counter</span>
+              <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1">Serving Pickup Counter (Click to discard)</span>
               {pickupCounter.length === 0 ? (
                 <span className="text-[9.5px] text-stone-400 italic py-1 block">Ready beverages and pastries load here...</span>
               ) : (
@@ -1026,7 +1116,7 @@ export const GraceCafe: React.FC = () => {
                       onClick={() => discardPickup(idx)}
                     >
                       <span className="text-xs">{item.emoji}</span>
-                      <span className="text-[9.5px] font-bold text-stone-700">{item.name}</span>
+                      <span className="text-[9.5px] font-bold text-stone-750">{item.name}</span>
                       <span className="absolute -top-1.5 -right-1.5 bg-red-400 text-white w-3 h-3 rounded-full text-[6.5px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-xs">X</span>
                     </div>
                   ))}
@@ -1037,7 +1127,7 @@ export const GraceCafe: React.FC = () => {
             {/* 2. BREWING & BAKING QUEUES */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-[#FAF4EE]/75 border border-[#EFE5DC] p-3 rounded-2xl flex flex-col text-left">
-                <span className="text-[8.5px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5 flex items-center gap-1"><Coffee className="w-3.5 h-3.5" /> Brew Progress</span>
+                <span className="text-[8.5px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5 flex items-center gap-1"><Coffee className="w-3.5 h-3.5" /> Brew Progress (Max 3)</span>
                 {brewQueue.length === 0 ? (
                   <span className="text-[9px] text-stone-400 italic">No drinks brewing...</span>
                 ) : (
@@ -1055,7 +1145,7 @@ export const GraceCafe: React.FC = () => {
               </div>
 
               <div className="bg-[#FAF4EE]/75 border border-[#EFE5DC] p-3 rounded-2xl flex flex-col text-left">
-                <span className="text-[8.5px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5 flex items-center gap-1"><ChefHat className="w-3.5 h-3.5" /> Bake Progress</span>
+                <span className="text-[8.5px] uppercase tracking-wider font-extrabold text-stone-400 block mb-1.5 flex items-center gap-1"><ChefHat className="w-3.5 h-3.5" /> Bake Progress (Max 3)</span>
                 {bakeQueue.length === 0 ? (
                   <span className="text-[9px] text-stone-400 italic">Oven empty...</span>
                 ) : (
@@ -1077,24 +1167,40 @@ export const GraceCafe: React.FC = () => {
             <div className="bg-white border border-stone-200 p-3 rounded-2xl flex flex-col text-left">
               <span className="text-[8px] uppercase tracking-wider font-extrabold text-stone-450 block mb-2">Order Recipes Stations</span>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {MENU.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => item.type === "drink" ? startBrew(item.id) : startBake(item.id)}
-                    className="p-2 rounded-xl border border-stone-200 hover:border-amber-300 bg-white hover:bg-amber-50/10 text-left cursor-pointer transition-all active:scale-98 flex justify-between items-center group"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base select-none">{item.emoji}</span>
-                      <div className="flex flex-col truncate">
-                        <span className="text-[9.5px] font-bold text-stone-750 truncate">{item.name}</span>
-                        <span className="text-[8px] text-stone-450">Cost: 🪙 {item.cost}</span>
+                {MENU.map((item) => {
+                  const isLocked = item.unlockedAtDay > day;
+                  return (
+                    <button
+                      key={item.id}
+                      disabled={isLocked || (item.type === "drink" ? brewQueue.length >= 3 : bakeQueue.length >= 3)}
+                      onClick={() => item.type === "drink" ? startBrew(item.id) : startBake(item.id)}
+                      className={`p-2 rounded-xl border text-left transition-all flex justify-between items-center group relative ${
+                        isLocked 
+                          ? "bg-stone-50 border-stone-150 opacity-60 cursor-not-allowed" 
+                          : "bg-white border-stone-200 hover:border-amber-300 hover:bg-amber-50/10 cursor-pointer active:scale-98"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isLocked ? (
+                          <span className="text-sm text-stone-400"><Lock className="w-3.5 h-3.5" /></span>
+                        ) : (
+                          <span className="text-base select-none">{item.emoji}</span>
+                        )}
+                        <div className="flex flex-col truncate">
+                          <span className="text-[9.5px] font-bold text-stone-700 truncate">{item.name}</span>
+                          <span className="text-[8px] text-stone-500">
+                            {isLocked ? `Day ${item.unlockedAtDay} Unlock` : `Cost: 🪙${item.cost} (x${item.supply})`}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <span className="text-[9px] font-bold text-[#8D6E63] bg-[#FAF0E6] px-1.5 py-0.5 rounded-md shrink-0 group-hover:scale-105 transition-all">
-                      {item.type === "drink" ? "Brew" : "Bake"}
-                    </span>
-                  </button>
-                ))}
+                      {!isLocked && (
+                        <span className="text-[9px] font-bold text-[#8D6E63] bg-[#FAF0E6] px-1.5 py-0.5 rounded-md shrink-0 group-hover:scale-105 transition-all">
+                          {item.type === "drink" ? "Brew" : "Bake"}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </>
@@ -1121,7 +1227,7 @@ export const GraceCafe: React.FC = () => {
               <div className="w-full text-left">
                 <span className="text-[8px] uppercase tracking-wider font-extrabold text-amber-600 block">Expand Cafe Shop</span>
                 <h3 className="font-serif text-sm font-bold text-warm-cocoa mb-4">
-                  🛍️ Cozy Cafe Upgrades
+                  🛍️ Hired Staff & Upgrades Shop
                 </h3>
               </div>
 
@@ -1133,7 +1239,7 @@ export const GraceCafe: React.FC = () => {
                       <span className="text-2xl">{item.emoji}</span>
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-stone-800">{item.name}</span>
-                        <span className="text-[9px] text-stone-450 max-w-[220px] leading-tight">{item.description}</span>
+                        <span className="text-[9px] text-stone-500 max-w-[220px] leading-tight">{item.description}</span>
                       </div>
                     </div>
 
@@ -1142,7 +1248,7 @@ export const GraceCafe: React.FC = () => {
                     ) : (
                       <button
                         onClick={() => buyUpgrade(item)}
-                        className="px-3.5 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-905 text-[10px] font-extrabold active:scale-95 transition-all cursor-pointer border border-amber-200/50"
+                        className="px-3.5 py-1 rounded-xl bg-amber-100 hover:bg-amber-150 text-amber-900 text-[10px] font-extrabold active:scale-95 transition-all cursor-pointer border border-amber-200/50"
                       >
                         🪙 {item.cost}
                       </button>
@@ -1163,7 +1269,7 @@ export const GraceCafe: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#FFF9F2] border-4 border-[#A1887F] p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[280px] flex flex-col justify-between"
+              className="bg-[#FFF9F2] border-4 border-[#A1887F] p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[300px] flex flex-col justify-between"
             >
               <div className="w-full">
                 <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#795548] block">Shift Summary</span>
@@ -1179,10 +1285,22 @@ export const GraceCafe: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Daily Rent Charge:</span>
-                  <span className="font-bold text-red-500">-🪙 15</span>
+                  <span className="font-bold text-red-500">-🪙 10</span>
                 </div>
+                {getStaffWages() > 0 && (
+                  <div className="flex justify-between">
+                    <span>Hired Staff Wages:</span>
+                    <span className="font-bold text-red-400">-🪙 {getStaffWages()}</span>
+                  </div>
+                )}
+                {upgrades.find(u => u.id === "staff_goldie")?.purchased && (
+                  <div className="flex justify-between text-yellow-600 font-bold">
+                    <span>Goldie 15% Balance Boost:</span>
+                    <span>Applied 💫</span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-dashed pt-2 mt-2 font-bold text-stone-850">
-                  <span>Current Balance:</span>
+                  <span>Final balance after deductions:</span>
                   <span className="text-amber-700">🪙 {coins} Gold Coins</span>
                 </div>
               </div>
@@ -1191,7 +1309,9 @@ export const GraceCafe: React.FC = () => {
                 onClick={handlePayRent}
                 className="w-full py-2.5 rounded-2xl bg-[#795548] hover:bg-[#5D4037] text-white font-bold text-[11px] uppercase tracking-wider active:scale-95 transition-all shadow-md cursor-pointer mt-4"
               >
-                {coins >= 15 ? "Pay Rent 🪙15" : "Request Grace Period 🙏"}
+                {coins >= getDayTotalDeductions() 
+                  ? `Pay rent & wages 🪙${getDayTotalDeductions()}` 
+                  : "Request Grace Period 🙏"}
               </button>
             </motion.div>
           </div>
