@@ -67,9 +67,12 @@ export function MyTalkingLamb() {
   const [cookingRecipe, setCookingRecipe] = useState<RecipeType | null>(null);
   const [cookingStep, setCookingStep] = useState<"choose" | "chop" | "stove" | "stir" | "garnish" | "done">("choose");
   const [chopCount, setChopCount] = useState(0);
-  const [stoveCount, setStoveCount] = useState(0);
-  const [stirCount, setStirCount] = useState(0);
-  const [garnishCount, setGarnishCount] = useState(0);
+  const [sliderPos, setSliderPos] = useState(0);
+  const [sliderDirection, setSliderDirection] = useState<"left" | "right">("right");
+  const [temp, setTemp] = useState(30);
+  const [boilProgress, setBoilProgress] = useState(0);
+  const [stirIndex, setStirIndex] = useState(0);
+  const [garnishItems, setGarnishItems] = useState<{ id: number; emoji: string; x: number; y: number; placed: boolean }[]>([]);
 
   // ─── Bedtime Story States ───────────────────────────────────
   const [isReadingStory, setIsReadingStory] = useState(false);
@@ -204,6 +207,73 @@ export function MyTalkingLamb() {
 
     return () => clearInterval(blinkInterval);
   }, [isSleeping]);
+
+  // ─── Chop timing slider loop ───
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isCooking && cookingStep === "chop") {
+      let currentPos = 0;
+      let dir = 1;
+      interval = setInterval(() => {
+        currentPos += dir * 8;
+        if (currentPos >= 100) {
+          currentPos = 100;
+          dir = -1;
+        } else if (currentPos <= 0) {
+          currentPos = 0;
+          dir = 1;
+        }
+        setSliderPos(currentPos);
+      }, 35);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isCooking, cookingStep]);
+
+  // ─── Stove temperature hold progress loop ───
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isCooking && cookingStep === "stove") {
+      interval = setInterval(() => {
+        setTemp((t) => Math.max(30, t - 2));
+        setTemp((t) => {
+          if (t >= 80 && t <= 100) {
+            setBoilProgress((p) => {
+              const next = Math.min(100, p + 5);
+              return next;
+            });
+          }
+          return t;
+        });
+      }, 150);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isCooking, cookingStep]);
+
+  // Advance from stove step once boiling is complete
+  useEffect(() => {
+    if (boilProgress >= 100 && cookingStep === "stove") {
+      setCookingStep("stir");
+      setStirIndex(0);
+      speak("Hot and boiling! Now grab the spoon and stir mix it clockwise! 🥣🥄");
+    }
+  }, [boilProgress, cookingStep]);
+
+  // Advance from stir step once circular stirring is complete
+  useEffect(() => {
+    if (stirIndex >= 8 && cookingStep === "stir") {
+      setCookingStep("garnish");
+      setGarnishItems([
+        { id: 1, emoji: "🌸", x: 45, y: 35, placed: false },
+        { id: 2, emoji: "🍓", x: 115, y: 45, placed: false },
+        { id: 3, emoji: "🌿", x: 80, y: 95, placed: false }
+      ]);
+      speak("Perfect consistency! Tap the floating toppings to garnish! 🌸✨");
+    }
+  }, [stirIndex, cookingStep]);
 
   // Sleep sound effects & quiet lullaby music box player
   useEffect(() => {
@@ -750,58 +820,61 @@ export function MyTalkingLamb() {
     setCookingRecipe(recipe);
     setCookingStep("chop");
     setChopCount(0);
-    setStoveCount(0);
-    setStirCount(0);
-    setGarnishCount(0);
-    speak("Recipe selected! First, chop the ingredients on the board! 🔪");
+    setSliderPos(0);
+    setTemp(30);
+    setBoilProgress(0);
+    setStirIndex(0);
+    setGarnishItems([]);
+    speak("Recipe selected! Tap 'CHOP' when the slider is in the green zone! 🔪");
   };
 
   const handleChopClick = () => {
-    if (chopCount < 3) {
+    // Sweet spot is between 40 and 60
+    const inSweetSpot = sliderPos >= 40 && sliderPos <= 60;
+    if (inSweetSpot) {
       const next = chopCount + 1;
       setChopCount(next);
-      spawnParticles("🔪", 2);
+      spawnParticles("🔪", 3);
+      speak("Perfect chop! 🌟");
       if (next === 3) {
         setCookingStep("stove");
+        setTemp(30);
+        setBoilProgress(0);
         speak("All chopped! Let's put them on the stove to boil! 🫕🔥");
       }
+    } else {
+      spawnParticles("❌", 1);
+      speak("Missed! Tap when the cursor is in the pink zone! 🎯");
     }
   };
 
-  const handleStoveClick = () => {
-    if (stoveCount < 3) {
-      const next = stoveCount + 1;
-      setStoveCount(next);
-      spawnParticles("🔥", 2);
-      if (next === 3) {
-        setCookingStep("stir");
-        speak("Hot and boiling! Now grab the spoon and stir mix it! 🥣🥄");
-      }
-    }
+  const handleStoveHeatClick = () => {
+    setTemp((t) => Math.min(110, t + 12));
+    spawnParticles("🔥", 2);
   };
 
-  const handleStirClick = () => {
-    if (stirCount < 3) {
-      const next = stirCount + 1;
-      setStirCount(next);
+  const handleStirDirectionClick = (dirIndex: number) => {
+    const targetIndex = stirIndex % 4;
+    if (dirIndex === targetIndex) {
+      const next = stirIndex + 1;
+      setStirIndex(next);
       spawnParticles("🌀", 2);
-      if (next === 3) {
-        setCookingStep("garnish");
-        speak("Perfect consistency! Let's add some pretty toppings to garnish! 🌸✨");
-      }
+    } else {
+      speak("Stir clockwise! Tap the active glowing arrow! 🔄");
     }
   };
 
-  const handleGarnishClick = () => {
-    if (garnishCount < 2) {
-      const next = garnishCount + 1;
-      setGarnishCount(next);
-      spawnParticles("✨", 3);
-      if (next === 2) {
+  const handleGarnishItemClick = (itemId: number) => {
+    setGarnishItems((prev) => {
+      const next = prev.map((item) => (item.id === itemId ? { ...item, placed: true } : item));
+      const allPlaced = next.every((item) => item.placed);
+      if (allPlaced) {
         setCookingStep("done");
-        speak("So beautiful! Selah's meal is ready to be served! 🍽️✨");
+        speak("Garnish complete! Selah's meal is ready to be served! 🍽️✨");
       }
-    }
+      return next;
+    });
+    spawnParticles("✨", 2);
   };
 
   const serveCookedRecipe = () => {
@@ -916,134 +989,333 @@ export function MyTalkingLamb() {
           {activeRoom === "living" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
               <defs>
-                <pattern id="stripes" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <rect width="10" height="20" fill="#FFFBF7" />
-                  <rect x="10" width="10" height="20" fill="#FFF5EB" />
-                </pattern>
+                <linearGradient id="livingWall" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FFF9F2" />
+                  <stop offset="100%" stopColor="#F5E6D3" />
+                </linearGradient>
+                <linearGradient id="woodFloor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#C29D84" />
+                  <stop offset="100%" stopColor="#8C6246" />
+                </linearGradient>
+                <radialGradient id="fireGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(249,115,22,0.4)" />
+                  <stop offset="100%" stopColor="rgba(249,115,22,0)" />
+                </radialGradient>
               </defs>
-              <rect width="400" height="300" fill="url(#stripes)" />
-              {/* Floor Wood/Baseboard */}
-              <line x1="0" y1="210" x2="400" y2="210" stroke="#C2A58F" strokeWidth="6" />
-              <rect y="210" width="400" height="90" fill="#D4B299" />
-              {/* Wooden Plank Lines */}
-              <line x1="0" y1="240" x2="400" y2="240" stroke="#B0927C" strokeWidth="1" />
-              <line x1="0" y1="270" x2="400" y2="270" stroke="#B0927C" strokeWidth="1" />
+              {/* Stripes Wall */}
+              <rect width="400" height="300" fill="url(#livingWall)" />
               
               {/* Window & Curtains */}
-              <rect x="140" y="20" width="120" height="100" rx="8" fill="#BAE6FD" stroke="#94A3B8" strokeWidth="4" />
-              <line x1="200" y1="20" x2="200" y2="120" stroke="#94A3B8" strokeWidth="2" />
-              <line x1="140" y1="70" x2="260" y2="70" stroke="#94A3B8" strokeWidth="2" />
-              {/* Curtains */}
-              <path d="M 140 20 Q 155 70 140 120 L 125 120 L 125 20 Z" fill="#FDE2E4" />
-              <path d="M 260 20 Q 245 70 260 120 L 275 120 L 275 20 Z" fill="#FDE2E4" />
+              <rect x="140" y="20" width="120" height="90" rx="10" fill="#E0F2FE" stroke="#B0BEC5" strokeWidth="3" />
+              {/* Sunset inside window */}
+              <path d="M 141 85 Q 200 60 259 85 L 259 109 L 141 109 Z" fill="#FFA726" opacity="0.6" />
+              <circle cx="200" cy="70" r="16" fill="#FEE2E2" opacity="0.8" />
+              <line x1="200" y1="20" x2="200" y2="110" stroke="#B0BEC5" strokeWidth="1.5" />
+              <line x1="140" y1="65" x2="260" y2="65" stroke="#B0BEC5" strokeWidth="1.5" />
               
-              {/* Detailed Fireplace */}
-              <rect x="40" y="125" width="80" height="90" rx="6" fill="#A83F17" stroke="#782E10" strokeWidth="2" />
-              <rect x="52" y="155" width="56" height="60" rx="4" fill="#1E1B18" />
-              {/* Fire coals */}
-              <rect x="62" y="195" width="36" height="20" rx="2" fill="#450A0A" />
-              <circle cx="74" cy="192" r="8" fill="#EA580C" className="animate-pulse" />
-              <circle cx="86" cy="194" r="7" fill="#F97316" className="animate-pulse" style={{ animationDelay: "0.4s" }} />
-              <polygon points="70,195 80,175 90,195" fill="#FACC15" className="animate-pulse" />
+              {/* Curtains with tie backs */}
+              <path d="M 140 20 Q 165 65 140 110 L 125 110 L 125 20 Z" fill="#FFCDD2" />
+              <path d="M 260 20 Q 235 65 260 110 L 275 110 L 275 20 Z" fill="#FFCDD2" />
               
-              {/* Shelf & Plants */}
-              <rect x="290" y="90" width="80" height="6" fill="#8C6239" />
-              <path d="M 310 90 L 315 75 L 345 75 L 350 90 Z" fill="#D97706" />
-              <path d="M 315 75 Q 330 60 330 75 Q 340 60 345 75 Z" fill="#10B981" />
+              {/* Brick Fireplace */}
+              <rect x="35" y="115" width="90" height="95" rx="8" fill="#B71C1C" stroke="#7F0000" strokeWidth="3" />
+              {/* Arch Opening */}
+              <path d="M 45 210 L 45 150 Q 80 135 115 150 L 115 210 Z" fill="#1A0A0A" />
+              {/* Fireglow backdrop */}
+              <circle cx="80" cy="185" r="30" fill="url(#fireGlow)" className="animate-pulse" />
+              {/* Fire coals & logs */}
+              <rect x="58" y="195" width="44" height="15" rx="3" fill="#3E2723" />
+              <circle cx="72" cy="190" r="10" fill="#FF3D00" className="animate-pulse" />
+              <circle cx="88" cy="192" r="8" fill="#FF9100" className="animate-pulse" style={{ animationDelay: "0.3s" }} />
+              <polygon points="68,195 80,165 92,195" fill="#FFEA00" className="animate-pulse" style={{ animationDelay: "0.15s" }} />
 
+              {/* Bookshelf on Right */}
+              <rect x="295" y="80" width="85" height="130" rx="4" fill="#5D4037" stroke="#3E2723" strokeWidth="2.5" />
+              <line x1="295" y1="125" x2="380" y2="125" stroke="#3E2723" strokeWidth="3" />
+              <line x1="295" y1="168" x2="380" y2="168" stroke="#3E2723" strokeWidth="3" />
+              {/* Books */}
+              <rect x="305" y="95" width="10" height="30" fill="#E53935" />
+              <rect x="317" y="100" width="12" height="25" fill="#3949AB" />
+              <rect x="331" y="92" width="10" height="33" fill="#43A047" />
+              <rect x="310" y="138" width="15" height="30" fill="#FFB300" transform="rotate(10 310 138)" />
+              <rect x="335" y="138" width="12" height="30" fill="#00ACC1" />
+              <rect x="350" y="143" width="10" height="25" fill="#D81B60" />
+
+              {/* Floor Wood/Baseboard */}
+              <line x1="0" y1="210" x2="400" y2="210" stroke="#8D6E63" strokeWidth="6" />
+              <rect y="210" width="400" height="90" fill="url(#woodFloor)" />
+              {/* Floor Wood Lines */}
+              <line x1="0" y1="240" x2="400" y2="240" stroke="#5D4037" strokeWidth="1" opacity="0.25" />
+              <line x1="0" y1="270" x2="400" y2="270" stroke="#5D4037" strokeWidth="1" opacity="0.25" />
+              
               {/* Cozy Rug */}
-              <ellipse cx="200" cy="245" rx="90" ry="32" fill="#FFF" stroke="#E5E7EB" strokeWidth="2" opacity="0.9" />
-              <ellipse cx="200" cy="245" rx="80" ry="26" fill="#FEE2E2" opacity="0.4" />
+              <ellipse cx="200" cy="250" rx="90" ry="32" fill="#FFFFFF" stroke="#E0E0E0" strokeWidth="2" opacity="0.95" />
+              <ellipse cx="200" cy="250" rx="80" ry="26" fill="#FFEBEE" opacity="0.6" />
+              <ellipse cx="200" cy="250" rx="60" ry="18" fill="#FFCDD2" opacity="0.3" />
             </svg>
           )}
 
           {/* B. KITCHEN */}
           {activeRoom === "kitchen" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill="#E8F5E9" />
-              {/* Tile Grid Flooring */}
-              <rect y="200" width="400" height="100" fill="#E2E8F0" />
-              <line x1="0" y1="200" x2="400" y2="200" stroke="#CBD5E1" strokeWidth="4" />
-              {/* Diagonal tiles lines */}
-              {Array.from({ length: 9 }).map((_, i) => (
-                <line key={i} x1={i * 50 - 50} y1="200" x2={i * 50} y2="300" stroke="#94A3B8" strokeWidth="1" opacity="0.4" />
-              ))}
+              <defs>
+                <linearGradient id="kitchenWall" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F9F6F0" />
+                  <stop offset="100%" stopColor="#EDE8F5" />
+                </linearGradient>
+                <linearGradient id="kitchenFloor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#DFD8C9" />
+                  <stop offset="100%" stopColor="#CDAF95" />
+                </linearGradient>
+                <linearGradient id="counterGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ECEFF1" />
+                  <stop offset="100%" stopColor="#B0BEC5" />
+                </linearGradient>
+              </defs>
+              {/* Wall */}
+              <rect width="400" height="300" fill="url(#kitchenWall)" />
               
-              {/* Kitchen Counter & Shelves */}
-              <rect x="20" y="140" width="180" height="65" fill="#94A3B8" stroke="#64748B" strokeWidth="2" />
-              <rect x="20" y="130" width="185" height="10" rx="3" fill="#334155" />
-              {/* Drawers */}
-              <line x1="110" y1="140" x2="110" y2="205" stroke="#64748B" strokeWidth="2" />
-              <rect x="40" y="155" width="45" height="8" rx="2" fill="#475569" />
-              <rect x="135" y="155" width="45" height="8" rx="2" fill="#475569" />
+              {/* Kitchen Window */}
+              <rect x="140" y="25" width="120" height="80" rx="10" fill="#E0F7FA" stroke="#B0BEC5" strokeWidth="4" />
+              {/* Window Landscape */}
+              <path d="M 142 90 Q 200 65 258 90" fill="#81C784" opacity="0.7" />
+              <circle cx="210" cy="50" r="10" fill="#FFF" opacity="0.5" />
+              <line x1="200" y1="25" x2="200" y2="105" stroke="#B0BEC5" strokeWidth="2" />
+              <line x1="140" y1="65" x2="260" y2="65" stroke="#B0BEC5" strokeWidth="2" />
+
+              {/* Wooden shelves on the right wall */}
+              <rect x="290" y="45" width="90" height="6" rx="2" fill="#8D6E63" />
+              {/* Plant on shelf */}
+              <path d="M 315 45 L 320 32 L 340 32 L 345 45 Z" fill="#A1887F" />
+              <path d="M 318 32 Q 330 15 330 32 Q 342 15 336 32 Z" fill="#81C784" />
+              {/* Cups on shelf */}
+              <rect x="352" y="33" width="12" height="12" rx="2" fill="#FF8A80" />
+              <rect x="368" y="33" width="12" height="12" rx="2" fill="#FFD54F" />
+
+              {/* Floor */}
+              <line x1="0" y1="200" x2="400" y2="200" stroke="#8D6E63" strokeWidth="6" />
+              <rect y="200" width="400" height="100" fill="url(#kitchenFloor)" />
+              {/* Wood Plank Lines */}
+              <line x1="0" y1="230" x2="400" y2="230" stroke="#795548" strokeWidth="1" opacity="0.3" />
+              <line x1="0" y1="260" x2="400" y2="260" stroke="#795548" strokeWidth="1" opacity="0.3" />
+              <line x1="0" y1="290" x2="400" y2="290" stroke="#795548" strokeWidth="1" opacity="0.3" />
+
+              {/* Kitchen Counter Cabinet */}
+              <rect x="20" y="130" width="105" height="70" rx="3" fill="url(#counterGrad)" stroke="#78909C" strokeWidth="2.5" />
+              {/* Stove base */}
+              <rect x="135" y="132" width="110" height="68" rx="3" fill="#37474F" stroke="#263238" strokeWidth="2.5" />
+              {/* Burners */}
+              <ellipse cx="165" cy="132" rx="16" ry="3" fill="#212121" />
+              <ellipse cx="215" cy="132" rx="16" ry="3" fill="#212121" />
+              <ellipse cx="165" cy="132" rx="12" ry="2" fill="#E65100" opacity="0.6" className="animate-pulse" />
               
-              {/* Bowl */}
-              <path d="M 90 130 Q 110 152 130 130 Z" fill="#FDA4AF" stroke="#E11D48" strokeWidth="2.5" />
+              {/* Sink basin on cabinet */}
+              <rect x="40" y="125" width="60" height="6" rx="2" fill="#78909C" />
+              <path d="M 65 125 L 65 110 Q 65 105 70 105 L 75 105" fill="none" stroke="#B0BEC5" strokeWidth="2.5" />
+
+              {/* Decorative Rug */}
+              <ellipse cx="200" cy="245" rx="75" ry="22" fill="#E8F5E9" stroke="#C8E6C9" strokeWidth="2" opacity="0.9" />
+              <ellipse cx="200" cy="245" rx="65" ry="16" fill="#A5D6A7" opacity="0.4" />
             </svg>
           )}
 
           {/* C. BEDROOM */}
           {activeRoom === "bedroom" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill={isSleeping ? "#0F172A" : "#F5F3F0"} />
-              <rect y="210" width="400" height="90" fill={isSleeping ? "#1E293B" : "#E3DEC6"} />
-              {/* Floorboard planks */}
-              <line x1="0" y1="240" x2="400" y2="240" stroke={isSleeping ? "#0f172a" : "#C5BEA5"} strokeWidth="1" />
-              <line x1="0" y1="270" x2="400" y2="270" stroke={isSleeping ? "#0f172a" : "#C5BEA5"} strokeWidth="1" />
-              
+              <defs>
+                <linearGradient id="dayBedWall" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FFF8F5" />
+                  <stop offset="100%" stopColor="#EADEC9" />
+                </linearGradient>
+                <linearGradient id="nightBedWall" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0B132B" />
+                  <stop offset="100%" stopColor="#1C2541" />
+                </linearGradient>
+                <linearGradient id="dayBedFloor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#E2D4C1" />
+                  <stop offset="100%" stopColor="#C4B49F" />
+                </linearGradient>
+                <linearGradient id="nightBedFloor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1E293B" />
+                  <stop offset="100%" stopColor="#0F172A" />
+                </linearGradient>
+                <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(254,240,138,0.55)" />
+                  <stop offset="100%" stopColor="rgba(254,240,138,0)" />
+                </radialGradient>
+              </defs>
+              {/* Wall */}
+              <rect width="400" height="300" fill={isSleeping ? "url(#nightBedWall)" : "url(#dayBedWall)"} />
+
+              {/* Night Sky / Day Sky Window */}
+              <rect x="140" y="25" width="120" height="80" rx="10" fill={isSleeping ? "#020617" : "#BAE6FD"} stroke={isSleeping ? "#334155" : "#94A3B8"} strokeWidth="3" />
+              {isSleeping ? (
+                // Stars & Moon
+                <>
+                  <circle cx="210" cy="50" r="10" fill="#FEF08A" />
+                  <circle cx="206" cy="48" r="9" fill="#020617" />
+                  <circle cx="160" cy="45" r="1" fill="#FFF" opacity="0.8" className="animate-pulse" />
+                  <circle cx="175" cy="70" r="1.5" fill="#FFF" opacity="0.6" className="animate-pulse" style={{ animationDelay: "1s" }} />
+                  <circle cx="230" cy="65" r="1" fill="#FFF" opacity="0.9" className="animate-pulse" style={{ animationDelay: "0.5s" }} />
+                </>
+              ) : (
+                // Sun & Clouds
+                <>
+                  <circle cx="165" cy="48" r="12" fill="#F59E0B" />
+                  <path d="M 210 65 Q 220 55 230 65 Q 240 65 245 70 Q 230 80 210 70 Z" fill="#FFF" opacity="0.8" />
+                </>
+              )}
+              <line x1="200" y1="25" x2="200" y2="105" stroke={isSleeping ? "#1e293b" : "#94A3B8"} strokeWidth="1.5" />
+              <line x1="140" y1="65" x2="260" y2="65" stroke={isSleeping ? "#1e293b" : "#94A3B8"} strokeWidth="1.5" />
+
               {/* Bedside table & Lamp */}
-              <rect x="40" y="150" width="55" height="60" rx="4" fill={isSleeping ? "#334155" : "#A29988"} />
-              <rect x="52" y="180" width="31" height="8" rx="2" fill={isSleeping ? "#1E293B" : "#5C5446"} />
-              <line x1="68" y1="150" x2="68" y2="135" stroke={isSleeping ? "#475569" : "#D97706"} strokeWidth="3" />
-              <path d="M 54 135 L 82 135 L 76 118 L 60 118 Z" fill={isSleeping ? "#FEF08A" : "#F87171"} opacity={isSleeping ? 0.95 : 1} />
+              <rect x="40" y="145" width="55" height="65" rx="6" fill={isSleeping ? "#1E293B" : "#B0A898"} stroke={isSleeping ? "#0F172A" : "#8C8270"} strokeWidth="1.5" />
+              <rect x="52" y="175" width="31" height="8" rx="2" fill={isSleeping ? "#0F172A" : "#5C5446"} />
               
-              {/* Cozy Bed frame */}
-              <rect x="200" y="160" width="180" height="70" rx="12" fill={isSleeping ? "#334155" : "#F472B6"} stroke={isSleeping ? "#1E293B" : "#DB2777"} strokeWidth="2" />
-              <rect x="200" y="160" width="45" height="40" rx="6" fill="#FFFFFF" />
+              {/* Lamp */}
+              <line x1="68" y1="145" x2="68" y2="130" stroke={isSleeping ? "#334155" : "#D97706"} strokeWidth="3" />
+              <path d="M 52 130 L 84 130 L 76 112 L 60 112 Z" fill={isSleeping ? "#FEF08A" : "#EF4444"} stroke={isSleeping ? "#FCD34D" : "#B91C1C"} strokeWidth="1" />
+              {/* Lamp Glow effect */}
+              {isSleeping && (
+                <circle cx="68" cy="115" r="45" fill="url(#lampGlow)" className="animate-pulse" />
+              )}
+
+              {/* Floor */}
+              <line x1="0" y1="210" x2="400" y2="210" stroke={isSleeping ? "#0F172A" : "#8C7B65"} strokeWidth="6" />
+              <rect y="210" width="400" height="90" fill={isSleeping ? "url(#nightBedFloor)" : "url(#dayBedFloor)"} />
+              {/* Floor wood lines */}
+              <line x1="0" y1="240" x2="400" y2="240" stroke={isSleeping ? "#020617" : "#9F8E7C"} strokeWidth="1" opacity="0.3" />
+              <line x1="0" y1="270" x2="400" y2="270" stroke={isSleeping ? "#020617" : "#9F8E7C"} strokeWidth="1" opacity="0.3" />
+
+              {/* Premium Bed frame */}
+              {/* Wooden headboard */}
+              <rect x="330" y="130" width="12" height="80" rx="3" fill={isSleeping ? "#3E2723" : "#8D6E63"} />
+              {/* Wooden base */}
+              <rect x="200" y="165" width="140" height="45" rx="8" fill={isSleeping ? "#334155" : "#F472B6"} stroke={isSleeping ? "#1E293B" : "#DB2777"} strokeWidth="2.5" />
+              {/* Pillow */}
+              <rect x="290" y="152" width="38" height="22" rx="6" fill="#FFFFFF" stroke={isSleeping ? "#475569" : "#E2E8F0"} strokeWidth="1.5" />
             </svg>
           )}
 
           {/* D. BATHROOM */}
           {activeRoom === "bathroom" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill="#E0F7FA" />
-              {/* Wall tile lines */}
+              <defs>
+                <linearGradient id="bathWall" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#E0F7FA" />
+                  <stop offset="100%" stopColor="#B2EBF2" />
+                </linearGradient>
+                <linearGradient id="bathFloor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#80DEEA" />
+                  <stop offset="100%" stopColor="#00ACC1" />
+                </linearGradient>
+                <linearGradient id="tubGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FFFFFF" />
+                  <stop offset="100%" stopColor="#ECEFF1" />
+                </linearGradient>
+              </defs>
+              {/* Wall */}
+              <rect width="400" height="300" fill="url(#bathWall)" />
+              {/* Tiled grid overlay on wall */}
               {Array.from({ length: 8 }).map((_, i) => (
-                <line key={i} x1={i * 50} y1="0" x2={i * 50} y2="210" stroke="#B2EBF2" strokeWidth="1" />
+                <line key={i} x1={i * 50} y1="0" x2={i * 50} y2="200" stroke="#80DEEA" strokeWidth="1" opacity="0.4" />
               ))}
               {Array.from({ length: 5 }).map((_, i) => (
-                <line key={i} y1={i * 45} x1="0" y2={i * 45} x2="400" stroke="#B2EBF2" strokeWidth="1" />
+                <line key={i} y1={i * 40} x1="0" y2={i * 40} x2="400" stroke="#80DEEA" strokeWidth="1" opacity="0.4" />
               ))}
               
+              {/* Round Mirror */}
+              <circle cx="200" cy="70" r="35" fill="#E0F7FA" stroke="#CFD8DC" strokeWidth="4" />
+              <path d="M 170 85 C 190 90 220 80 230 60" fill="none" stroke="#FFF" strokeWidth="2.5" opacity="0.8" />
+
+              {/* Shelf with bath gels */}
+              <rect x="40" y="70" width="60" height="5" rx="1.5" fill="#B0BEC5" />
+              <rect x="50" y="52" width="12" height="18" rx="2" fill="#FF8A80" />
+              <rect x="68" y="48" width="10" height="22" rx="2" fill="#80D8FF" />
+              <rect x="82" y="55" width="10" height="15" rx="2" fill="#B9F6CA" />
+
               {/* Floor */}
-              <rect y="210" width="400" height="90" fill="#B2EBF2" />
-              <line x1="0" y1="210" x2="400" y2="210" stroke="#00ACC1" strokeWidth="4" />
+              <line x1="0" y1="200" x2="400" y2="200" stroke="#00838F" strokeWidth="6" />
+              <rect y="200" width="400" height="100" fill="url(#bathFloor)" />
+              {/* Floor tile grid */}
+              {Array.from({ length: 9 }).map((_, i) => (
+                <line key={i} x1={i * 50 - 50} y1="200" x2={i * 50} y2="300" stroke="#00838F" strokeWidth="1" opacity="0.3" />
+              ))}
+
+              {/* Bathtub shadow */}
+              <ellipse cx="200" cy="235" rx="100" ry="18" fill="#006064" opacity="0.25" />
+
+              {/* Detailed Bathtub */}
+              <path d="M 90 170 C 90 230 310 230 310 170 Z" fill="url(#tubGrad)" stroke="#B0BEC5" strokeWidth="2" />
+              <rect x="80" y="160" width="240" height="12" rx="6" fill="#FFFFFF" stroke="#B0BEC5" strokeWidth="1.5" />
               
-              {/* Bathtub */}
-              <rect x="110" y="165" width="180" height="70" rx="22" fill="#FFFFFF" stroke="#CFD8DC" strokeWidth="3" />
-              <rect x="95" y="160" width="210" height="10" rx="5" fill="#CFD8DC" />
-              {/* Tap */}
-              <path d="M 125 160 L 125 145 Q 125 140 130 140 L 135 140" fill="none" stroke="#90A4AE" strokeWidth="3" />
+              {/* Tap & Shower head */}
+              <path d="M 115 160 L 115 130 Q 115 125 122 125 L 128 125" fill="none" stroke="#CFD8DC" strokeWidth="4.5" strokeLinecap="round" />
+              <polygon points="126,120 134,125 126,130" fill="#90A4AE" />
+
+              {/* Bubbles rising */}
+              <circle cx="160" cy="140" r="5" fill="#FFF" opacity="0.6" stroke="#80D8FF" strokeWidth="0.5" className="animate-bounce" />
+              <circle cx="260" cy="130" r="7" fill="#FFF" opacity="0.5" stroke="#80D8FF" strokeWidth="0.5" className="animate-bounce" style={{ animationDelay: "0.5s", animationDuration: "3s" }} />
+              <circle cx="210" cy="148" r="4" fill="#FFF" opacity="0.7" stroke="#80D8FF" strokeWidth="0.5" className="animate-bounce" style={{ animationDelay: "1s", animationDuration: "2.5s" }} />
             </svg>
           )}
 
           {/* E. BACKYARD */}
           {activeRoom === "backyard" && (
             <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
-              <rect width="400" height="300" fill="#E0F2FE" />
-              <circle cx="340" cy="50" r="22" fill="#FCD34D" />
-              {/* Hills */}
-              <path d="M -30 220 Q 120 150 280 230 Q 350 190 440 240 L 440 300 L -30 300 Z" fill="#6EE7B7" />
-              <path d="M -30 240 Q 80 180 220 250 Q 320 200 440 255 L 440 300 L -30 300 Z" fill="#34D399" />
+              <defs>
+                <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#BAE6FD" />
+                  <stop offset="100%" stopColor="#E0F2FE" />
+                </linearGradient>
+                <linearGradient id="hill1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#A7F3D0" />
+                  <stop offset="100%" stopColor="#34D399" />
+                </linearGradient>
+                <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6EE7B7" />
+                  <stop offset="100%" stopColor="#059669" />
+                </linearGradient>
+              </defs>
+              {/* Sky */}
+              <rect width="400" height="300" fill="url(#skyGrad)" />
               
-              {/* Fence posts */}
-              {Array.from({ length: 6 }).map((_, i) => (
-                <g key={i} transform={`translate(${i * 80}, 190)`}>
-                  <rect x="0" y="0" width="10" height="40" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="1" />
-                  <polygon points="0,0 5,-8 10,0" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="1" />
+              {/* Sun with Rays */}
+              <circle cx="340" cy="50" r="24" fill="#FCD34D" opacity="0.9" />
+              <circle cx="340" cy="50" r="30" fill="#FDE047" opacity="0.3" className="animate-pulse" />
+
+              {/* Clouds */}
+              <g opacity="0.85">
+                <path d="M 50 60 Q 60 50 75 55 Q 85 45 95 55 Q 105 55 110 65 L 45 65 Z" fill="#FFFFFF" />
+                <path d="M 230 45 Q 240 35 255 40 Q 265 30 275 40 Q 285 40 290 50 L 225 50 Z" fill="#FFFFFF" opacity="0.7" />
+              </g>
+
+              {/* Distant Hills */}
+              <path d="M -30 210 Q 110 130 260 210 Q 340 170 440 220 L 440 300 L -30 300 Z" fill="url(#hill1)" />
+              
+              {/* Wooden Fence */}
+              {Array.from({ length: 7 }).map((_, i) => (
+                <g key={i} transform={`translate(${i * 65 - 10}, 175)`}>
+                  <rect x="0" y="0" width="12" height="45" rx="1" fill="#D7CCC8" stroke="#A1887F" strokeWidth="1" />
+                  <polygon points="0,0 6,-8 12,0" fill="#D7CCC8" stroke="#A1887F" strokeWidth="1" />
                 </g>
               ))}
-              <rect x="0" y="205" width="400" height="6" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="1" />
+              <rect x="0" y="190" width="400" height="6" fill="#D7CCC8" stroke="#A1887F" strokeWidth="1" />
+              <rect x="0" y="205" width="400" height="6" fill="#D7CCC8" stroke="#A1887F" strokeWidth="1" />
+
+              {/* Foreground Hills */}
+              <path d="M -30 230 Q 90 170 230 240 Q 320 190 440 245 L 440 300 L -30 300 Z" fill="url(#hill2)" opacity="0.95" />
+              
+              {/* Little flowers in the field */}
+              <circle cx="60" cy="255" r="2.5" fill="#FFF" />
+              <circle cx="58" cy="253" r="1.5" fill="#FCD34D" />
+              <circle cx="62" cy="257" r="1.5" fill="#FCD34D" />
+              
+              <circle cx="220" cy="265" r="3" fill="#F472B6" />
+              <circle cx="218" cy="263" r="1.5" fill="#FDE047" />
+
+              <circle cx="150" cy="245" r="2" fill="#FDE047" />
+              <circle cx="280" cy="270" r="2.5" fill="#FFF" />
             </svg>
           )}
         </div>
@@ -1091,124 +1363,133 @@ export function MyTalkingLamb() {
           </div>
         </div>
 
-        {/* INTERACTIVE KITCHEN RECIPE BOOK & COOKING TRIGGERS */}
-        {activeRoom === "kitchen" && !isCooking && (
-          <div className="absolute right-5 top-1/4 z-30 flex flex-col gap-2">
-            <button
-              onClick={() => {
-                setIsCooking(true);
-                setCookingStep("choose");
-              }}
-              className="p-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
-            >
-              <BookOpen className="w-4 h-4" />
-              Recipe Book
-            </button>
-
-            <button
-              onClick={() => setIsFridgeOpen((prev) => !prev)}
-              className={`p-2 py-3 rounded-2xl border-2 font-bold text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer flex flex-col items-center gap-0.5 ${
-                isFridgeOpen
-                  ? "bg-stone-50 border-rose-300 text-rose-500"
-                  : "bg-[#4B3A3A] border-stone-800 text-white"
-              }`}
-            >
-              <span>🚪</span>
-              {isFridgeOpen ? "Close Fridge" : "Open Fridge"}
-            </button>
-
-            {/* Open Fridge Overlay Shelf */}
-            <AnimatePresence>
-              {isFridgeOpen && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="bg-white/95 backdrop-blur-sm border border-stone-200 p-3 rounded-3xl shadow-xl flex flex-col gap-2 w-48 text-left z-20"
+        {/* ROOM ACTIONS FLOATING BAR (LAPTPOP & MOBILE-SAFE) */}
+        {!isCooking && (
+          <div className="absolute left-4 top-16 z-30 flex gap-2 pointer-events-auto">
+            {activeRoom === "kitchen" && (
+              <>
+                <button
+                  onClick={() => {
+                    setIsCooking(true);
+                    setCookingStep("choose");
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  <span className="text-[8.5px] uppercase font-bold text-warm-cocoa/40 tracking-wider">Fridge Shelf Stock</span>
-                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
-                    <span>🍀 Clover Salad</span>
-                    <span className="text-emerald-600 font-bold">Infinite</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
-                    <span>🍎 Apples</span>
-                    <span className="font-bold">{applesStock} left</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
-                    <span>🍪 Cookies</span>
-                    <span className="font-bold">{cookieStock} left</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
-                    <span>🍞 Manna Bread</span>
-                    <span className="font-bold">{mannaStock} left</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
-                    <span>🍓 Berries</span>
-                    <span className="font-bold">{berryStock} left</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
-                    <span>🍯 Honey Jar</span>
-                    <span className="font-bold">{honeyStock} left</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[9.5px]">
-                    <span>🥛 Milk Bottle</span>
-                    <span className="font-bold">{milkStock} left</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
+                  <BookOpen className="w-3.5 h-3.5" /> Recipe Book
+                </button>
+                <button
+                  onClick={() => setIsFridgeOpen((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-xl border-2 font-bold text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
+                    isFridgeOpen
+                      ? "bg-rose-50 border-rose-300 text-rose-500"
+                      : "bg-[#4B3A3A] border-stone-800 text-white"
+                  }`}
+                >
+                  🚪 {isFridgeOpen ? "Close Fridge" : "Open Fridge"}
+                </button>
+              </>
+            )}
 
-        {/* TOY BALL FOR BACKYARD FETCH */}
-        {activeRoom === "backyard" && (
-          <div className="absolute left-10 bottom-16 z-30 flex flex-col items-center">
-            <motion.button
-              type="button"
-              animate={isChasingBall ? { x: [0, 180, 0], y: [0, -60, 0], rotate: [0, 360, 0] } : {}}
-              transition={{ duration: 2.0, ease: "easeInOut" }}
-              onClick={handlePlayBall}
-              className="w-9 h-9 rounded-full bg-red-400 border border-red-500 flex items-center justify-center text-lg shadow-md cursor-pointer active:scale-90 select-none focus:outline-none"
-            >
-              ⚽
-            </motion.button>
-            <span className="text-[8px] uppercase tracking-wider font-bold text-stone-700/60 mt-1 select-none pointer-events-none">
-              Play Fetch
-            </span>
-          </div>
-        )}
+            {activeRoom === "bedroom" && (
+              <>
+                {!isSleeping ? (
+                  <button
+                    onClick={startStoryBook}
+                    className="px-3 py-1.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    📖 Read Story
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleWakeUp}
+                    className="px-3 py-1.5 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    💡 Wake Up
+                  </button>
+                )}
+              </>
+            )}
 
-        {/* BEDROOM STORYBOOK TRIGGER & WAKE SWITCH */}
-        {activeRoom === "bedroom" && (
-          <div className="absolute left-6 top-1/4 z-30 flex flex-col gap-2">
-            {!isSleeping ? (
+            {activeRoom === "bathroom" && (
               <button
-                onClick={startStoryBook}
-                className="p-2.5 rounded-2xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
+                onClick={handleWash}
+                className="px-3 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
-                📖 Bedtime Story
+                🛁 Give Bath
               </button>
-            ) : (
+            )}
+
+            {activeRoom === "backyard" && (
               <button
-                onClick={handleWakeUp}
-                className="p-2.5 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
+                onClick={handlePlayBall}
+                className="px-3 py-1.5 rounded-xl bg-red-400 hover:bg-red-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
-                💡 Turn Light On
+                ⚽ Play Fetch
               </button>
             )}
           </div>
         )}
 
-        {/* BATHROOM WASH CONTROLS */}
-        {activeRoom === "bathroom" && (
-          <div className="absolute left-6 top-1/4 z-30 flex flex-col gap-2">
-            <button
-              onClick={handleWash}
-              className="p-2.5 rounded-2xl bg-cyan-400 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex flex-col items-center gap-1"
+        {/* OPEN FRIDGE OVERLAY SHELF (RIGHT-ALIGNED) */}
+        <AnimatePresence>
+          {isFridgeOpen && activeRoom === "kitchen" && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="absolute right-4 top-16 bg-white/95 backdrop-blur-sm border border-stone-250 p-3 rounded-3xl shadow-xl flex flex-col gap-2 w-48 text-left z-30 pointer-events-auto"
             >
-              🛁 Give Bubble Bath
-            </button>
+              <div className="flex justify-between items-center border-b pb-1">
+                <span className="text-[8.5px] uppercase font-bold text-warm-cocoa/40 tracking-wider">Fridge Shelf Stock</span>
+                <button
+                  onClick={() => setIsFridgeOpen(false)}
+                  className="text-stone-400 hover:text-stone-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                <span>🍀 Clover Salad</span>
+                <span className="text-emerald-600 font-bold">Infinite</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                <span>🍎 Apples</span>
+                <span className="font-bold">{applesStock} left</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                <span>🍪 Cookies</span>
+                <span className="font-bold">{cookieStock} left</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                <span>🍞 Manna Bread</span>
+                <span className="font-bold">{mannaStock} left</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                <span>🍓 Berries</span>
+                <span className="font-bold">{berryStock} left</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-1.5 text-[9.5px]">
+                <span>🍯 Honey Jar</span>
+                <span className="font-bold">{honeyStock} left</span>
+              </div>
+              <div className="flex justify-between items-center text-[9.5px]">
+                <span>🥛 Milk Bottle</span>
+                <span className="font-bold">{milkStock} left</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* DECORATIVE TOY BALL FOR FETCH ANIMATION */}
+        {activeRoom === "backyard" && (
+          <div className="absolute left-10 bottom-16 z-30 pointer-events-none">
+            <motion.div
+              animate={isChasingBall ? { x: [0, 180, 0], y: [0, -60, 0], rotate: [0, 360, 0], opacity: [0, 1, 1, 0] } : { opacity: 0 }}
+              transition={{ duration: 2.0, ease: "easeInOut" }}
+              className="w-9 h-9 rounded-full bg-red-400 border border-red-500 flex items-center justify-center text-lg shadow-md"
+            >
+              ⚽
+            </motion.div>
           </div>
         )}
 
@@ -2235,16 +2516,16 @@ export function MyTalkingLamb() {
 
               {/* STEP 2: CHOP THE INGREDIENTS */}
               {cookingStep === "chop" && cookingRecipe && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 animate-pulse">
-                    Tap the board to chop the ingredients! ({chopCount}/3)
+                <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 animate-pulse">
+                    Tap the board to chop! Target the pink zone ({chopCount}/3)
                   </span>
 
                   {/* Cutting Board Table */}
                   <button
                     type="button"
                     onClick={handleChopClick}
-                    className="w-56 h-36 rounded-2xl bg-[#E6D5C3] border-4 border-[#B0927C] shadow-inner relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none overflow-hidden"
+                    className="w-52 h-28 rounded-2xl bg-[#E6D5C3] border-4 border-[#B0927C] shadow-inner relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none overflow-hidden active:scale-98"
                   >
                     <div className="absolute inset-0 bg-repeat opacity-10 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M0 5h10M5 0v10' stroke='%23000' stroke-width='0.5'/%3E%3C/svg%3E")` }} />
 
@@ -2301,67 +2582,99 @@ export function MyTalkingLamb() {
                       )}
                     </span>
                   </button>
+
+                  {/* Timing Gauge Bar */}
+                  <div className="w-52 h-4 bg-stone-200 rounded-full relative overflow-hidden mt-1 border border-stone-350 shadow-inner">
+                    {/* Pink Sweet spot (40% to 60%) */}
+                    <div className="absolute left-[40%] right-[40%] top-0 bottom-0 bg-rose-300 border-x border-rose-450" />
+                    {/* Slider indicator */}
+                    <div 
+                      className="absolute top-0 bottom-0 w-1.5 bg-[#4B3A3A] shadow-md transition-all duration-75" 
+                      style={{ left: `${sliderPos}%` }} 
+                    />
+                  </div>
+                  <span className="text-[8.5px] text-stone-500 font-bold">
+                    Hit board when indicator is in the pink sweet spot!
+                  </span>
                 </div>
               )}
 
               {/* STEP 3: STOVE BOIL/COOK */}
               {cookingStep === "stove" && cookingRecipe && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 animate-pulse">
-                    Tap the stove to boil and cook! ({stoveCount}/3)
+                <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-700 animate-pulse">
+                    Maintain temp in boiling zone (80°C - 100°C)!
                   </span>
 
+                  {/* Thermometer Temperature Bar */}
+                  <div className="w-48 flex flex-col gap-1 items-stretch">
+                    <div className="flex justify-between text-[8px] font-bold text-stone-500">
+                      <span>Room Temp (30°C)</span>
+                      <span className="text-red-500 font-extrabold">{temp}°C</span>
+                      <span>Boil (110°C)</span>
+                    </div>
+                    <div className="h-4 bg-stone-200 rounded-full relative overflow-hidden border border-stone-300">
+                      {/* Boiling Sweet Spot (80 to 100, out of 30 to 110 range) */}
+                      {/* Range size is 80. (80-30)/80 = 62.5% to (100-30)/80 = 87.5% */}
+                      <div className="absolute left-[62.5%] w-[25%] top-0 bottom-0 bg-emerald-350 border-x border-emerald-450 opacity-80" />
+                      
+                      {/* Temperature Fill */}
+                      <div 
+                        className={`h-full transition-all duration-100 ${temp >= 80 && temp <= 100 ? 'bg-emerald-500' : 'bg-red-500'}`} 
+                        style={{ width: `${Math.min(100, Math.max(0, ((temp - 30) / 80) * 100))}%` }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Boil Progress Bar */}
+                  <div className="w-48 flex flex-col gap-1 items-stretch">
+                    <div className="flex justify-between text-[8.5px] font-bold text-stone-500">
+                      <span>Boil Hold Progress</span>
+                      <span>{boilProgress}%</span>
+                    </div>
+                    <div className="h-2.5 bg-stone-200 rounded-full overflow-hidden border border-stone-300">
+                      <div 
+                        className="h-full bg-amber-500 transition-all duration-150" 
+                        style={{ width: `${boilProgress}%` }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Stove Button */}
                   <button
                     type="button"
-                    onClick={handleStoveClick}
-                    className="w-52 h-44 rounded-3xl bg-stone-800 border-4 border-stone-700 shadow-xl relative flex flex-col items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none p-4"
+                    onClick={handleStoveHeatClick}
+                    className="w-44 h-24 rounded-2xl bg-stone-800 border-4 border-stone-700 shadow-xl relative flex flex-col items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none p-3 mt-1 active:scale-95"
                   >
-                    {/* Glowing stove burner */}
-                    <div className="absolute w-32 h-32 rounded-full border-4 border-dashed border-red-600/30 flex items-center justify-center">
-                      <div className="w-24 h-24 rounded-full bg-radial from-red-500/30 to-transparent animate-pulse" />
+                    {/* Glowing burner */}
+                    <div className="absolute w-20 h-20 rounded-full border border-dashed border-red-650/40 flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-full bg-radial from-red-500/40 to-transparent animate-pulse" />
                     </div>
-                    {/* Hot glowing rings */}
-                    <div className={`absolute w-28 h-28 rounded-full border-2 border-red-500 transition-all duration-500 ${
-                      stoveCount === 1 ? "opacity-40 animate-pulse" :
-                      stoveCount === 2 ? "opacity-70 scale-105 border-red-600 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
-                      stoveCount === 3 ? "opacity-100 scale-110 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)] animate-pulse" :
-                      "opacity-20"
-                    }`} />
 
-                    {/* Boiling Pot */}
                     <div className="relative z-10 flex flex-col items-center">
                       {/* Floating Steam Particles */}
-                      <div className="absolute -top-12 flex gap-1 justify-center w-full">
+                      <div className="absolute -top-8 flex gap-1 justify-center w-full">
                         <motion.span
-                          animate={{ y: [-10, -40], x: [0, -5, 5, 0], opacity: [0, 0.8, 0], scale: [0.6, 1.2, 0.8] }}
+                          animate={{ y: [-5, -25], x: [0, -3, 3, 0], opacity: [0, 0.8, 0], scale: [0.6, 1.2, 0.8] }}
                           transition={{ repeat: Infinity, duration: 1.8, delay: 0.1 }}
-                          className="text-lg select-none filter blur-[0.5px]"
+                          className="text-sm select-none filter blur-[0.5px]"
                         >
                           💨
                         </motion.span>
                         <motion.span
-                          animate={{ y: [-10, -35], x: [0, 5, -5, 0], opacity: [0, 0.8, 0], scale: [0.8, 1.1, 0.6] }}
+                          animate={{ y: [-5, -20], x: [0, 3, -3, 0], opacity: [0, 0.8, 0], scale: [0.8, 1.1, 0.6] }}
                           transition={{ repeat: Infinity, duration: 1.5, delay: 0.5 }}
-                          className="text-base select-none filter blur-[0.5px]"
-                        >
-                          💨
-                        </motion.span>
-                        <motion.span
-                          animate={{ y: [-10, -45], x: [0, -3, 3, 0], opacity: [0, 0.9, 0], scale: [0.5, 1, 0.5] }}
-                          transition={{ repeat: Infinity, duration: 2, delay: 0.9 }}
                           className="text-xs select-none filter blur-[0.5px]"
                         >
                           💨
                         </motion.span>
                       </div>
 
-                      {/* Pot representation */}
-                      <div className="text-5xl select-none animate-bounce" style={{ animationDuration: "1s" }}>
+                      <div className="text-3xl select-none animate-bounce" style={{ animationDuration: "1.2s" }}>
                         🍲
                       </div>
-                      
-                      <span className="text-[8px] uppercase tracking-wider font-bold text-white/50 mt-1.5">
-                        {stoveCount === 3 ? "Fully Heated!" : "Boiling..."}
+                      <span className="text-[8px] uppercase tracking-wider font-extrabold text-red-400 mt-1">
+                        🔥 Tap to Heat 🔥
                       </span>
                     </div>
                   </button>
@@ -2370,87 +2683,125 @@ export function MyTalkingLamb() {
 
               {/* STEP 4: STIR MIX */}
               {cookingStep === "stir" && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                <div className="flex-1 flex flex-col items-center justify-center gap-3">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 animate-pulse">
-                    Tap the mixing bowl to stir! ({stirCount}/3)
+                    Stir Clockwise! Tap the glowing arrow ({stirIndex}/8)
                   </span>
 
-                  {/* Mixing Bowl Table */}
-                  <button
-                    type="button"
-                    onClick={handleStirClick}
-                    className="w-44 h-44 rounded-full bg-white border-4 border-rose-300 shadow-md relative flex items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none overflow-hidden"
-                  >
-                    {/* Swirly mix lines inside */}
+                  {/* Circular Stir Control Panel */}
+                  <div className="w-44 h-44 rounded-full bg-white border-4 border-rose-200 shadow-lg relative flex items-center justify-center p-4">
+                    
+                    {/* Stir Bowl Visual Background */}
                     <svg width="100%" height="100%" viewBox="0 0 100 100" className="absolute inset-0 pointer-events-none z-0">
-                      <circle cx="50" cy="50" r="42" fill="none" stroke="#FDA4AF" strokeWidth="2" strokeDasharray="10 5" className={stirCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "3s" }} />
-                      <circle cx="50" cy="50" r="30" fill="none" stroke="#FDA4AF" strokeWidth="1.5" strokeDasharray="8 4" className={stirCount > 0 ? "animate-spin" : ""} style={{ transformOrigin: "50% 50%", animationDuration: "2s", animationDirection: "reverse" }} />
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#FEE2E2" strokeWidth="2" strokeDasharray="6 4" className="animate-spin" style={{ transformOrigin: "50% 50%", animationDuration: "8s" }} />
+                      <circle cx="50" cy="50" r="30" fill="none" stroke="#FEE2E2" strokeWidth="1.5" strokeDasharray="4 4" className="animate-spin" style={{ transformOrigin: "50% 50%", animationDuration: "6s", animationDirection: "reverse" }} />
                     </svg>
 
-                    {/* Spoon animation overlay */}
-                    <motion.div
-                      animate={stirCount > 0 ? {
-                        rotate: [0, 360],
-                        x: [0, 10, 0, -10, 0],
-                        y: [0, -10, 0, 10, 0]
-                      } : {}}
-                      key={stirCount}
-                      transition={{ duration: 0.4, ease: "linear" }}
-                      className="absolute text-4xl select-none z-20 pointer-events-none"
-                    >
-                      🥄
-                    </motion.div>
-
                     {/* Sliced food elements inside */}
-                    <span className="flex gap-1.5 items-center z-10 text-xs font-bold bg-white/40 p-1.5 rounded-full backdrop-blur-xs select-none">
-                      {cookingRecipe === "clover" && <span>🍀🍀🍀</span>}
-                      {cookingRecipe === "apple_mash" && <span>🍎🍀🍎</span>}
-                      {cookingRecipe === "manna_cookie" && <span>🍞🍪🍞</span>}
-                      {cookingRecipe === "berry_pancake" && <span>🍓🥞🍓</span>}
-                      {cookingRecipe === "honey_glaze" && <span>🍯🥣🥛</span>}
+                    <span className="flex gap-1 items-center z-10 text-[9px] font-bold bg-white/60 px-2 py-1 rounded-full backdrop-blur-xs select-none">
+                      {cookingRecipe === "clover" && <span>🍀🍀</span>}
+                      {cookingRecipe === "apple_mash" && <span>🍎🍀</span>}
+                      {cookingRecipe === "manna_cookie" && <span>🍞🍪</span>}
+                      {cookingRecipe === "berry_pancake" && <span>🍓🥞</span>}
+                      {cookingRecipe === "honey_glaze" && <span>🍯🥣</span>}
                     </span>
-                  </button>
+
+                    {/* Clockwise Arrow Buttons (arranged at top, right, bottom, left) */}
+                    {/* Arrow 0: Up */}
+                    <button
+                      type="button"
+                      onClick={() => handleStirDirectionClick(0)}
+                      className={`absolute top-2 w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-md transition-all active:scale-90 cursor-pointer ${
+                        stirIndex % 4 === 0
+                          ? "bg-rose-500 text-white animate-pulse border-2 border-rose-450 scale-110 shadow-[0_0_12px_rgba(244,63,94,0.6)]"
+                          : "bg-stone-100 text-stone-400 opacity-60 hover:opacity-80"
+                      }`}
+                    >
+                      ⬆️
+                    </button>
+
+                    {/* Arrow 1: Right */}
+                    <button
+                      type="button"
+                      onClick={() => handleStirDirectionClick(1)}
+                      className={`absolute right-2 w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-md transition-all active:scale-90 cursor-pointer ${
+                        stirIndex % 4 === 1
+                          ? "bg-rose-500 text-white animate-pulse border-2 border-rose-450 scale-110 shadow-[0_0_12px_rgba(244,63,94,0.6)]"
+                          : "bg-stone-100 text-stone-400 opacity-60 hover:opacity-80"
+                      }`}
+                    >
+                      ➡️
+                    </button>
+
+                    {/* Arrow 2: Bottom */}
+                    <button
+                      type="button"
+                      onClick={() => handleStirDirectionClick(2)}
+                      className={`absolute bottom-2 w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-md transition-all active:scale-90 cursor-pointer ${
+                        stirIndex % 4 === 2
+                          ? "bg-rose-500 text-white animate-pulse border-2 border-rose-450 scale-110 shadow-[0_0_12px_rgba(244,63,94,0.6)]"
+                          : "bg-stone-100 text-stone-400 opacity-60 hover:opacity-80"
+                      }`}
+                    >
+                      ⬇️
+                    </button>
+
+                    {/* Arrow 3: Left */}
+                    <button
+                      type="button"
+                      onClick={() => handleStirDirectionClick(3)}
+                      className={`absolute left-2 w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-md transition-all active:scale-90 cursor-pointer ${
+                        stirIndex % 4 === 3
+                          ? "bg-rose-500 text-white animate-pulse border-2 border-rose-450 scale-110 shadow-[0_0_12px_rgba(244,63,94,0.6)]"
+                          : "bg-stone-100 text-stone-400 opacity-60 hover:opacity-80"
+                      }`}
+                    >
+                      ⬅️
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* STEP 5: GARNISH */}
               {cookingStep === "garnish" && cookingRecipe && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                <div className="flex-1 flex flex-col items-center justify-center gap-3">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4A5A5] animate-pulse">
-                    Tap to sprinkle pretty garnish toppings! ({garnishCount}/2)
+                    Tap each floating topping to place it!
                   </span>
 
-                  <button
-                    type="button"
-                    onClick={handleGarnishClick}
-                    className="w-48 h-48 rounded-full bg-[#FCF8F2] border-4 border-dashed border-[#D4A5A5]/80 shadow-md relative flex flex-col items-center justify-center cursor-pointer hover:brightness-95 transition-all select-none focus:outline-none"
-                  >
-                    {/* Plate */}
-                    <div className="w-36 h-36 rounded-full bg-white border-2 border-stone-200 flex flex-col items-center justify-center shadow-md relative p-2">
-                      <span className="text-4xl animate-pulse">🍲</span>
-                      <span className="text-[8.5px] font-bold text-stone-500 uppercase tracking-wider mt-1 text-center">
+                  {/* Plate container */}
+                  <div className="w-44 h-44 rounded-full bg-[#FCF8F2] border-4 border-dashed border-[#D4A5A5]/85 shadow-lg relative flex items-center justify-center select-none overflow-hidden">
+                    
+                    {/* Inner Plate Visual */}
+                    <div className="w-32 h-32 rounded-full bg-white border border-stone-200/60 flex flex-col items-center justify-center shadow-inner relative p-2 pointer-events-none">
+                      <span className="text-3xl">🍲</span>
+                      <span className="text-[8px] font-bold text-stone-500 uppercase tracking-wider mt-1 text-center">
                         {cookingRecipe === "clover" ? "Clover Salad" :
                          cookingRecipe === "apple_mash" ? "Apple Clover Mash" :
                          cookingRecipe === "manna_cookie" ? "Manna Cookie Treat" :
                          cookingRecipe === "berry_pancake" ? "Sweet Berry Pancake" :
                          "Honey Glazed Oats"}
                       </span>
-
-                      {/* Garnish elements overlay */}
-                      {garnishCount >= 1 && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-sm top-8 left-10">🌸</motion.span>
-                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-sm top-6 right-10">✨</motion.span>
-                        </div>
-                      )}
-                      {garnishCount >= 2 && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-xs bottom-8 left-12">🌿</motion.span>
-                          <motion.span initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute text-xs bottom-10 right-12">🍓</motion.span>
-                        </div>
-                      )}
                     </div>
-                  </button>
+
+                    {/* Clickable Floating Topping Items */}
+                    {garnishItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={item.placed}
+                        onClick={() => handleGarnishItemClick(item.id)}
+                        style={{ left: `${item.x}px`, top: `${item.y}px` }}
+                        className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-base transition-all shadow-sm focus:outline-none ${
+                          item.placed
+                            ? "opacity-100 scale-90 border-0 pointer-events-none cursor-default"
+                            : "bg-white border-2 border-amber-200 cursor-pointer hover:scale-110 active:scale-95 animate-bounce"
+                        }`}
+                      >
+                        {item.emoji}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -2471,6 +2822,17 @@ export function MyTalkingLamb() {
                        cookingRecipe === "berry_pancake" ? "Sweet Berry Pancake" :
                        "Honey Glazed Oats"}
                     </span>
+
+                    {/* Display placed toppings on final plate */}
+                    {garnishItems.map((item) => item.placed && (
+                      <span 
+                        key={item.id} 
+                        className="absolute text-xs" 
+                        style={{ left: `${item.x * 0.75 + 16}px`, top: `${item.y * 0.75 + 16}px` }}
+                      >
+                        {item.emoji}
+                      </span>
+                    ))}
                   </div>
 
                   <button
@@ -2481,12 +2843,11 @@ export function MyTalkingLamb() {
                   </button>
                 </div>
               )}
-
               {/* Footer step indicators */}
               {cookingStep !== "choose" && (
                 <div className="w-full flex justify-center gap-1.5 text-[9px] font-bold text-stone-400 mt-2">
                   <span className={cookingStep === "chop" ? "text-amber-700 font-extrabold" : ""}>1. Chop</span> • 
-                  <span className={cookingStep === "stove" ? "text-red-600 font-extrabold" : ""}>2. Stove</span> • 
+                  <span className={cookingStep === "stove" ? "text-red-750 font-extrabold" : ""}>2. Stove</span> • 
                   <span className={cookingStep === "stir" ? "text-rose-600 font-extrabold" : ""}>3. Stir Mix</span> • 
                   <span className={cookingStep === "garnish" ? "text-[#D4A5A5] font-extrabold" : ""}>4. Garnish</span> • 
                   <span className={cookingStep === "done" ? "text-emerald-700 font-extrabold" : ""}>5. Serve</span>
