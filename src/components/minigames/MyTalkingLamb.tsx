@@ -20,13 +20,13 @@ interface Challenge {
   claimed: boolean;
 }
 
-type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "backyard";
+type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "backyard" | "vet" | "meadow";
 type RecipeType = "clover" | "apple_mash" | "manna_cookie" | "berry_pancake" | "honey_glaze";
 
 export function MyTalkingLamb() {
   // ─── Currency & Unlocking States ────────────────────────────
   const [coins, setCoins] = useState(50);
-  const [unlockedRooms, setUnlockedRooms] = useState<RoomType[]>(["living", "kitchen", "bedroom"]);
+  const [unlockedRooms, setUnlockedRooms] = useState<RoomType[]>(["living", "kitchen", "bedroom", "vet"]);
   const [purchasedAccessories, setPurchasedAccessories] = useState<string[]>(["none", "bow"]);
 
   // ─── Room Navigation & Modals ──────────────────────────────
@@ -61,6 +61,19 @@ export function MyTalkingLamb() {
   // ─── Mud & Ball Interactions ────────────────────────────────
   const [mudFactor, setMudFactor] = useState(0); // 0 (clean) to 4 (very dirty)
   const [isChasingBall, setIsChasingBall] = useState(false);
+
+  // ─── Sickness & Clinic States ──────────────────────────────
+  const [isSick, setIsSick] = useState(false);
+  const [isClinicActive, setIsClinicActive] = useState(false);
+  const [clinicStep, setClinicStep] = useState<"temp" | "bandaid" | "syrup" | "done">("temp");
+  const [vetTemp, setVetTemp] = useState(37);
+  const [sores, setSores] = useState<{ id: number; x: number; y: number; treated: boolean }[]>([]);
+  const [syrupCount, setSyrupCount] = useState(0);
+
+  // ─── Meadow Walk States ────────────────────────────────────
+  const [isWalkingActive, setIsWalkingActive] = useState(false);
+  const [walkProgress, setWalkProgress] = useState(0);
+  const [lastFoot, setLastFoot] = useState<"left" | "right" | "none">("none");
 
   // ─── Cooking Table States ───────────────────────────────────
   const [isCooking, setIsCooking] = useState(false);
@@ -120,7 +133,7 @@ export function MyTalkingLamb() {
       try {
         const p = JSON.parse(saved);
         setCoins(p.coins ?? 50);
-        setUnlockedRooms(p.unlockedRooms ?? ["living", "kitchen", "bedroom"]);
+        setUnlockedRooms(p.unlockedRooms ?? ["living", "kitchen", "bedroom", "vet"]);
         setPurchasedAccessories(p.purchasedAccessories ?? ["none", "bow"]);
         setHunger(p.hunger ?? 70);
         setHappiness(p.happiness ?? 60);
@@ -136,6 +149,7 @@ export function MyTalkingLamb() {
         setMilkStock(p.milkStock ?? 1);
         setMudFactor(p.mudFactor ?? 0);
         setActiveRoom(p.activeRoom ?? "living");
+        setIsSick(p.isSick ?? false);
         if (p.challenges) setChallenges(p.challenges);
       } catch (e) {
         console.error("Failed to load lamb house stats", e);
@@ -173,10 +187,11 @@ export function MyTalkingLamb() {
         milkStock,
         mudFactor,
         activeRoom,
+        isSick,
         challenges
       })
     );
-  }, [coins, unlockedRooms, purchasedAccessories, hunger, happiness, cleanliness, energy, accessory, isSleeping, applesStock, mannaStock, cookieStock, berryStock, honeyStock, milkStock, mudFactor, activeRoom, challenges]);
+  }, [coins, unlockedRooms, purchasedAccessories, hunger, happiness, cleanliness, energy, accessory, isSleeping, applesStock, mannaStock, cookieStock, berryStock, honeyStock, milkStock, mudFactor, activeRoom, isSick, challenges]);
 
   // ─── Dynamic Draining / Sleep refilling ──────────────────────
   useEffect(() => {
@@ -190,11 +205,21 @@ export function MyTalkingLamb() {
         setHappiness((prev) => Math.max(prev - 0.7, 0));
         setCleanliness((prev) => Math.max(prev - 0.5, 0));
         setEnergy((prev) => Math.max(prev - 0.8, 0));
+
+        // Sickness checks: triggers 30% of the time if clean/hungry is < 30, and 5% baseline
+        if (!isSick) {
+          const lowStats = cleanliness < 30 || hunger < 30;
+          const probability = lowStats ? 0.30 : 0.05;
+          if (Math.random() < probability) {
+            setIsSick(true);
+            speak("Achoo! Baa... I don't feel very well, shepherd... Can we visit the Vet Clinic? 🤒");
+          }
+        }
       }
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [isSleeping]);
+  }, [isSleeping, isSick, cleanliness, hunger]);
 
   // Blinking cycle
   useEffect(() => {
@@ -207,6 +232,30 @@ export function MyTalkingLamb() {
 
     return () => clearInterval(blinkInterval);
   }, [isSleeping]);
+
+  // ─── Vet clinic thermometer slider loop ───
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isClinicActive && clinicStep === "temp") {
+      let dir = 1;
+      interval = setInterval(() => {
+        setVetTemp((prev) => {
+          let next = prev + dir * 0.2;
+          if (next >= 41.5) {
+            next = 41.5;
+            dir = -1;
+          } else if (next <= 35.5) {
+            next = 35.5;
+            dir = 1;
+          }
+          return parseFloat(next.toFixed(1));
+        });
+      }, 50);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isClinicActive, clinicStep]);
 
   // ─── Chop timing slider loop ───
   useEffect(() => {
@@ -587,7 +636,7 @@ export function MyTalkingLamb() {
         return c;
       })
     );
-    speak(`Baa! Challenge completed! You earned 🪙 ${reward} coins! 🎉`);
+    speak(`Baa! Challenge completed! You earned 🪙 ${reward} Gold Coins! 🎉`);
     
     // Rotate to a new challenge after 4 seconds
     setTimeout(() => {
@@ -687,7 +736,7 @@ export function MyTalkingLamb() {
   // ─── Shop Actions ───────────────────────────────────────────
   const buyFood = (type: "apple" | "manna" | "cookie" | "berry" | "honey" | "milk", cost: number) => {
     if (coins < cost) {
-      speak("Baa! We need more coins! Let's do some chores! 🪙");
+      speak("Baa! We need more Gold Coins! Let's do some chores! 🪙");
       return;
     }
     setCoins((c) => c - cost);
@@ -704,7 +753,7 @@ export function MyTalkingLamb() {
 
   const buyAccessory = (acc: string, cost: number) => {
     if (coins < cost) {
-      speak("Baa! Not enough coins, shepherd! 🪙");
+      speak("Baa! Not enough Gold Coins, shepherd! 🪙");
       return;
     }
     setCoins((c) => c - cost);
@@ -729,7 +778,7 @@ export function MyTalkingLamb() {
 
   const unlockRoom = (room: RoomType, cost: number) => {
     if (coins < cost) {
-      speak(`Baa! We need 🪙 ${cost} coins to unlock the ${room}! 🔒`);
+      speak(`Baa! We need 🪙 ${cost} Gold Coins to unlock the ${room}! 🔒`);
       return;
     }
     setCoins((c) => c - cost);
@@ -914,7 +963,7 @@ export function MyTalkingLamb() {
 
     spawnParticles("😋", 6);
     playEatingSound();
-    speak(`Baa! That was so delicious! Fluffy tummy is full! (+🪙 10 reward) 🍽️✨`);
+    speak(`Baa! That was so delicious! Fluffy tummy is full! (+🪙 10 Gold Coins reward) 🍽️✨`);
     
     // Progress challenges
     progressChallenge("feed", 1);
@@ -929,6 +978,111 @@ export function MyTalkingLamb() {
     setCookingRecipe(null);
     setCookingStep("choose");
     setTimeout(() => setLastAction("none"), 1200);
+  };
+
+  // ─── Vet Clinic Checkup Actions ──────────────────────────────
+  const startVetCheckup = () => {
+    setIsClinicActive(true);
+    setClinicStep("temp");
+    setVetTemp(37);
+    setSyrupCount(0);
+    setSores([
+      { id: 1, x: 50, y: 80, treated: false },
+      { id: 2, x: 95, y: 130, treated: false },
+      { id: 3, x: 135, y: 110, treated: false }
+    ]);
+    speak("🧑‍⚕️ Vet checkup started! Let's measure Selah's temperature first. 🌡️");
+  };
+
+  const handleThermometerStop = () => {
+    if (vetTemp >= 37.5 && vetTemp <= 39.5) {
+      setClinicStep("bandaid");
+      speak("Perfect temperature! Now apply the soothing band-aids to the red sore spots. 🩹");
+      spawnParticles("🩹", 3);
+    } else {
+      speak("Oops, not quite stable! Let's measure again. 🌡️");
+    }
+  };
+
+  const handleSoreClick = (soreId: number) => {
+    setSores((prev) => {
+      const next = prev.map((s) => (s.id === soreId ? { ...s, treated: true } : s));
+      const allTreated = next.every((s) => s.treated);
+      if (allTreated) {
+        setClinicStep("syrup");
+        speak("All band-aids applied! Now feed Selah 3 spoonfuls of sweet berry cough syrup. 🥣🥄");
+      }
+      return next;
+    });
+    spawnParticles("🩹", 2);
+  };
+
+  const handleSyrupFeed = () => {
+    const nextCount = syrupCount + 1;
+    setSyrupCount(nextCount);
+    spawnParticles("😋", 2);
+    if (nextCount >= 3) {
+      setClinicStep("done");
+      speak("Mmm, yummy medicine! Selah feels so much better now! 🌟🩺");
+    } else {
+      speak(`Yummy medicine! (${nextCount}/3 spoonfuls fed) 🥄`);
+    }
+  };
+
+  const finishClinicCheckup = () => {
+    setIsSick(false);
+    setIsClinicActive(false);
+    setCleanliness(100);
+    setHappiness((h) => Math.min(100, h + 50));
+    setCoins((c) => c + 15);
+    speak("Vet clinic treatment complete! Fluffy sheep is cured and happy! (+🪙 15 Gold Coins reward) 🎉🐑🩺");
+    spawnParticles("✨", 8);
+    progressChallenge("wash", 1);
+  };
+
+  // ─── Meadow Walk Actions ─────────────────────────────────────
+  const startMeadowWalk = () => {
+    if (isSick) {
+      speak("Baa... I'm too sick to go for a walk... let's visit the Vet Clinic first! 🤒");
+      return;
+    }
+    if (energy < 25) {
+      speak("Baa... I'm too tired to walk... let me sleep first! 🛌💤");
+      return;
+    }
+    setIsWalkingActive(true);
+    setWalkProgress(0);
+    setLastFoot("none");
+    speak("🚶 Meadow Walk started! Alternately tap LEFT and RIGHT foot buttons to walk! 🌳");
+  };
+
+  const handleMeadowWalkStep = (foot: "left" | "right") => {
+    if (lastFoot === "none" || lastFoot !== foot) {
+      setLastFoot(foot);
+      const nextProgress = walkProgress + 1;
+      setWalkProgress(nextProgress);
+      spawnParticles("🐾", 1);
+
+      if (nextProgress === 10) {
+        setCoins((c) => c + 5);
+        speak("Look, shepherd! I found 5 Gold Coins hidden in the grass! 🪙✨");
+        spawnParticles("🪙", 3);
+      } else if (nextProgress === 20) {
+        setCoins((c) => c + 5);
+        speak("Ooh! Another shiny coin on the path! (+🪙 5 Gold Coins) 🪙✨");
+        spawnParticles("🪙", 3);
+      } else if (nextProgress === 30) {
+        setIsWalkingActive(false);
+        setHappiness((h) => Math.min(100, h + 30));
+        setEnergy((e) => Math.max(0, e - 20));
+        setCoins((c) => c + 10);
+        speak("Walk finished! That was so refreshing! (+🪙 10 Gold Coins reward) 🚶🌳✨");
+        spawnParticles("🎉", 5);
+        progressChallenge("play", 1);
+      }
+    } else {
+      speak("Alternate your steps! Tap the other foot! 🚶");
+    }
   };
 
   // ─── Bedtime Story Actions ──────────────────────────────────
@@ -964,6 +1118,9 @@ export function MyTalkingLamb() {
   const getExpressionProps = () => {
     if (isSleeping) {
       return { type: "sleep", label: "Sleeping" };
+    }
+    if (isSick) {
+      return { type: "sad", label: "Sick 🤒" };
     }
     if (energy < 30) {
       return { type: "sleepy", label: "Sleepy" };
@@ -1318,13 +1475,135 @@ export function MyTalkingLamb() {
               <circle cx="280" cy="270" r="2.5" fill="#FFF" />
             </svg>
           )}
+
+          {/* F. VET CLINIC */}
+          {activeRoom === "vet" && (
+            <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
+              <defs>
+                <linearGradient id="clinicWall" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#E0F2F1" />
+                  <stop offset="100%" stopColor="#B2DFDB" />
+                </linearGradient>
+                <linearGradient id="clinicFloor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#80CBC4" />
+                  <stop offset="100%" stopColor="#00796B" />
+                </linearGradient>
+                <linearGradient id="tableGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ECEFF1" />
+                  <stop offset="100%" stopColor="#CFD8DC" />
+                </linearGradient>
+              </defs>
+              {/* Wall */}
+              <rect width="400" height="300" fill="url(#clinicWall)" />
+              {/* Grid overlay for medical vibe */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <line key={i} x1={i * 70} y1="0" x2={i * 70} y2="200" stroke="#80CBC4" strokeWidth="1" opacity="0.35" />
+              ))}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <line key={i} y1={i * 50} x1="0" y2={i * 50} x2="400" stroke="#80CBC4" strokeWidth="1" opacity="0.35" />
+              ))}
+
+              {/* Red Cross Medical Sign */}
+              <circle cx="200" cy="65" r="28" fill="#FFF" stroke="#E53935" strokeWidth="3" />
+              <rect x="194" y="47" width="12" height="36" rx="2" fill="#E53935" />
+              <rect x="182" y="59" width="36" height="12" rx="2" fill="#E53935" />
+
+              {/* Vet Medical cabinet with tools */}
+              <rect x="30" y="80" width="70" height="120" rx="4" fill="#90A4AE" stroke="#546E7A" strokeWidth="2.5" />
+              <line x1="30" y1="120" x2="100" y2="120" stroke="#546E7A" strokeWidth="2" />
+              <line x1="30" y1="160" x2="100" y2="160" stroke="#546E7A" strokeWidth="2" />
+              {/* Medicine jars inside cabinet glass view */}
+              <rect x="40" y="92" width="10" height="18" rx="1.5" fill="#FF8A80" />
+              <rect x="55" y="90" width="12" height="20" rx="1.5" fill="#A7FFEB" />
+              <rect x="72" y="95" width="10" height="15" rx="1.5" fill="#FFE082" />
+              <rect x="45" y="132" width="12" height="18" rx="1.5" fill="#EA80FC" />
+              <rect x="65" y="130" width="15" height="22" rx="1.5" fill="#80D8FF" />
+
+              {/* Floor */}
+              <line x1="0" y1="200" x2="400" y2="200" stroke="#004D40" strokeWidth="6" />
+              <rect y="200" width="400" height="100" fill="url(#clinicFloor)" />
+
+              {/* Exam Table */}
+              <rect x="120" y="180" width="160" height="35" rx="6" fill="url(#tableGrad)" stroke="#B0BEC5" strokeWidth="2" />
+              <rect x="135" y="215" width="15" height="40" fill="#78909C" />
+              <rect x="250" y="215" width="15" height="40" fill="#78909C" />
+
+              {/* Stethoscope hanging */}
+              <path d="M 330 60 L 330 90 Q 330 110 345 110 Q 360 110 360 90 L 360 60" fill="none" stroke="#37474F" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="345" cy="118" r="8" fill="#CFD8DC" stroke="#37474F" strokeWidth="2" />
+            </svg>
+          )}
+
+          {/* G. MEADOW TRAIL */}
+          {activeRoom === "meadow" && (
+            <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none" className="w-full h-full">
+              <defs>
+                <linearGradient id="meadowSky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0284C7" />
+                  <stop offset="100%" stopColor="#bae6fd" />
+                </linearGradient>
+                <linearGradient id="grassGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#4ADE80" />
+                  <stop offset="100%" stopColor="#15803D" />
+                </linearGradient>
+                <linearGradient id="trailGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#D7CCC8" />
+                  <stop offset="100%" stopColor="#B0AF9E" />
+                </linearGradient>
+              </defs>
+              {/* Sky */}
+              <rect width="400" height="300" fill="url(#meadowSky)" />
+              
+              {/* Sunbeam */}
+              <polygon points="0,0 120,0 280,300 0,300" fill="#FFF" opacity="0.12" />
+
+              {/* Distant Trees */}
+              <g opacity="0.75">
+                <circle cx="50" cy="160" r="30" fill="#166534" />
+                <circle cx="90" cy="155" r="25" fill="#14532D" />
+                <circle cx="330" cy="160" r="35" fill="#166534" />
+                <circle cx="370" cy="150" r="30" fill="#14532D" />
+              </g>
+
+              {/* Meadow Field Grass */}
+              <path d="M -20 180 Q 120 150 220 185 Q 310 160 420 180 L 420 300 L -20 300 Z" fill="url(#grassGrad)" />
+
+              {/* Winding Sandy Walking Trail */}
+              <path d="M 80 300 Q 150 240 200 210 T 260 172 L 275 174 Q 220 215 170 248 T 130 300 Z" fill="url(#trailGrad)" />
+
+              {/* Clouds drifting */}
+              <path d="M 280 60 Q 295 48 315 52 Q 325 40 338 52 Q 350 52 355 64 L 275 64 Z" fill="#FFFFFF" opacity="0.9" className="animate-pulse" />
+              
+              {/* Pretty flowers in the meadow */}
+              <circle cx="45" cy="225" r="2" fill="#FEE2E2" />
+              <circle cx="43" cy="223" r="1" fill="#FEF08A" />
+              <circle cx="47" cy="227" r="1" fill="#FEF08A" />
+
+              <circle cx="310" cy="245" r="3" fill="#FDA4AF" />
+              <circle cx="308" cy="243" r="1.5" fill="#FFF" />
+              <circle cx="312" cy="247" r="1.5" fill="#FFF" />
+
+              <circle cx="210" cy="275" r="2.5" fill="#C084FC" />
+              <circle cx="208" cy="273" r="1" fill="#FEF08A" />
+
+              {/* Flying Butterflies */}
+              <g className="animate-bounce" style={{ animationDuration: "3s" }}>
+                <path d="M 70 90 L 76 86 L 76 94 Z" fill="#F472B6" />
+                <path d="M 76 90 L 82 86 L 82 94 Z" fill="#F472B6" />
+              </g>
+              <g className="animate-bounce" style={{ animationDuration: "4s", animationDelay: "1s" }}>
+                <path d="M 290 100 L 296 96 L 296 104 Z" fill="#60A5FA" />
+                <path d="M 296 100 L 302 96 L 302 104 Z" fill="#60A5FA" />
+              </g>
+            </svg>
+          )}
         </div>
 
         {/* TOP PANEL HUD OVERLAYS */}
         <div className="w-full flex items-center justify-between z-10 relative">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-white/95 bg-[#4B3A3A]/45 backdrop-blur-xs px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm select-none">
-              🪙 {coins}
+            <span className="text-[10px] font-extrabold text-white bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 px-3 py-1 rounded-full flex items-center gap-1 shadow-md select-none border border-amber-300">
+              ✨ 🪙 {coins} Gold Coins
             </span>
           </div>
 
@@ -1425,6 +1704,24 @@ export function MyTalkingLamb() {
                 className="px-3 py-1.5 rounded-xl bg-red-400 hover:bg-red-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 ⚽ Play Fetch
+              </button>
+            )}
+
+            {activeRoom === "vet" && (
+              <button
+                onClick={startVetCheckup}
+                className="px-3 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+              >
+                🩺 Start Checkup
+              </button>
+            )}
+
+            {activeRoom === "meadow" && (
+              <button
+                onClick={startMeadowWalk}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+              >
+                🚶 Go for Walk
               </button>
             )}
           </div>
@@ -1602,9 +1899,18 @@ export function MyTalkingLamb() {
               </g>
 
               {/* face */}
-              <ellipse cx="100" cy="115" rx="36" ry="30" fill="#FFF0F0" stroke="#F0D3D3" strokeWidth={2} />
-              <circle cx="76" cy="122" r="7" fill="#FFB7B7" opacity="0.6" />
-              <circle cx="124" cy="122" r="7" fill="#FFB7B7" opacity="0.6" />
+              <ellipse cx="100" cy="115" rx="36" ry="30" fill={isSick ? "#E8F5E9" : "#FFF0F0"} stroke="#F0D3D3" strokeWidth={2} />
+              <circle cx="76" cy="122" r="7" fill={isSick ? "#81C784" : "#FFB7B7"} opacity="0.6" />
+              <circle cx="124" cy="122" r="7" fill={isSick ? "#81C784" : "#FFB7B7"} opacity="0.6" />
+
+              {/* Thermometer in mouth if sick */}
+              {isSick && (
+                <g transform="translate(100, 118) scale(0.65) rotate(-15)">
+                  <rect x="-2" y="-12" width="5" height="24" rx="2.5" fill="#ECEFF1" stroke="#37474F" strokeWidth="1" />
+                  <rect x="-1" y="2" width="3" height="8" fill="#E53935" />
+                  <circle cx="0.5" cy="10" r="3.5" fill="#E53935" stroke="#37474F" strokeWidth="1" />
+                </g>
+              )}
 
               {/* WORRIED EYEBROWS (sad expression) */}
               {expression.type === "sad" && (
@@ -1859,6 +2165,36 @@ export function MyTalkingLamb() {
                 </div>
                 {!unlockedRooms.includes("backyard") && <Lock className="w-3.5 h-3.5 text-stone-400" />}
               </button>
+
+              {/* Vet Clinic */}
+              <button
+                onClick={() => {
+                  travelToRoom("vet");
+                  setIsActivitiesOpen(false);
+                }}
+                className={`py-2 px-3 text-[10px] font-bold rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
+                  activeRoom === "vet" ? "bg-rose-50 border-rose-300 text-rose-600" : "bg-stone-50 hover:bg-stone-100 border-stone-200"
+                }`}
+              >
+                <span>🩺</span> Vet Clinic (Check)
+              </button>
+
+              {/* Meadow Walk */}
+              <button
+                disabled={!unlockedRooms.includes("meadow")}
+                onClick={() => {
+                  travelToRoom("meadow");
+                  setIsActivitiesOpen(false);
+                }}
+                className={`py-2 px-3 text-[10px] font-bold rounded-xl border text-left flex items-center justify-between disabled:opacity-50 cursor-pointer ${
+                  activeRoom === "meadow" ? "bg-rose-50 border-rose-300 text-rose-600" : "bg-stone-50 hover:bg-stone-100 border-stone-200"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span>🚶</span> Meadow Trail (Walk)
+                </div>
+                {!unlockedRooms.includes("meadow") && <Lock className="w-3.5 h-3.5 text-stone-400" />}
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -2057,7 +2393,7 @@ export function MyTalkingLamb() {
                     </span>
                   ) : (
                     <span className="text-[9px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50 flex items-center justify-center gap-1 self-start">
-                      <Lock className="w-2.5 h-2.5" /> 🪙 60
+                      <Lock className="w-2.5 h-2.5" /> 60 Gold Coins
                     </span>
                   )}
                 </button>
@@ -2126,10 +2462,59 @@ export function MyTalkingLamb() {
                       </span>
                     ) : (
                       <span className="text-[9px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200/50 flex items-center gap-1">
-                        <Lock className="w-2.5 h-2.5" /> Unlock Backyard (🪙 100)
+                        <Lock className="w-2.5 h-2.5" /> Unlock Backyard (100 Gold Coins)
                       </span>
                     )}
                   </span>
+                </button>
+
+                {/* 6. Vet Clinic (Bottom-Left) */}
+                <button
+                  type="button"
+                  onClick={() => travelToRoom("vet")}
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all text-left w-full focus:outline-none ${
+                    activeRoom === "vet"
+                      ? "bg-teal-50 border-teal-300 shadow-sm"
+                      : "bg-white hover:bg-stone-50 border-stone-200"
+                  }`}
+                >
+                  <span className="flex justify-between items-start w-full">
+                    <span className="text-[11px] font-bold text-warm-cocoa">Vet Clinic</span>
+                    <span className="text-sm">🩺</span>
+                  </span>
+                  <span className="text-[9px] text-stone-400 italic">
+                    {activeRoom === "vet" ? "Selah is here" : "Click to go"}
+                  </span>
+                </button>
+
+                {/* 7. Meadow Trail (Bottom-Right - Unlockable) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (unlockedRooms.includes("meadow")) travelToRoom("meadow");
+                    else unlockRoom("meadow", 80);
+                  }}
+                  className={`p-4 h-24 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all text-left w-full focus:outline-none ${
+                    !unlockedRooms.includes("meadow")
+                      ? "bg-stone-100 border-stone-200 opacity-80"
+                      : activeRoom === "meadow"
+                      ? "bg-emerald-50 border-emerald-300 shadow-sm"
+                      : "bg-white hover:bg-stone-50 border-stone-200"
+                  }`}
+                >
+                  <span className="flex justify-between items-start w-full">
+                    <span className="text-[11px] font-bold text-warm-cocoa">Meadow Trail</span>
+                    <span className="text-sm">🚶</span>
+                  </span>
+                  {unlockedRooms.includes("meadow") ? (
+                    <span className="text-[9px] text-stone-400 italic">
+                      {activeRoom === "meadow" ? "Selah is here" : "Click to go"}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50 flex items-center justify-center gap-1 self-start">
+                      <Lock className="w-2.5 h-2.5" /> 80 Gold Coins
+                    </span>
+                  )}
                 </button>
 
               </div>
@@ -2163,8 +2548,8 @@ export function MyTalkingLamb() {
               </p>
 
               {/* Coins indicator */}
-              <div className="bg-amber-50 rounded-2xl border border-amber-200/50 p-2 text-center text-xs font-bold text-amber-900 mb-4">
-                Your Coins: 🪙 {coins}
+              <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 rounded-2xl border border-amber-300 p-2 text-center text-xs font-extrabold text-white mb-4 shadow-sm">
+                Your Gold Coins: 🪙 {coins} Gold Coins
               </div>
 
               {/* Tabs */}
@@ -2351,7 +2736,7 @@ export function MyTalkingLamb() {
                 📋 Shepherd Challenges
               </h3>
               <p className="text-[10px] text-warm-grey/50 italic mb-5">
-                Complete cozy chores around the house to earn coins.
+                Complete cozy chores around the house to earn Gold Coins.
               </p>
 
               <div className="flex flex-col gap-3 text-left">
@@ -2370,7 +2755,7 @@ export function MyTalkingLamb() {
                     >
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-warm-cocoa">{c.text}</span>
-                        <span className="text-[10px] font-bold text-[#D4A5A5]">🪙 {c.reward}</span>
+                        <span className="text-[10px] font-bold text-amber-600">🪙 {c.reward} Gold Coins</span>
                       </div>
 
                       {/* Progress Bar */}
@@ -2915,6 +3300,336 @@ export function MyTalkingLamb() {
                   {storyPage === 3 ? "Sleep 🛌💤" : "Next Page →"}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── F. VET CLINIC CHECKUP MODAL OVERLAY ────────────────── */}
+      <AnimatePresence>
+        {isClinicActive && (
+          <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#F0FDFB] border-4 border-[#80CBC4] p-5 rounded-[40px] shadow-2xl text-center max-w-sm w-full relative min-h-[380px] flex flex-col justify-between"
+            >
+              <button
+                onClick={() => {
+                  setIsClinicActive(false);
+                  setClinicStep("temp");
+                }}
+                className="absolute top-4 right-4 text-stone-450 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-full">
+                <span className="text-[8.5px] uppercase font-bold text-teal-600 tracking-wider">Vet Clinic • Dr Checkup</span>
+                <h3 className="font-serif text-sm font-bold text-teal-800 mb-0.5 flex items-center justify-center gap-1.5">
+                  🩺 Clinic Examination Room
+                </h3>
+                <p className="text-[9px] text-teal-700/60 italic mb-4">
+                  Cure Selah by completing the clinic checkup steps!
+                </p>
+              </div>
+
+              {/* STEP 1: TEMPERATURE GAUGE */}
+              {clinicStep === "temp" && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 py-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 animate-pulse">
+                    Lock thermometer in stable green range!
+                  </span>
+
+                  <div className="text-4xl animate-bounce">🌡️</div>
+
+                  {/* Temp Slider Gauge */}
+                  <div className="w-56 h-6 bg-stone-200 rounded-full relative overflow-hidden border border-stone-350 shadow-inner">
+                    {/* Safe zone 37.5°C to 39.5°C (33.3% to 66.6%) */}
+                    <div className="absolute left-[33.3%] w-[33.3%] top-0 bottom-0 bg-emerald-350 border-x border-emerald-450 opacity-80" />
+                    
+                    {/* Live thermometer slider pointer */}
+                    <div 
+                      className="absolute top-0 bottom-0 w-2.5 bg-teal-600 shadow-md transition-all duration-75" 
+                      style={{ left: `${((vetTemp - 35.5) / 6) * 100}%` }} 
+                    />
+                  </div>
+
+                  <div className="flex flex-col items-center">
+                    <span className={`text-xl font-extrabold tracking-wide ${vetTemp >= 37.5 && vetTemp <= 39.5 ? "text-emerald-600" : "text-amber-600"}`}>
+                      {vetTemp}°C
+                    </span>
+                    <span className="text-[8.5px] text-stone-500 font-bold mt-0.5">
+                      Healthy sheep range: 37.5°C - 39.5°C
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleThermometerStop}
+                    className="mt-2 px-6 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md"
+                  >
+                    Take Temperature 🌡️
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 2: BAND-AIDS */}
+              {clinicStep === "bandaid" && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-850 animate-pulse">
+                    Tap the red sore spots to apply band-aids!
+                  </span>
+
+                  {/* Lamb SVG with interactive coordinates */}
+                  <div className="w-40 h-40 bg-white/60 border border-teal-100 rounded-3xl p-1 shadow-inner relative flex items-center justify-center">
+                    <svg viewBox="0 0 200 200" width="100%" height="100%">
+                      {/* legs */}
+                      <rect x="78" y="162" width="10" height="16" rx="4" fill="#FFE2E2" stroke="#E6D3D3" strokeWidth={1.5} />
+                      <rect x="112" y="162" width="10" height="16" rx="4" fill="#FFE2E2" stroke="#E6D3D3" strokeWidth={1.5} />
+
+                      {/* body wool */}
+                      <circle cx="82" cy="144" r="15" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
+                      <circle cx="100" cy="148" r="17" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
+                      <circle cx="118" cy="144" r="15" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
+                      <circle cx="90" cy="136" r="14" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
+                      <circle cx="110" cy="136" r="14" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
+                      <circle cx="100" cy="142" r="18" fill="#FFFFFF" />
+                      <circle cx="90" cy="144" r="12" fill="#FFFFFF" />
+                      <circle cx="110" cy="144" r="12" fill="#FFFFFF" />
+
+                      {/* ears */}
+                      <g>
+                        <path d="M 66 105 Q 40 102 46 118 Q 58 120 66 112 Z" fill="#FFF0F0" stroke="#F0D3D3" strokeWidth={1.5} />
+                        <path d="M 62 107 Q 44 106 48 115 Q 56 116 62 111 Z" fill="#FFB7B7" opacity="0.5" />
+                      </g>
+                      <g>
+                        <path d="M 134 105 Q 160 102 154 118 Q 142 120 134 112 Z" fill="#FFF0F0" stroke="#F0D3D3" strokeWidth={1.5} />
+                        <path d="M 138 107 Q 156 106 152 115 Q 144 116 138 111 Z" fill="#FFB7B7" opacity="0.5" />
+                      </g>
+
+                      {/* face */}
+                      <ellipse cx="100" cy="115" rx="36" ry="30" fill="#E8F5E9" stroke="#F0D3D3" strokeWidth={2} />
+                      <circle cx="76" cy="122" r="7" fill="#81C784" opacity="0.6" />
+                      <circle cx="124" cy="122" r="7" fill="#81C784" opacity="0.6" />
+
+                      {/* sad/worried eyebrows */}
+                      <g>
+                        <path d="M 76 104 Q 82 101 88 106" fill="none" stroke="#4B3A3A" strokeWidth={2} strokeLinecap="round" />
+                        <path d="M 112 106 Q 118 101 124 104" fill="none" stroke="#4B3A3A" strokeWidth={2} strokeLinecap="round" />
+                      </g>
+                      {/* worried cartoon eyes */}
+                      <circle cx="82" cy="112" r="6" fill="#4B3A3A" />
+                      <circle cx="80" cy="110" r="2.2" fill="white" />
+                      <circle cx="118" cy="112" r="6" fill="#4B3A3A" />
+                      <circle cx="116" cy="110" r="2.2" fill="white" />
+
+                      {/* mouth */}
+                      <path d="M 96 123 Q 100 126 104 123" fill="none" stroke="#4B3A3A" strokeWidth={2} strokeLinecap="round" />
+
+                      {/* SICKNESS SORE SPOTS */}
+                      {sores.map((s) => (
+                        <g 
+                          key={s.id} 
+                          onClick={() => !s.treated && handleSoreClick(s.id)} 
+                          className={s.treated ? "pointer-events-none" : "cursor-pointer"}
+                        >
+                          {s.treated ? (
+                            <text x={s.x} y={s.y} fontSize="20" textAnchor="middle" alignmentBaseline="middle" className="select-none">🩹</text>
+                          ) : (
+                            <circle 
+                              cx={s.x} 
+                              cy={s.y} 
+                              r="11" 
+                              fill="#EF4444" 
+                              stroke="#FFFFFF" 
+                              strokeWidth="1.8" 
+                              className="animate-pulse" 
+                              opacity="0.9"
+                            />
+                          )}
+                        </g>
+                      ))}
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: SYRUP FEED */}
+              {clinicStep === "syrup" && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 py-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 animate-pulse">
+                    Tap the medicine bottle to feed syrup!
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleSyrupFeed}
+                    className="w-24 h-24 rounded-full bg-teal-50 border-4 border-teal-200 hover:border-teal-400 shadow-md flex items-center justify-center cursor-pointer transition-all active:scale-90 select-none animate-bounce"
+                  >
+                    <span className="text-5xl filter drop-shadow-md">🍼</span>
+                  </button>
+
+                  <div className="flex gap-3 mt-1">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div 
+                        key={i} 
+                        className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-base shadow-sm transition-all ${
+                          syrupCount > i 
+                            ? "bg-rose-100 border-rose-400 text-rose-500 scale-110" 
+                            : "bg-stone-50 border-stone-200 text-stone-300 opacity-60"
+                        }`}
+                      >
+                        🥄
+                      </div>
+                    ))}
+                  </div>
+
+                  <span className="text-[9.5px] text-stone-500 font-bold">
+                    Feed doses: {syrupCount} / 3 spoonfuls
+                  </span>
+                </div>
+              )}
+
+              {/* STEP 4: CURED */}
+              {clinicStep === "done" && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 py-3">
+                  <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-600 animate-bounce">
+                    Selah is Cured! 🎉🐑
+                  </span>
+
+                  <div className="text-5xl">🩺💖✨</div>
+
+                  <div className="bg-emerald-55 border border-emerald-200 rounded-2xl p-3 max-w-xs text-[10px] text-emerald-800 font-bold leading-relaxed shadow-sm">
+                    All symptoms resolved! Temperature normal, sores bandaged, and syrup fed. Ready for release!
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={finishClinicCheckup}
+                    className="w-full py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] uppercase tracking-wider active:scale-95 transition-all shadow-md cursor-pointer mt-2"
+                  >
+                    Discharge Patient 🐑🩺
+                  </button>
+                </div>
+              )}
+
+              {/* Footer step indicators */}
+              <div className="w-full flex justify-center gap-1.5 text-[9px] font-bold text-stone-400 mt-2">
+                <span className={clinicStep === "temp" ? "text-teal-700 font-extrabold" : ""}>1. Temp</span> • 
+                <span className={clinicStep === "bandaid" ? "text-teal-700 font-extrabold" : ""}>2. Band-Aids</span> • 
+                <span className={clinicStep === "syrup" ? "text-teal-700 font-extrabold" : ""}>3. Syrup</span> • 
+                <span className={clinicStep === "done" ? "text-emerald-700 font-extrabold" : ""}>4. Release</span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── G. MEADOW WALK OVERLAY ─────────────────────────────── */}
+      <AnimatePresence>
+        {isWalkingActive && (
+          <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#F0FDF4] border-4 border-[#86EFAC] p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[340px] flex flex-col justify-between"
+            >
+              <button
+                onClick={() => setIsWalkingActive(false)}
+                className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="w-full">
+                <span className="text-[8.5px] uppercase font-bold text-emerald-600 tracking-wider">Activities • Trail Walk</span>
+                <h3 className="font-serif text-sm font-bold text-emerald-800 mb-2 flex items-center justify-center gap-1.5">
+                  🚶 Scenic Meadow Trail Walk
+                </h3>
+                <p className="text-[9px] text-stone-500 italic mb-2">
+                  Walk 30 meters to complete the scenic trail!
+                </p>
+              </div>
+
+              {/* Trail progress lane */}
+              <div className="relative w-full h-16 bg-[#D7CCC8]/80 border-y-2 border-[#A1887F] rounded-2xl overflow-hidden shadow-inner my-3 flex items-center">
+                {/* Path dashes */}
+                <div className="absolute inset-0 bg-repeat-x opacity-20 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='2' viewBox='0 0 20 2'%3E%3Cline x1='0' y1='1' x2='12' y2='1' stroke='%234E342E' stroke-width='2'/%3E%3C/svg%3E")`, backgroundPosition: "center" }} />
+                
+                {/* Gold Coin icons at 10m and 20m, Finish Line at 30m */}
+                <div className="absolute left-[33%] top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
+                  <span className={`text-sm transition-all duration-300 ${walkProgress >= 10 ? "opacity-30 scale-75" : "animate-bounce"}`}>🪙</span>
+                  <span className="text-[7px] font-bold text-stone-500">10m</span>
+                </div>
+                <div className="absolute left-[66%] top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
+                  <span className={`text-sm transition-all duration-300 ${walkProgress >= 20 ? "opacity-30 scale-75" : "animate-bounce"}`}>🪙</span>
+                  <span className="text-[7px] font-bold text-stone-500">20m</span>
+                </div>
+                <div className="absolute right-[4%] top-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+                  <span className="text-sm">🏁</span>
+                  <span className="text-[7px] font-bold text-stone-500">30m</span>
+                </div>
+
+                {/* Animated walking lamb */}
+                <motion.div 
+                  className="absolute z-20 text-3xl select-none transition-all duration-300 ease-out"
+                  style={{ left: `calc(${(walkProgress / 30) * 82}% + 6px)` }}
+                  animate={walkProgress > 0 ? {
+                    y: [0, -4, 0],
+                    rotate: [0, -3, 3, 0]
+                  } : {}}
+                  key={walkProgress}
+                  transition={{ duration: 0.3 }}
+                >
+                  🐑
+                </motion.div>
+              </div>
+
+              <div className="text-center font-bold text-stone-700 text-xs my-1">
+                Distance: <span className="text-emerald-600 text-sm font-extrabold">{walkProgress}</span> / 30 meters
+              </div>
+
+              {/* Step alternating buttons */}
+              <div className="flex gap-4 w-full px-2 mt-2">
+                {/* Left Foot */}
+                <button
+                  type="button"
+                  onClick={() => handleMeadowWalkStep("left")}
+                  className={`flex-1 py-3.5 rounded-2xl font-extrabold text-[10.5px] uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 flex flex-col items-center gap-0.5 ${
+                    lastFoot === "right" || lastFoot === "none"
+                      ? "bg-emerald-500 hover:bg-emerald-600 text-white border-2 border-emerald-450 scale-105 shadow-[0_0_12px_rgba(16,185,129,0.4)] animate-pulse"
+                      : "bg-stone-150 border border-stone-250 text-stone-400 opacity-60"
+                  }`}
+                >
+                  🐾 Left Foot
+                  <span className="text-[7.5px] font-bold opacity-85">
+                    {lastFoot === "right" || lastFoot === "none" ? "TAP NEXT!" : "WAIT"}
+                  </span>
+                </button>
+
+                {/* Right Foot */}
+                <button
+                  type="button"
+                  onClick={() => handleMeadowWalkStep("right")}
+                  className={`flex-1 py-3.5 rounded-2xl font-extrabold text-[10.5px] uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 flex flex-col items-center gap-0.5 ${
+                    lastFoot === "left"
+                      ? "bg-emerald-500 hover:bg-emerald-600 text-white border-2 border-emerald-450 scale-105 shadow-[0_0_12px_rgba(16,185,129,0.4)] animate-pulse"
+                      : "bg-stone-150 border border-stone-250 text-stone-400 opacity-60"
+                  }`}
+                >
+                  🐾 Right Foot
+                  <span className="text-[7.5px] font-bold opacity-85">
+                    {lastFoot === "left" ? "TAP NEXT!" : "WAIT"}
+                  </span>
+                </button>
+              </div>
+
+              <span className="text-[8px] text-stone-450 font-bold text-center block mt-3">
+                Alternating tap order: Left ➔ Right ➔ Left ➔ Right
+              </span>
             </motion.div>
           </div>
         )}
