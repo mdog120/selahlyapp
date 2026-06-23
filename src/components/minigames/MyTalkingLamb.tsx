@@ -1280,13 +1280,13 @@ export function MyTalkingLamb() {
   const currentStoryBook = STORY_BOOKS[selectedStoryBook];
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full select-none pb-8 animate-fade-in text-warm-cocoa font-sans relative">
-      <div className="absolute -inset-x-10 -top-8 h-44 rounded-full bg-gradient-to-r from-rose-200/35 via-amber-100/45 to-sky-200/35 blur-3xl pointer-events-none" />
+    <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl mx-auto w-full min-w-0 overflow-x-hidden select-none pb-8 animate-fade-in text-warm-cocoa font-sans relative">
+      <div className="absolute inset-x-0 -top-8 h-44 rounded-full bg-gradient-to-r from-rose-200/35 via-amber-100/45 to-sky-200/35 blur-3xl pointer-events-none" />
       
       {/* ─── SCREEN CANVAS VIEWPORT ────────────────────────────── */}
-      <div className="relative w-full h-[420px] rounded-[42px] overflow-hidden border-[6px] border-white/80 shadow-[0_24px_80px_rgba(120,86,62,0.22)] flex flex-col justify-between p-5 bg-gradient-to-br from-rose-50 via-amber-50 to-sky-50 ring-1 ring-rose-100/80">
+      <div className="relative w-full min-w-0 h-[390px] sm:h-[420px] rounded-[30px] sm:rounded-[42px] overflow-hidden border-[4px] sm:border-[6px] border-white/80 shadow-[0_20px_60px_rgba(120,86,62,0.2)] sm:shadow-[0_24px_80px_rgba(120,86,62,0.22)] flex flex-col justify-between p-3 sm:p-5 bg-gradient-to-br from-rose-50 via-amber-50 to-sky-50 ring-1 ring-rose-100/80">
         <div className="absolute inset-0 pointer-events-none z-[1] bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.58),transparent_24%),radial-gradient(circle_at_82%_8%,rgba(253,186,116,0.18),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.18),transparent_42%)]" />
-        <div className="absolute left-1/2 top-3 z-40 -translate-x-1/2 rounded-full border border-white/70 bg-white/80 px-4 py-1 text-[9px] font-serif font-black tracking-[0.22em] text-[#7b5a4a] shadow-sm backdrop-blur-md pointer-events-none">
+        <div className="absolute left-1/2 top-2 sm:top-3 z-40 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/70 bg-white/80 px-3 sm:px-4 py-1 text-[8px] sm:text-[9px] font-serif font-black tracking-[0.16em] sm:tracking-[0.22em] text-[#7b5a4a] shadow-sm backdrop-blur-md pointer-events-none">
           SELAH&apos;S COTTAGE
         </div>
         
@@ -1751,16 +1751,16 @@ export function MyTalkingLamb() {
         </div>
 
         {/* TOP PANEL HUD OVERLAYS */}
-        <div className="w-full flex items-center justify-between z-10 relative">
+        <div className="w-full flex flex-wrap items-center justify-between gap-2 z-10 relative pt-7 sm:pt-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-extrabold text-amber-900 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 shadow-[0_8px_24px_rgba(120,86,62,0.14)] select-none border border-amber-200/80 ring-2 ring-white/35">
+            <span className="text-[9px] sm:text-[10px] font-extrabold text-amber-900 bg-white/80 backdrop-blur-md px-2.5 sm:px-3 py-1.5 rounded-full flex items-center gap-1 shadow-[0_8px_24px_rgba(120,86,62,0.14)] select-none border border-amber-200/80 ring-2 ring-white/35">
               ✨ 🪙 {coins} Coins
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-0">
             {/* Expression Indicator */}
-            <span className="text-[8.5px] uppercase font-bold px-2.5 py-1 rounded-full bg-white/80 backdrop-blur-md border border-rose-100 shadow-sm select-none text-[#6b4b3a]">
+            <span className="text-[8px] sm:text-[8.5px] uppercase font-bold px-2 sm:px-2.5 py-1 rounded-full bg-white/80 backdrop-blur-md border border-rose-100 shadow-sm select-none text-[#6b4b3a]">
               Selah: {expression.label}
             </span>
 
@@ -1786,7 +1786,7 @@ export function MyTalkingLamb() {
             {/* Map */}
             <button
               onClick={() => setIsMapOpen(true)}
-              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-400 to-amber-300 hover:from-rose-500 hover:to-amber-400 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-[0_8px_20px_rgba(244,114,182,0.28)] active:scale-90 transition-all cursor-pointer border border-white/50"
+              className="px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-400 to-amber-300 hover:from-rose-500 hover:to-amber-400 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-[0_8px_20px_rgba(244,114,182,0.28)] active:scale-90 transition-all cursor-pointer border border-white/50"
             >
               <Map className="w-3.5 h-3.5" /> Map
             </button>
@@ -1795,24 +1795,24 @@ export function MyTalkingLamb() {
 
         {/* ROOM ACTIONS FLOATING BAR (LAPTPOP & MOBILE-SAFE) */}
         {!isCooking && (
-          <div className="absolute left-4 top-16 z-30 flex gap-2 pointer-events-auto">
+          <div className="absolute left-3 right-3 top-[76px] sm:left-4 sm:right-auto sm:top-16 z-30 flex max-h-[78px] flex-wrap gap-1.5 sm:gap-2 overflow-y-auto pointer-events-auto pr-1">
             {activeRoom === "living" && (
               <>
                 <button
                   onClick={() => startStoryBook("living", "psalm23")}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                 >
                   📚 Read Books
                 </button>
                 <button
                   onClick={handleBrushWool}
-                  className="px-3 py-1.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                 >
                   🪮 Brush Wool
                 </button>
                 <button
                   onClick={handleSingTogether}
-                  className="px-3 py-1.5 rounded-xl bg-violet-400 hover:bg-violet-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-violet-400 hover:bg-violet-500 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                 >
                   🎵 Sing
                 </button>
@@ -1826,13 +1826,13 @@ export function MyTalkingLamb() {
                     setIsCooking(true);
                     setCookingStep("choose");
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <BookOpen className="w-3.5 h-3.5" /> Recipe Book
                 </button>
                 <button
                   onClick={() => setIsFridgeOpen((prev) => !prev)}
-                  className={`px-3 py-1.5 rounded-xl border-2 font-bold text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl border-2 font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
                     isFridgeOpen
                       ? "bg-rose-50 border-rose-300 text-rose-500"
                       : "bg-[#4B3A3A] border-stone-800 text-white"
@@ -1848,14 +1848,14 @@ export function MyTalkingLamb() {
                 {!isSleeping ? (
                   <button
                     onClick={() => startStoryBook("bedtime", "peacefulNight")}
-                    className="px-3 py-1.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                    className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                   >
                     📖 Read Story
                   </button>
                 ) : (
                   <button
                     onClick={handleWakeUp}
-                    className="px-3 py-1.5 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                    className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                   >
                     💡 Wake Up
                   </button>
@@ -1866,7 +1866,7 @@ export function MyTalkingLamb() {
             {activeRoom === "bathroom" && (
               <button
                 onClick={handleWash}
-                className="px-3 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-500 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 🛁 Give Bath
               </button>
@@ -1875,7 +1875,7 @@ export function MyTalkingLamb() {
             {activeRoom === "backyard" && (
               <button
                 onClick={handlePlayBall}
-                className="px-3 py-1.5 rounded-xl bg-red-400 hover:bg-red-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-red-400 hover:bg-red-500 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 ⚽ Play Fetch
               </button>
@@ -1884,7 +1884,7 @@ export function MyTalkingLamb() {
             {activeRoom === "vet" && (
               <button
                 onClick={startVetCheckup}
-                className="px-3 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 🩺 Start Checkup
               </button>
@@ -1893,7 +1893,7 @@ export function MyTalkingLamb() {
             {activeRoom === "meadow" && (
               <button
                 onClick={startMeadowWalk}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[8px] sm:text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 🚶 Go for Walk
               </button>
@@ -1965,7 +1965,7 @@ export function MyTalkingLamb() {
         )}
 
         {/* VIRTUAL LAMB CANVAS DOCK */}
-        <div className="absolute inset-x-0 bottom-20 flex justify-center items-center h-36 z-10 pointer-events-none">
+        <div className="absolute inset-x-0 bottom-24 sm:bottom-20 flex justify-center items-center h-32 sm:h-36 z-10 pointer-events-none">
           
           {/* Dialogue speech bubble */}
           <AnimatePresence>
@@ -1974,7 +1974,7 @@ export function MyTalkingLamb() {
                 initial={{ scale: 0.8, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                className="absolute -top-20 bg-white/95 backdrop-blur-md border-2 border-rose-200 text-[#4B3A3A] px-4 py-3 rounded-[24px] shadow-[0_14px_38px_rgba(120,86,62,0.18)] text-center max-w-[240px] text-[10.5px] font-bold z-48 pointer-events-auto ring-4 ring-white/40"
+                className="absolute -top-20 sm:-top-20 bg-white/95 backdrop-blur-md border-2 border-rose-200 text-[#4B3A3A] px-3 sm:px-4 py-2.5 sm:py-3 rounded-[22px] sm:rounded-[24px] shadow-[0_14px_38px_rgba(120,86,62,0.18)] text-center max-w-[210px] sm:max-w-[240px] text-[9.5px] sm:text-[10.5px] font-bold z-48 pointer-events-auto ring-4 ring-white/40"
               >
                 <div className="relative text-center">
                   {dialogue}
@@ -2015,7 +2015,7 @@ export function MyTalkingLamb() {
           <button
             type="button"
             onClick={handlePet}
-            className={`w-36 h-36 relative transition-all duration-300 focus:outline-none pointer-events-auto ${
+            className={`w-32 h-32 sm:w-36 sm:h-36 relative transition-all duration-300 focus:outline-none pointer-events-auto ${
               lastAction === "petting" ? "scale-105" : ""
             } ${lastAction === "feeding" ? "origin-bottom animate-bounce" : ""} ${
               isSleeping && activeRoom === "bedroom" ? "translate-x-24 -translate-y-6 rotate-[75deg] scale-85 opacity-95" : ""
@@ -2234,13 +2234,13 @@ export function MyTalkingLamb() {
         </div>
 
         {/* BOTTOM HUD PANEL */}
-        <div className="w-full flex items-center justify-between z-10 relative">
+        <div className="w-full flex items-center justify-between gap-2 z-10 relative">
           <button
             onClick={() => {
               setIsActivitiesOpen((prev) => !prev);
               setIsStatusOpen(false);
             }}
-            className={`px-4 py-2 rounded-full border-2 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer ${
+            className={`flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2 rounded-full border-2 font-bold text-[9px] sm:text-[10px] uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer ${
               isActivitiesOpen
                 ? "bg-stone-50 border-rose-300 text-rose-500"
                 : "bg-white/95 border-stone-200 text-warm-cocoa"
@@ -2254,7 +2254,7 @@ export function MyTalkingLamb() {
               setIsStatusOpen((prev) => !prev);
               setIsActivitiesOpen(false);
             }}
-            className={`px-4 py-2 rounded-full border-2 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer ${
+            className={`flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2 rounded-full border-2 font-bold text-[9px] sm:text-[10px] uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer ${
               isStatusOpen
                 ? "bg-stone-50 border-rose-300 text-rose-500"
                 : "bg-white/95 border-stone-200 text-warm-cocoa"
@@ -2271,7 +2271,7 @@ export function MyTalkingLamb() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              className="absolute left-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-4 rounded-[28px] shadow-2xl z-40 flex flex-col gap-2 w-52"
+              className="absolute left-3 right-3 sm:left-5 sm:right-auto bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-3 sm:p-4 rounded-[24px] sm:rounded-[28px] shadow-2xl z-40 flex flex-col gap-2 w-auto sm:w-52 max-h-[270px] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[9px] uppercase font-bold text-warm-cocoa/40 tracking-wider">Select Activity Room</span>
@@ -2403,7 +2403,7 @@ export function MyTalkingLamb() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              className="absolute right-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-4 rounded-[28px] shadow-2xl z-45 flex flex-col gap-3.5 w-60"
+              className="absolute left-3 right-3 sm:left-auto sm:right-5 bottom-16 bg-white/95 backdrop-blur-md border border-stone-200 p-3 sm:p-4 rounded-[24px] sm:rounded-[28px] shadow-2xl z-45 flex flex-col gap-3.5 w-auto sm:w-60 max-h-[300px] overflow-y-auto"
             >
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-warm-cocoa">Selah Details</span>
@@ -2494,24 +2494,24 @@ export function MyTalkingLamb() {
       </div>
 
       {/* ─── CHAT INPUT DIALOG FOOTER */}
-      <div className="bg-white/60 border border-stone-100 p-4 rounded-3xl shadow-sm flex flex-col gap-2.5 backdrop-blur-sm">
+      <div className="w-full min-w-0 bg-white/60 border border-stone-100 p-3 sm:p-4 rounded-3xl shadow-sm flex flex-col gap-2.5 backdrop-blur-sm overflow-hidden">
         <span className="text-[9px] uppercase font-bold text-warm-cocoa/40 tracking-wider flex items-center gap-1.5">
           <MessageCircle className="w-3.5 h-3.5 text-sky-400" /> Converse with Selah the Lamb
         </span>
-        <form onSubmit={handleChat} className="flex items-center gap-2 w-full">
+        <form onSubmit={handleChat} className="flex items-center gap-2 w-full min-w-0">
           <input
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             placeholder={isSleeping ? "Shhh, lamb is sleeping..." : "Type 'sad', 'scared', 'hello', or scripture keywords..."}
             disabled={isSleeping}
-            className="flex-1 px-4 py-2.5 rounded-2xl bg-white/70 border border-stone-200 text-xs text-warm-cocoa focus:outline-none focus:ring-2 focus:ring-[#D4A5A5]/40 transition-all font-medium disabled:opacity-50 disabled:bg-stone-50"
+            className="min-w-0 flex-1 px-3 sm:px-4 py-2.5 rounded-2xl bg-white/70 border border-stone-200 text-xs text-warm-cocoa focus:outline-none focus:ring-2 focus:ring-[#D4A5A5]/40 transition-all font-medium disabled:opacity-50 disabled:bg-stone-50"
             maxLength={80}
           />
           <button
             type="submit"
             disabled={isSleeping || !chatInput.trim()}
-            className="px-4 py-2.5 rounded-2xl bg-warm-cocoa text-white text-xs font-bold flex items-center gap-1 hover:bg-warm-cocoa/90 active:scale-95 transition-all shadow-sm disabled:opacity-40 disabled:scale-100 cursor-pointer"
+            className="shrink-0 px-3 sm:px-4 py-2.5 rounded-2xl bg-warm-cocoa text-white text-xs font-bold flex items-center gap-1 hover:bg-warm-cocoa/90 active:scale-95 transition-all shadow-sm disabled:opacity-40 disabled:scale-100 cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" />
             Send
