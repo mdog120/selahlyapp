@@ -98,28 +98,28 @@ const RARITY_META: Record<Rarity, { label: string; badge: string; taps: number; 
   common: {
     label: "Gentle",
     badge: "border-sky-200 bg-sky-50 text-sky-700",
-    taps: 3,
-    zone: 24,
-    speed: 4.2,
-    seconds: 10,
+    taps: 2,
+    zone: 36,
+    speed: 2.8,
+    seconds: 15,
     pearls: 1,
   },
   blessed: {
     label: "Blessed",
     badge: "border-amber-200 bg-amber-50 text-amber-800",
-    taps: 4,
-    zone: 19,
-    speed: 5.2,
-    seconds: 9,
+    taps: 3,
+    zone: 30,
+    speed: 3.5,
+    seconds: 14,
     pearls: 3,
   },
   miracle: {
     label: "Miracle",
     badge: "border-violet-200 bg-violet-50 text-violet-800",
-    taps: 5,
-    zone: 15,
-    speed: 6.4,
-    seconds: 8,
+    taps: 4,
+    zone: 24,
+    speed: 4.3,
+    seconds: 13,
     pearls: 5,
   },
 };
@@ -253,7 +253,7 @@ export function GalileeFishing() {
   const startReeling = useCallback((catchItem: CatchItem) => {
     clearClock();
     const meta = RARITY_META[catchItem.rarity];
-    const start = 14 + Math.random() * (78 - meta.zone);
+    const start = 12 + Math.random() * (80 - meta.zone);
 
     activeCatchRef.current = catchItem;
     cursorRef.current = 8;
@@ -268,7 +268,7 @@ export function GalileeFishing() {
     setReelHits(0);
     setRequiredHits(meta.taps);
     setMistakes(0);
-    setTension(44);
+    setTension(34);
     setTimeLeft(meta.seconds);
     setMessage("Now reel steadily. Tap only when the marker passes through the gold zone.");
 
@@ -283,7 +283,7 @@ export function GalileeFishing() {
         cursorDirectionRef.current = 1;
       }
       setMeterCursor(cursorRef.current);
-      setTension((value) => clamp(value + 2.8));
+      setTension((value) => clamp(value + 1.4));
       setTimeLeft((value) => {
         if (value <= 1) {
           loseRound("The fish dove deep and the line went slack.");
@@ -298,26 +298,26 @@ export function GalileeFishing() {
     clearClock();
     const catchItem = chooseCatch(streak);
     const ripple = 24 + Math.random() * 52;
-    const bobber = clamp(ripple + (Math.random() * 24 - 12), 18, 82);
+    const bobber = clamp(ripple + (Math.random() * 14 - 7), 18, 82);
 
     activeCatchRef.current = catchItem;
     setCurrentCatch(catchItem);
     setRippleX(ripple);
     setBobberX(bobber);
     setHookWindow(100);
-    setTimeLeft(3);
+    setTimeLeft(5);
     setPhase("hook");
     setMessage("Bite! Wait until the bobber is close to the glowing ripple, then set the hook.");
 
     addInterval(setInterval(() => {
-      setBobberX((value) => clamp(value + (Math.random() * 18 - 9), 16, 84));
-      setHookWindow((value) => Math.max(0, value - 23));
+      setBobberX((value) => clamp(value + (Math.random() * 10 - 5), 16, 84));
+      setHookWindow((value) => Math.max(0, value - 13));
       setTimeLeft((value) => Math.max(0, value - 1));
     }, 600));
 
     addTimer(setTimeout(() => {
       loseRound("Too slow — the fish felt the hook and slipped away.");
-    }, 2900));
+    }, 5200));
   }, [addInterval, addTimer, clearClock, loseRound, streak]);
 
   const castLine = () => {
@@ -333,7 +333,7 @@ export function GalileeFishing() {
     addTimer(setTimeout(() => {
       setPhase("waiting");
       setMessage("Line is in. Watch the bobber and wait for a bite.");
-      addTimer(setTimeout(beginBite, 1500 + Math.random() * 2200));
+      addTimer(setTimeout(beginBite, 1300 + Math.random() * 1800));
     }, 700));
   };
 
@@ -341,7 +341,7 @@ export function GalileeFishing() {
     if (phase !== "hook" || !activeCatchRef.current) return;
 
     const accuracy = Math.abs(bobberX - rippleX);
-    if (accuracy > 13 || hookWindow <= 0) {
+    if (accuracy > 22 || hookWindow <= 0) {
       loseRound("Missed hook set. Wait for the bobber to line up with the ripple.");
       return;
     }
@@ -360,9 +360,9 @@ export function GalileeFishing() {
     if (!inZone) {
       const nextMistakes = mistakes + 1;
       setMistakes(nextMistakes);
-      setTension((value) => clamp(value + 16));
-      setMessage(nextMistakes >= 3 ? "Too many rough pulls — the line snapped." : "Easy. Wait for the gold zone before reeling.");
-      if (nextMistakes >= 3) {
+      setTension((value) => clamp(value + 9));
+      setMessage(nextMistakes >= 5 ? "Too many rough pulls — the line snapped." : "Easy. Wait for the gold zone before reeling.");
+      if (nextMistakes >= 5) {
         loseRound("The line snapped from rough reeling.");
       }
       return;
@@ -370,8 +370,8 @@ export function GalileeFishing() {
 
     const nextHits = reelHits + 1;
     const meta = RARITY_META[catchItem.rarity];
-    const nextZone = Math.max(12, meta.zone - nextHits * 1.8);
-    const nextTarget = 10 + Math.random() * (84 - nextZone);
+    const nextZone = Math.max(20, meta.zone - nextHits * 1.2);
+    const nextTarget = 8 + Math.random() * (86 - nextZone);
 
     setReelHits(nextHits);
     setMistakes(0);
@@ -398,28 +398,29 @@ export function GalileeFishing() {
     lost: "Lost",
   };
 
-  const hookAccuracy = clamp(100 - Math.abs(bobberX - rippleX) * 6);
+  const hookAccuracy = clamp(100 - Math.abs(bobberX - rippleX) * 3.7);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 text-warm-cocoa">
-      <section className="relative overflow-hidden rounded-[34px] border border-white/80 bg-gradient-to-br from-[#fff6df] via-[#e9f8ff] to-[#d8f3f0] p-4 shadow-[0_24px_70px_rgba(55,93,118,0.2)]">
-        <div className="absolute -left-20 top-16 h-60 w-60 rounded-full bg-sky-300/25 blur-3xl" />
-        <div className="absolute -right-20 -top-16 h-64 w-64 rounded-full bg-amber-200/45 blur-3xl" />
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 text-warm-cocoa">
+      <section className="relative overflow-hidden rounded-[38px] border-[6px] border-white/85 bg-gradient-to-br from-[#fff1d6] via-[#e9f8ff] to-[#c7efe8] p-4 shadow-[0_30px_90px_rgba(47,85,111,0.24)] ring-1 ring-sky-100/70">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl" />
+        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-200/55 blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 h-44 w-96 rounded-full bg-emerald-200/20 blur-3xl" />
 
-        <div className="relative z-10 grid gap-4 lg:grid-cols-[1fr_230px]">
-          <div className="overflow-hidden rounded-[28px] border-4 border-white/80 bg-[#bde6f2] shadow-inner">
-            <div className="relative h-[460px] overflow-hidden">
+        <div className="relative z-10 grid gap-4 lg:grid-cols-[1fr_270px]">
+          <div className="overflow-hidden rounded-[32px] border-4 border-white/85 bg-[#bde6f2] shadow-[inset_0_0_0_1px_rgba(255,255,255,.45),0_18px_50px_rgba(41,90,115,.2)]">
+            <div className="relative h-[500px] overflow-hidden">
               <svg className="absolute inset-0 h-full w-full" viewBox="0 0 760 460" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="fofSky" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#ffe7b0" />
-                    <stop offset="45%" stopColor="#9bd8ef" />
-                    <stop offset="100%" stopColor="#5fb8d0" />
+                    <stop offset="0%" stopColor="#fff0bd" />
+                    <stop offset="42%" stopColor="#9edcf2" />
+                    <stop offset="100%" stopColor="#55b7d1" />
                   </linearGradient>
                   <linearGradient id="fofWater" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#64c4dc" />
-                    <stop offset="58%" stopColor="#2387a6" />
-                    <stop offset="100%" stopColor="#0f536d" />
+                    <stop offset="0%" stopColor="#76d3e5" />
+                    <stop offset="54%" stopColor="#238caf" />
+                    <stop offset="100%" stopColor="#0d4d67" />
                   </linearGradient>
                   <linearGradient id="fofRod" x1="0" x2="1" y1="1" y2="0">
                     <stop offset="0%" stopColor="#2b1f1a" />
@@ -430,14 +431,31 @@ export function GalileeFishing() {
                     <stop offset="0%" stopColor="#c88c63" />
                     <stop offset="100%" stopColor="#8f593f" />
                   </linearGradient>
+                  <radialGradient id="fofSunGlow" cx="15%" cy="18%" r="32%">
+                    <stop offset="0%" stopColor="#fff8b8" stopOpacity="0.95" />
+                    <stop offset="100%" stopColor="#fff8b8" stopOpacity="0" />
+                  </radialGradient>
+                  <linearGradient id="fofShore" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stopColor="#3c332c" />
+                    <stop offset="48%" stopColor="#a7774e" />
+                    <stop offset="100%" stopColor="#46382d" />
+                  </linearGradient>
                 </defs>
 
                 <rect width="760" height="460" fill="url(#fofSky)" />
+                <rect width="760" height="220" fill="url(#fofSunGlow)" />
                 <circle cx="112" cy="82" r="34" fill="#ffe680" />
-                <circle cx="112" cy="82" r="72" fill="#ffe680" opacity="0.16" />
+                <circle cx="112" cy="82" r="88" fill="#ffe680" opacity="0.15" />
+                <path d="M210 86 Q228 68 252 78 Q266 58 292 76 Q315 76 326 96 L200 96 Q202 88 210 86Z" fill="#ffffff" opacity="0.72" />
+                <path d="M515 78 Q532 62 552 71 Q567 54 588 72 Q608 72 618 90 L505 90 Q508 82 515 78Z" fill="#ffffff" opacity="0.62" />
+                <path d="M350 108 q8 -9 16 0 q8 -9 16 0" fill="none" stroke="#4e6b70" strokeWidth="2" opacity="0.35" strokeLinecap="round" />
+                <path d="M412 84 q7 -8 14 0 q7 -8 14 0" fill="none" stroke="#4e6b70" strokeWidth="2" opacity="0.3" strokeLinecap="round" />
                 <path d="M0 166 C110 112 171 144 256 104 C340 66 418 106 504 86 C614 61 684 88 760 50 L760 232 L0 232Z" fill="#806c53" opacity="0.45" />
                 <path d="M0 194 C98 145 177 169 276 137 C376 105 462 148 552 121 C638 95 696 118 760 92 L760 232 L0 232Z" fill="#534335" opacity="0.48" />
                 <rect y="218" width="760" height="242" fill="url(#fofWater)" />
+                <path d="M530 210 C570 198 615 199 646 211 L629 226 L548 226Z" fill="#4c3b2d" opacity="0.78" />
+                <path d="M584 173 L584 214" stroke="#4c3b2d" strokeWidth="4" strokeLinecap="round" opacity="0.75" />
+                <path d="M587 178 C610 188 614 203 587 211Z" fill="#fff4d6" opacity="0.8" />
                 {Array.from({ length: 9 }).map((_, index) => (
                   <path
                     key={index}
@@ -448,20 +466,30 @@ export function GalileeFishing() {
                     opacity={0.24}
                   />
                 ))}
-                <path d="M0 408 C145 360 282 420 428 382 C548 350 644 374 760 348 L760 460 L0 460Z" fill="#5f4635" opacity="0.9" />
+                <path d="M52 284 C110 276 154 284 204 276" fill="none" stroke="#efffff" strokeWidth="3" opacity="0.25" strokeLinecap="round" />
+                <path d="M356 315 C430 302 492 320 568 303" fill="none" stroke="#efffff" strokeWidth="3" opacity="0.22" strokeLinecap="round" />
+                <path d="M0 408 C145 360 282 420 428 382 C548 350 644 374 760 348 L760 460 L0 460Z" fill="url(#fofShore)" opacity="0.95" />
                 <path d="M0 424 C110 398 175 414 260 394 C352 374 440 423 542 393 C642 365 704 388 760 374 L760 460 L0 460Z" fill="#302923" opacity="0.4" />
+                <g opacity="0.8">
+                  <path d="M44 420 Q48 378 56 420" stroke="#436b3f" strokeWidth="5" strokeLinecap="round" />
+                  <path d="M62 423 Q68 376 74 422" stroke="#567b45" strokeWidth="5" strokeLinecap="round" />
+                  <path d="M690 402 Q700 354 706 405" stroke="#436b3f" strokeWidth="5" strokeLinecap="round" />
+                  <circle cx="86" cy="411" r="4" fill="#f9a8d4" />
+                  <circle cx="670" cy="398" r="4" fill="#fde68a" />
+                </g>
               </svg>
 
-              <div className="absolute left-4 top-4 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm backdrop-blur-md">
+              <div className="absolute left-4 top-4 rounded-2xl border border-white/75 bg-white/82 px-3 py-2 shadow-sm backdrop-blur-md">
                 <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-sky-700">
                   <Waves className="h-3.5 w-3.5" /> Sea of Galilee
                 </div>
                 <div className="font-serif text-lg font-black text-[#3f332e]">Fishers of Faith</div>
               </div>
 
-              <div className="absolute right-4 top-4 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 text-right shadow-sm backdrop-blur-md">
+              <div className="absolute right-4 top-4 rounded-2xl border border-white/75 bg-white/82 px-3 py-2 text-right shadow-sm backdrop-blur-md">
                 <div className="text-[8px] font-black uppercase tracking-[0.18em] text-warm-grey/55">Phase</div>
                 <div className="text-sm font-black text-[#3f332e]">{phaseLabel[phase]}</div>
+                <div className="mt-1 text-[8px] font-black uppercase tracking-wider text-emerald-700">Forgiving Mode</div>
               </div>
 
               <AnimatePresence>
@@ -513,7 +541,7 @@ export function GalileeFishing() {
                 <div className="absolute bottom-24 left-5 right-5 z-50 rounded-[22px] border border-white/80 bg-white/86 p-4 shadow-xl backdrop-blur-md">
                   <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wider text-[#4d4039]">
                     <span>Reel timing</span>
-                    <span>{reelHits}/{requiredHits} pulls • {mistakes}/3 misses</span>
+                    <span>{reelHits}/{requiredHits} pulls • {mistakes}/5 misses</span>
                   </div>
                   <div className="relative h-9 overflow-hidden rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-white to-sky-100">
                     <div
@@ -550,8 +578,11 @@ export function GalileeFishing() {
           </div>
 
           <aside className="flex flex-col gap-3">
-            <div className="rounded-[26px] border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur-md">
-              <div className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-sky-700">Guide</div>
+            <div className="rounded-[28px] border border-white/85 bg-white/78 p-4 shadow-[0_14px_36px_rgba(75,104,119,0.12)] backdrop-blur-md">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-sky-700">Guide</span>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-emerald-700">Easier</span>
+              </div>
               <p className="min-h-[54px] text-[11px] font-bold leading-relaxed text-[#4f433d]">{message}</p>
 
               {phase === "hook" && (
@@ -580,15 +611,15 @@ export function GalileeFishing() {
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-2xl border border-white/80 bg-white/70 px-2 py-2 shadow-sm">
+              <div className="rounded-2xl border border-white/80 bg-white/76 px-2 py-2 shadow-sm">
                 <span className="block text-[8px] font-black uppercase tracking-wider text-sky-700/65">Points</span>
                 <span className="text-sm font-black">{score}</span>
               </div>
-              <div className="rounded-2xl border border-white/80 bg-white/70 px-2 py-2 shadow-sm">
+              <div className="rounded-2xl border border-white/80 bg-white/76 px-2 py-2 shadow-sm">
                 <span className="block text-[8px] font-black uppercase tracking-wider text-amber-700/65">Pearls</span>
                 <span className="text-sm font-black">{pearls}</span>
               </div>
-              <div className="rounded-2xl border border-white/80 bg-white/70 px-2 py-2 shadow-sm">
+              <div className="rounded-2xl border border-white/80 bg-white/76 px-2 py-2 shadow-sm">
                 <span className="block text-[8px] font-black uppercase tracking-wider text-rose-700/65">Streak</span>
                 <span className="text-sm font-black">{streak}/{bestStreak}</span>
               </div>
@@ -599,7 +630,7 @@ export function GalileeFishing() {
                 type="button"
                 onClick={castLine}
                 disabled={phase !== "ready"}
-                className="rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                className={`rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${phase === "ready" ? "bg-gradient-to-r from-sky-600 to-cyan-500 shadow-sky-300/40 animate-pulse" : "bg-gradient-to-r from-sky-600 to-cyan-500"}`}
               >
                 Cast
               </button>
@@ -607,7 +638,7 @@ export function GalileeFishing() {
                 type="button"
                 onClick={setHook}
                 disabled={phase !== "hook"}
-                className="rounded-2xl bg-gradient-to-r from-amber-500 to-rose-400 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                className={`rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${phase === "hook" ? "bg-gradient-to-r from-amber-500 to-rose-400 shadow-amber-300/50 animate-pulse" : "bg-gradient-to-r from-amber-500 to-rose-400"}`}
               >
                 Set Hook
               </button>
@@ -615,7 +646,7 @@ export function GalileeFishing() {
                 type="button"
                 onClick={reel}
                 disabled={phase !== "reeling"}
-                className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                className={`rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${phase === "reeling" ? "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-300/50 animate-pulse" : "bg-gradient-to-r from-emerald-500 to-teal-500"}`}
               >
                 Reel
               </button>
