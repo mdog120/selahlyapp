@@ -22,6 +22,8 @@ interface Challenge {
 
 type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "backyard" | "vet" | "meadow";
 type RecipeType = "clover" | "apple_mash" | "manna_cookie" | "berry_pancake" | "honey_glaze";
+type StoryMode = "living" | "bedtime";
+type StoryBookId = "psalm23" | "lostSheep" | "peacefulNight";
 
 type BrowserWindowWithAudio = Window & {
   AudioContext?: typeof AudioContext;
@@ -34,6 +36,42 @@ const getAudioContextClass = () => {
   if (typeof window === "undefined") return null;
   const audioWindow = window as BrowserWindowWithAudio;
   return audioWindow.AudioContext ?? audioWindow.webkitAudioContext ?? null;
+};
+
+const STORY_BOOKS: Record<StoryBookId, { title: string; emoji: string; modeLabel: string; pages: string[] }> = {
+  psalm23: {
+    title: "The Shepherd’s Green Meadow",
+    emoji: "🌿",
+    modeLabel: "Living Room Read-Aloud",
+    pages: [
+      "Selah opened a tiny green book and saw a meadow shining in the morning light. The Shepherd smiled and said, ‘I know every path that leads to peace.’",
+      "Beside still water, Selah learned to breathe slowly. The breeze sounded like a whisper: ‘You are cared for. You do not walk alone.’",
+      "When shadows stretched across the hills, Selah stayed close to the Shepherd’s voice. Her little hooves grew brave again.",
+      "At the end of the path, a table waited with bread, honey, and joy. Selah closed the book and whispered, ‘The Lord is my shepherd.’",
+    ],
+  },
+  lostSheep: {
+    title: "The Little Lamb Who Was Found",
+    emoji: "🐑",
+    modeLabel: "Living Room Read-Aloud",
+    pages: [
+      "A small lamb wandered past the daisies, chasing a gold butterfly farther and farther from home.",
+      "When the sky turned lavender, the lamb felt afraid. But the Good Shepherd had already begun searching with a lantern of love.",
+      "He found the lamb near a quiet stone, lifted it gently, and carried it close to His heart.",
+      "Back home, everyone rejoiced. Selah clapped her hooves and said, ‘No lamb is ever too lost to be loved.’",
+    ],
+  },
+  peacefulNight: {
+    title: "Selah the Little Lamb’s Peaceful Night",
+    emoji: "🌙",
+    modeLabel: "Bedtime Story Reading",
+    pages: [
+      "Once upon a time in a beautiful green valley, there was a tiny lamb named Selah. Selah loved to run and jump all day under the warm sun, chasing butterflies.",
+      "But as the night fell, the stars began to twinkle in the sky like tiny candles. The Good Shepherd called: ‘Come back to the fold, little Selah.’",
+      "Selah walked slowly to the cozy bedroom, snuggling into the soft hay. The Shepherd covered Selah with a warm blanket, whispering: ‘Do not fear, you are safe.’",
+      "Selah listened to the gentle night wind outside, closed her eyes, and smiled. ‘He watches over His sheep.’ Goodnight, sweet Selah. Zzz...",
+    ],
+  },
 };
 
 export function MyTalkingLamb() {
@@ -102,6 +140,8 @@ export function MyTalkingLamb() {
   // ─── Bedtime Story States ───────────────────────────────────
   const [isReadingStory, setIsReadingStory] = useState(false);
   const [storyPage, setStoryPage] = useState(0);
+  const [storyMode, setStoryMode] = useState<StoryMode>("bedtime");
+  const [selectedStoryBook, setSelectedStoryBook] = useState<StoryBookId>("peacefulNight");
 
   // ─── Chat & Dialogue States ─────────────────────────────────
   const [dialogue, setDialogue] = useState("Baa! Welcome to my cozy home, sister! 🐑");
@@ -1150,24 +1190,64 @@ export function MyTalkingLamb() {
     }
   };
 
-  // ─── Bedtime Story Actions ──────────────────────────────────
-  const startStoryBook = () => {
+  // ─── Story & Living Room Care Actions ───────────────────────
+  const startStoryBook = (mode: StoryMode = "bedtime", bookId: StoryBookId = "peacefulNight") => {
+    if (isSleeping && mode === "living") {
+      speak("Baa... I can read with you after my nap... Zzz... 📚");
+      return;
+    }
     setIsReadingStory(true);
     setStoryPage(0);
-    speak("Baa... please read me a cozy bedtime story, shepherd... 📖");
+    setStoryMode(mode);
+    setSelectedStoryBook(bookId);
+    speak(mode === "bedtime" ? "Baa... please read me a cozy bedtime story, shepherd... 📖" : `Baa! Let's read ${STORY_BOOKS[bookId].title} together! 📚`);
   };
 
   const handleStoryNext = () => {
-    if (storyPage < 3) {
+    const book = STORY_BOOKS[selectedStoryBook];
+    if (storyPage < book.pages.length - 1) {
       setStoryPage((p) => p + 1);
-    } else {
-      // Final page completed: Put to sleep!
+    } else if (storyMode === "bedtime") {
       setIsReadingStory(false);
       setIsSleeping(true);
       setLastAction("sleeping");
       speak("Goodnight, sweet shepherd... Zzz... I love you... 🛌🌙");
       progressChallenge("story", 1);
+    } else {
+      setIsReadingStory(false);
+      setHappiness((value) => clampStat(value + 18));
+      setEnergy((value) => clampStat(value + 5));
+      setCoins((value) => value + 5);
+      spawnParticles("📚", 4);
+      speak("Baa! I loved that story. My heart feels cozy and brave! (+🪙 5) 📚✨");
+      progressChallenge("story", 1);
     }
+  };
+
+  const handleBrushWool = () => {
+    if (isSleeping) {
+      speak("Baa... brush me when I wake up, please... 💤");
+      return;
+    }
+    if (!reserveAction("Baa! Slow gentle brushing, please. 🪮")) return;
+    setCleanliness((value) => clampStat(value + 12));
+    setHappiness((value) => clampStat(value + 10));
+    setMudFactor((value) => Math.max(0, value - 1));
+    spawnParticles("✨", 5);
+    speak("Baa! My wool is fluffy and shiny now! 🪮✨");
+    progressChallenge("pet", 1);
+  };
+
+  const handleSingTogether = () => {
+    if (isSleeping) {
+      speak("Zzz... sing me a lullaby later... 🎵");
+      return;
+    }
+    if (!reserveAction("Baa! Let me catch the melody first. 🎶")) return;
+    setHappiness((value) => clampStat(value + 14));
+    setEnergy((value) => clampStat(value - 4));
+    spawnParticles("🎵", 6);
+    speak("Baa baa baa! Joyful songs make the cottage feel warm! 🎶💖");
   };
 
   // ─── HUD Checks ─────────────────────────────────────────────
@@ -1197,6 +1277,7 @@ export function MyTalkingLamb() {
   };
 
   const expression = getExpressionProps();
+  const currentStoryBook = STORY_BOOKS[selectedStoryBook];
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full select-none pb-8 animate-fade-in text-warm-cocoa font-sans relative">
@@ -1205,7 +1286,7 @@ export function MyTalkingLamb() {
       {/* ─── SCREEN CANVAS VIEWPORT ────────────────────────────── */}
       <div className="relative w-full h-[420px] rounded-[42px] overflow-hidden border-[6px] border-white/80 shadow-[0_24px_80px_rgba(120,86,62,0.22)] flex flex-col justify-between p-5 bg-gradient-to-br from-rose-50 via-amber-50 to-sky-50 ring-1 ring-rose-100/80">
         <div className="absolute inset-0 pointer-events-none z-[1] bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.58),transparent_24%),radial-gradient(circle_at_82%_8%,rgba(253,186,116,0.18),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.18),transparent_42%)]" />
-        <div className="absolute left-7 top-5 z-[2] text-[10px] font-serif font-bold tracking-[0.28em] text-white/90 drop-shadow-sm pointer-events-none">
+        <div className="absolute left-1/2 top-3 z-40 -translate-x-1/2 rounded-full border border-white/70 bg-white/80 px-4 py-1 text-[9px] font-serif font-black tracking-[0.22em] text-[#7b5a4a] shadow-sm backdrop-blur-md pointer-events-none">
           SELAH&apos;S COTTAGE
         </div>
         
@@ -1715,6 +1796,29 @@ export function MyTalkingLamb() {
         {/* ROOM ACTIONS FLOATING BAR (LAPTPOP & MOBILE-SAFE) */}
         {!isCooking && (
           <div className="absolute left-4 top-16 z-30 flex gap-2 pointer-events-auto">
+            {activeRoom === "living" && (
+              <>
+                <button
+                  onClick={() => startStoryBook("living", "psalm23")}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                >
+                  📚 Read Books
+                </button>
+                <button
+                  onClick={handleBrushWool}
+                  className="px-3 py-1.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                >
+                  🪮 Brush Wool
+                </button>
+                <button
+                  onClick={handleSingTogether}
+                  className="px-3 py-1.5 rounded-xl bg-violet-400 hover:bg-violet-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                >
+                  🎵 Sing
+                </button>
+              </>
+            )}
+
             {activeRoom === "kitchen" && (
               <>
                 <button
@@ -1743,7 +1847,7 @@ export function MyTalkingLamb() {
               <>
                 {!isSleeping ? (
                   <button
-                    onClick={startStoryBook}
+                    onClick={() => startStoryBook("bedtime", "peacefulNight")}
                     className="px-3 py-1.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                   >
                     📖 Read Story
@@ -3336,7 +3440,7 @@ export function MyTalkingLamb() {
         )}
       </AnimatePresence>
 
-      {/* ─── E. BEDTIME STORYBOOK READING OVERLAY ────────────────── */}
+      {/* ─── E. STORYBOOK READING OVERLAY ────────────────── */}
       <AnimatePresence>
         {isReadingStory && (
           <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -3344,7 +3448,7 @@ export function MyTalkingLamb() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#FCF6E8] border-4 border-[#C2A58F] p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[320px] flex flex-col justify-between"
+              className="bg-[#FCF6E8] border-4 border-[#C2A58F] p-6 rounded-[36px] shadow-2xl text-center max-w-md w-full relative min-h-[360px] flex flex-col justify-between"
             >
               <button
                 onClick={() => setIsReadingStory(false)}
@@ -3354,26 +3458,42 @@ export function MyTalkingLamb() {
               </button>
 
               <div className="w-full">
-                <span className="text-[8.5px] uppercase font-bold text-stone-400 tracking-wider">Bedtime Story Reading</span>
+                <span className="text-[8.5px] uppercase font-bold text-stone-400 tracking-wider">{currentStoryBook.modeLabel}</span>
                 <h3 className="font-serif text-sm font-bold text-warm-cocoa mb-4">
-                  Selah the Little Lamb&apos;s Peaceful Night 🌙
+                  {currentStoryBook.emoji} {currentStoryBook.title}
                 </h3>
               </div>
 
+              {storyMode === "living" && (
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {(["psalm23", "lostSheep"] as StoryBookId[]).map((bookId) => {
+                    const book = STORY_BOOKS[bookId];
+                    return (
+                      <button
+                        key={bookId}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStoryBook(bookId);
+                          setStoryPage(0);
+                          speak(`Baa! ${book.title} is a beautiful choice. 📚`);
+                        }}
+                        className={`rounded-2xl border p-3 text-left transition-all active:scale-95 ${
+                          selectedStoryBook === bookId
+                            ? "bg-white border-rose-300 shadow-md"
+                            : "bg-white/55 border-stone-200 hover:bg-white/80"
+                        }`}
+                      >
+                        <span className="text-lg">{book.emoji}</span>
+                        <span className="block text-[10px] font-black text-warm-cocoa leading-tight">{book.title}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* STORYBOOK PAGE CONTENT */}
-              <div className="flex-1 flex items-center justify-center p-4 bg-white/70 rounded-2xl border border-stone-200/50 mb-5 leading-relaxed text-xs text-warm-cocoa font-medium font-serif italic text-left">
-                {storyPage === 0 && (
-                  <span>&ldquo;Once upon a time in a beautiful green valley, there was a tiny lamb named Selah. Selah loved to run and jump all day under the warm sun, chasing butterflies.&rdquo;</span>
-                )}
-                {storyPage === 1 && (
-                  <span>&ldquo;But as the night fell, the stars began to twinkle in the sky like tiny candles. The Good Shepherd called: &lsquo;Come back to the fold, little Selah.&rsquo;&rdquo;</span>
-                )}
-                {storyPage === 2 && (
-                  <span>&ldquo;Selah walked slowly to the cozy bedroom, snuggling into the soft hay. The Shepherd covered Selah with a warm blanket, whispering: &lsquo;Do not fear, you are safe.&rsquo;&rdquo;</span>
-                )}
-                {storyPage === 3 && (
-                  <span>&ldquo;Selah listened to the gentle night wind outside, closed her eyes, and smiled. &lsquo;He watches over His sheep.&rsquo; Goodnight, sweet Selah. Zzz...&rdquo;</span>
-                )}
+              <div className="flex-1 flex items-center justify-center p-5 bg-white/75 rounded-3xl border border-stone-200/50 mb-5 leading-relaxed text-xs text-warm-cocoa font-medium font-serif italic text-left shadow-inner">
+                <span>&ldquo;{currentStoryBook.pages[storyPage]}&rdquo;</span>
               </div>
 
               {/* CONTROLS */}
@@ -3385,12 +3505,14 @@ export function MyTalkingLamb() {
                 >
                   ← Back
                 </button>
-                <span className="text-[9px] font-bold text-stone-450">Page {storyPage + 1} of 4</span>
+                <span className="text-[9px] font-bold text-stone-450">Page {storyPage + 1} of {currentStoryBook.pages.length}</span>
                 <button
                   onClick={handleStoryNext}
                   className="px-4 py-1.5 rounded-xl bg-[#4B3A3A] text-white font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all cursor-pointer"
                 >
-                  {storyPage === 3 ? "Sleep 🛌💤" : "Next Page →"}
+                  {storyPage === currentStoryBook.pages.length - 1
+                    ? storyMode === "bedtime" ? "Sleep 🛌💤" : "Finish +5 🪙"
+                    : "Next Page →"}
                 </button>
               </div>
             </motion.div>
