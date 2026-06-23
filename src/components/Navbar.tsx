@@ -77,8 +77,10 @@ export function Navbar() {
 
     if (isPublicPage) return null;
 
+    const isHome = pathname === "/home";
+
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top,0px)]">
+        <nav className={`${isHome ? "absolute md:fixed" : "hidden md:fixed"} top-0 left-0 right-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top,0px)]`}>
             <div className="absolute inset-0 bg-warm-paper/90 backdrop-blur-md border-b border-warm-grey/5" />
             <div className="container relative mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
                 {/* Logo */}
