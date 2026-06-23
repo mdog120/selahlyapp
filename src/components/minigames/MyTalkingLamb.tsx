@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Heart, Sparkles, Moon, Sun, Utensils, MessageCircle, Send, ShieldAlert, Award, Map, ShoppingBag, CheckSquare, X, Lock, BookOpen } from "lucide-react";
+import { MessageCircle, Send, Map, ShoppingBag, CheckSquare, X, Lock, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Particle {
@@ -22,6 +22,19 @@ interface Challenge {
 
 type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "backyard" | "vet" | "meadow";
 type RecipeType = "clover" | "apple_mash" | "manna_cookie" | "berry_pancake" | "honey_glaze";
+
+type BrowserWindowWithAudio = Window & {
+  AudioContext?: typeof AudioContext;
+  webkitAudioContext?: typeof AudioContext;
+};
+
+const clampStat = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
+
+const getAudioContextClass = () => {
+  if (typeof window === "undefined") return null;
+  const audioWindow = window as BrowserWindowWithAudio;
+  return audioWindow.AudioContext ?? audioWindow.webkitAudioContext ?? null;
+};
 
 export function MyTalkingLamb() {
   // ─── Currency & Unlocking States ────────────────────────────
@@ -81,7 +94,6 @@ export function MyTalkingLamb() {
   const [cookingStep, setCookingStep] = useState<"choose" | "chop" | "stove" | "stir" | "garnish" | "done">("choose");
   const [chopCount, setChopCount] = useState(0);
   const [sliderPos, setSliderPos] = useState(0);
-  const [sliderDirection, setSliderDirection] = useState<"left" | "right">("right");
   const [temp, setTemp] = useState(30);
   const [boilProgress, setBoilProgress] = useState(0);
   const [stirIndex, setStirIndex] = useState(0);
@@ -125,6 +137,9 @@ export function MyTalkingLamb() {
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const sleepyMusicRef = useRef<HTMLAudioElement | null>(null);
   const snoreIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const actionLockRef = useRef(false);
+  const sickCooldownRef = useRef(0);
+  const challengeRotationRef = useRef<NodeJS.Timeout | null>(null);
 
   // ─── Local Storage persistence ─────────────────────────────
   useEffect(() => {
@@ -132,17 +147,17 @@ export function MyTalkingLamb() {
     if (saved) {
       try {
         const p = JSON.parse(saved);
-        setCoins(p.coins ?? 50);
-        const loadedRooms = p.unlockedRooms ?? ["living", "kitchen", "bedroom", "vet"];
+        setCoins(Math.max(0, p.coins ?? 50));
+        const loadedRooms = Array.from(new Set([...(p.unlockedRooms ?? ["living", "kitchen", "bedroom"]), "vet"])) as RoomType[];
         if (!loadedRooms.includes("vet")) {
           loadedRooms.push("vet");
         }
         setUnlockedRooms(loadedRooms);
-        setPurchasedAccessories(p.purchasedAccessories ?? ["none", "bow"]);
-        setHunger(p.hunger ?? 70);
-        setHappiness(p.happiness ?? 60);
-        setCleanliness(p.cleanliness ?? 80);
-        setEnergy(p.energy ?? 50);
+        setPurchasedAccessories(Array.from(new Set(p.purchasedAccessories ?? ["none", "bow"])));
+        setHunger(clampStat(p.hunger ?? 70));
+        setHappiness(clampStat(p.happiness ?? 60));
+        setCleanliness(clampStat(p.cleanliness ?? 80));
+        setEnergy(clampStat(p.energy ?? 50));
         setAccessory(p.accessory ?? "none");
         setIsSleeping(p.isSleeping ?? false);
         setApplesStock(p.applesStock ?? 2);
@@ -152,7 +167,7 @@ export function MyTalkingLamb() {
         setHoneyStock(p.honeyStock ?? 1);
         setMilkStock(p.milkStock ?? 1);
         setMudFactor(p.mudFactor ?? 0);
-        setActiveRoom(p.activeRoom ?? "living");
+        setActiveRoom(loadedRooms.includes(p.activeRoom) ? p.activeRoom : "living");
         setIsSick(p.isSick ?? false);
         if (p.challenges) setChallenges(p.challenges);
       } catch (e) {
@@ -166,7 +181,15 @@ export function MyTalkingLamb() {
     const t = setTimeout(() => {
       setDialogue("");
     }, 6000);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current);
+      }
+      if (challengeRotationRef.current) {
+        clearTimeout(challengeRotationRef.current);
+      }
+    };
   }, []);
 
   // Save Stats on Change
@@ -201,21 +224,24 @@ export function MyTalkingLamb() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (isSleeping) {
-        setEnergy((prev) => Math.min(prev + 5, 100));
-        setHunger((prev) => Math.max(prev - 0.4, 0));
-        setHappiness((prev) => Math.max(prev - 0.1, 0));
+        sickCooldownRef.current = Math.max(0, sickCooldownRef.current - 1);
+        setEnergy((prev) => clampStat(prev + 5));
+        setHunger((prev) => clampStat(prev - 0.4));
+        setHappiness((prev) => clampStat(prev - 0.1));
       } else {
-        setHunger((prev) => Math.max(prev - 1.0, 0));
-        setHappiness((prev) => Math.max(prev - 0.7, 0));
-        setCleanliness((prev) => Math.max(prev - 0.5, 0));
-        setEnergy((prev) => Math.max(prev - 0.8, 0));
+        sickCooldownRef.current = Math.max(0, sickCooldownRef.current - 1);
+        setHunger((prev) => clampStat(prev - 0.7));
+        setHappiness((prev) => clampStat(prev - 0.45));
+        setCleanliness((prev) => clampStat(prev - 0.35));
+        setEnergy((prev) => clampStat(prev - 0.55));
 
-        // Sickness checks: triggers 30% of the time if clean/hungry is < 30, and 5% baseline
-        if (!isSick) {
-          const lowStats = cleanliness < 30 || hunger < 30;
-          const probability = lowStats ? 0.30 : 0.05;
+        // Sickness should feel like a care consequence, not random punishment.
+        if (!isSick && sickCooldownRef.current === 0) {
+          const lowStats = cleanliness < 25 || hunger < 25;
+          const probability = lowStats ? 0.12 : 0.005;
           if (Math.random() < probability) {
             setIsSick(true);
+            sickCooldownRef.current = 20;
             speak("Achoo! Baa... I don't feel very well, shepherd... Can we visit the Vet Clinic? 🤒");
           }
         }
@@ -334,25 +360,26 @@ export function MyTalkingLamb() {
     
     const playSnoreNode = () => {
       try {
-        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioCtxClass = getAudioContextClass();
         if (!AudioCtxClass) return;
         if (!audioCtx) {
           audioCtx = new AudioCtxClass();
         }
-        if (audioCtx.state === "suspended") {
-          audioCtx.resume();
+        const ctx = audioCtx;
+        if (ctx.state === "suspended") {
+          ctx.resume();
         }
         
-        const now = audioCtx.currentTime;
+        const now = ctx.currentTime;
         
         // Inhale (low pitched growl/snore vibration)
-        const osc1 = audioCtx.createOscillator();
-        const gain1 = audioCtx.createGain();
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
         osc1.type = "sine";
         osc1.frequency.setValueAtTime(65, now);
         
-        const rattle = audioCtx.createOscillator();
-        const rattleGain = audioCtx.createGain();
+        const rattle = ctx.createOscillator();
+        const rattleGain = ctx.createGain();
         rattle.frequency.value = 16;
         rattleGain.gain.value = 6;
         rattle.connect(rattleGain);
@@ -363,7 +390,7 @@ export function MyTalkingLamb() {
         gain1.gain.linearRampToValueAtTime(0, now + 2.0);
         
         osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
+        gain1.connect(ctx.destination);
         
         rattle.start(now);
         osc1.start(now);
@@ -371,8 +398,8 @@ export function MyTalkingLamb() {
         osc1.stop(now + 2.0);
         
         // Exhale (soft puff/sigh)
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
         osc2.type = "triangle";
         osc2.frequency.setValueAtTime(55, now + 2.2);
         
@@ -381,7 +408,7 @@ export function MyTalkingLamb() {
         gain2.gain.linearRampToValueAtTime(0, now + 4.0);
         
         osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
+        gain2.connect(ctx.destination);
         
         osc2.start(now + 2.2);
         osc2.stop(now + 4.0);
@@ -475,10 +502,22 @@ export function MyTalkingLamb() {
     }, 1500);
   };
 
+  const reserveAction = (message = "One thing at a time, sweet shepherd! 🐑") => {
+    if (actionLockRef.current) {
+      speak(message);
+      return false;
+    }
+    actionLockRef.current = true;
+    window.setTimeout(() => {
+      actionLockRef.current = false;
+    }, 900);
+    return true;
+  };
+
   // ─── Web Audio API Sound Synthesizers ─────────────────────────
   const playBaaSound = () => {
     try {
-      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtxClass = getAudioContextClass();
       if (!AudioCtxClass) return;
       const ctx = new AudioCtxClass();
       
@@ -549,7 +588,7 @@ export function MyTalkingLamb() {
 
   const playEatingSound = () => {
     try {
-      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtxClass = getAudioContextClass();
       if (!AudioCtxClass) return;
       const ctx = new AudioCtxClass();
       
@@ -580,7 +619,7 @@ export function MyTalkingLamb() {
 
   const playShowerSound = () => {
     try {
-      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtxClass = getAudioContextClass();
       if (!AudioCtxClass) return;
       const ctx = new AudioCtxClass();
       
@@ -631,6 +670,10 @@ export function MyTalkingLamb() {
   };
 
   const claimChallenge = (id: string, reward: number) => {
+    if (challengeRotationRef.current) {
+      clearTimeout(challengeRotationRef.current);
+      challengeRotationRef.current = null;
+    }
     setCoins((prev) => prev + reward);
     setChallenges((prev) =>
       prev.map((c) => {
@@ -643,7 +686,7 @@ export function MyTalkingLamb() {
     speak(`Baa! Challenge completed! You earned 🪙 ${reward} Gold Coins! 🎉`);
     
     // Rotate to a new challenge after 4 seconds
-    setTimeout(() => {
+    challengeRotationRef.current = setTimeout(() => {
       setChallenges((prev) => {
         const activeIds = prev.filter((c) => c.id !== id).map((c) => c.id);
         const availableTemplates = CHALLENGE_POOL.filter((t) => !activeIds.includes(t.id));
@@ -665,6 +708,7 @@ export function MyTalkingLamb() {
           return c;
         });
       });
+      challengeRotationRef.current = null;
     }, 4000);
   };
 
@@ -674,8 +718,9 @@ export function MyTalkingLamb() {
       speak("Shhh... Selah is sweeping right now, baa... Zzz... 💤");
       return;
     }
+    if (!reserveAction("Baa! Gentle pets, one at a time. 🐑")) return;
     setLastAction("petting");
-    setHappiness((prev) => Math.min(prev + 12, 100));
+    setHappiness((prev) => clampStat(prev + 12));
     spawnParticles("❤️", 6);
     speak("Baa! *giggles* That tickles! You are the bestest shepherd! 🥰");
     progressChallenge("pet", 1);
@@ -691,9 +736,10 @@ export function MyTalkingLamb() {
       speak("Baa... too sleepy for a bath... let's snuggle... 💤");
       return;
     }
+    if (!reserveAction("The bubbles are still settling! 🫧")) return;
     setLastAction("bathing");
-    setCleanliness((prev) => Math.min(prev + 25, 100));
-    setHappiness((prev) => Math.min(prev + 5, 100));
+    setCleanliness((prev) => clampStat(prev + 30));
+    setHappiness((prev) => clampStat(prev + 6));
     if (mudFactor > 0) {
       setMudFactor((prev) => prev - 1);
     }
@@ -713,6 +759,7 @@ export function MyTalkingLamb() {
       speak("Baa... too sweepy to play... Zzz... 💤");
       return;
     }
+    if (isChasingBall || !reserveAction("Baa! The ball is already flying! ⚽")) return;
     
     setIsChasingBall(true);
     setLastAction("playing");
@@ -721,9 +768,9 @@ export function MyTalkingLamb() {
     setTimeout(() => {
       setIsChasingBall(false);
       setLastAction("none");
-      setHappiness((prev) => Math.min(prev + 20, 100));
-      setCleanliness((prev) => Math.max(prev - 20, 0));
-      setEnergy((prev) => Math.max(prev - 15, 0));
+      setHappiness((prev) => clampStat(prev + 20));
+      setCleanliness((prev) => clampStat(prev - 18));
+      setEnergy((prev) => clampStat(prev - 14));
       setMudFactor((prev) => Math.min(prev + 1, 4));
       spawnParticles("⚽", 5);
       speak("Got it! Baa! Did you see my super jumps? Oh no, my wool got dirty... 🐾");
@@ -743,6 +790,7 @@ export function MyTalkingLamb() {
       speak("Baa! We need more Gold Coins! Let's do some chores! 🪙");
       return;
     }
+    if (!reserveAction("The shopkeeper is packing the last treat! 🛍️")) return;
     setCoins((c) => c - cost);
     if (type === "apple") setApplesStock((s) => s + 1);
     else if (type === "manna") setMannaStock((s) => s + 1);
@@ -756,12 +804,17 @@ export function MyTalkingLamb() {
   };
 
   const buyAccessory = (acc: string, cost: number) => {
+    if (purchasedAccessories.includes(acc)) {
+      speak("Baa! That pretty accessory is already in our wardrobe! 🎀");
+      return;
+    }
     if (coins < cost) {
       speak("Baa! Not enough Gold Coins, shepherd! 🪙");
       return;
     }
+    if (!reserveAction("One shiny purchase at a time! 🛍️")) return;
     setCoins((c) => c - cost);
-    setPurchasedAccessories((prev) => [...prev, acc]);
+    setPurchasedAccessories((prev) => Array.from(new Set([...prev, acc])));
     spawnParticles("🪙", 4);
     speak(`Ooh! You bought the premium ${acc}! Let's try it on, baa! 🎀`);
     progressChallenge("buy_accessory", 1);
@@ -785,8 +838,12 @@ export function MyTalkingLamb() {
       speak(`Baa! We need 🪙 ${cost} Gold Coins to unlock the ${room}! 🔒`);
       return;
     }
+    if (unlockedRooms.includes(room)) {
+      travelToRoom(room);
+      return;
+    }
     setCoins((c) => c - cost);
-    setUnlockedRooms((prev) => [...prev, room]);
+    setUnlockedRooms((prev) => Array.from(new Set([...prev, room])));
     spawnParticles("✨", 8);
     speak(`Yay! The ${room} is now UNLOCKED! Let's explore, baa! 🎉`);
   };
@@ -804,7 +861,7 @@ export function MyTalkingLamb() {
       return;
     }
 
-    setHappiness((prev) => Math.min(prev + 4, 100));
+    setHappiness((prev) => clampStat(prev + 4));
     spawnParticles("✨", 2);
 
     const text = input.toLowerCase();
@@ -960,14 +1017,14 @@ export function MyTalkingLamb() {
       dishName = "Honey Glazed Oats";
     }
 
-    setHunger((prev) => Math.min(prev + fill, 100));
-    setHappiness((prev) => Math.min(prev + happy, 100));
-    setEnergy((prev) => Math.min(prev + ene, 100));
+    setHunger((prev) => clampStat(prev + fill));
+    setHappiness((prev) => clampStat(prev + happy));
+    setEnergy((prev) => clampStat(prev + ene));
     setCoins((c) => c + 10); // Reward for cooking
 
     spawnParticles("😋", 6);
     playEatingSound();
-    speak(`Baa! That was so delicious! Fluffy tummy is full! (+🪙 10 Gold Coins reward) 🍽️✨`);
+    speak(`Baa! The ${dishName} was so delicious! Fluffy tummy is full! (+🪙 10 Gold Coins reward) 🍽️✨`);
     
     // Progress challenges
     progressChallenge("feed", 1);
@@ -1037,7 +1094,8 @@ export function MyTalkingLamb() {
     setIsSick(false);
     setIsClinicActive(false);
     setCleanliness(100);
-    setHappiness((h) => Math.min(100, h + 50));
+    sickCooldownRef.current = 30;
+    setHappiness((h) => clampStat(h + 50));
     setCoins((c) => c + 15);
     speak("Vet clinic treatment complete! Fluffy sheep is cured and happy! (+🪙 15 Gold Coins reward) 🎉🐑🩺");
     spawnParticles("✨", 8);
@@ -1063,27 +1121,30 @@ export function MyTalkingLamb() {
   const handleMeadowWalkStep = (foot: "left" | "right") => {
     if (lastFoot === "none" || lastFoot !== foot) {
       setLastFoot(foot);
-      const nextProgress = walkProgress + 1;
-      setWalkProgress(nextProgress);
-      spawnParticles("🐾", 1);
+      setWalkProgress((prev) => {
+        const nextProgress = Math.min(prev + 1, 30);
+        spawnParticles("🐾", 1);
 
-      if (nextProgress === 10) {
-        setCoins((c) => c + 5);
-        speak("Look, shepherd! I found 5 Gold Coins hidden in the grass! 🪙✨");
-        spawnParticles("🪙", 3);
-      } else if (nextProgress === 20) {
-        setCoins((c) => c + 5);
-        speak("Ooh! Another shiny coin on the path! (+🪙 5 Gold Coins) 🪙✨");
-        spawnParticles("🪙", 3);
-      } else if (nextProgress === 30) {
-        setIsWalkingActive(false);
-        setHappiness((h) => Math.min(100, h + 30));
-        setEnergy((e) => Math.max(0, e - 20));
-        setCoins((c) => c + 10);
-        speak("Walk finished! That was so refreshing! (+🪙 10 Gold Coins reward) 🚶🌳✨");
-        spawnParticles("🎉", 5);
-        progressChallenge("play", 1);
-      }
+        if (nextProgress === 10) {
+          setCoins((c) => c + 5);
+          speak("Look, shepherd! I found 5 Gold Coins hidden in the grass! 🪙✨");
+          spawnParticles("🪙", 3);
+        } else if (nextProgress === 20) {
+          setCoins((c) => c + 5);
+          speak("Ooh! Another shiny coin on the path! (+🪙 5 Gold Coins) 🪙✨");
+          spawnParticles("🪙", 3);
+        } else if (nextProgress === 30) {
+          setIsWalkingActive(false);
+          setHappiness((h) => clampStat(h + 30));
+          setEnergy((e) => clampStat(e - 20));
+          setCoins((c) => c + 10);
+          speak("Walk finished! That was so refreshing! (+🪙 10 Gold Coins reward) 🚶🌳✨");
+          spawnParticles("🎉", 5);
+          progressChallenge("play", 1);
+        }
+
+        return nextProgress;
+      });
     } else {
       speak("Alternate your steps! Tap the other foot! 🚶");
     }
@@ -1139,9 +1200,14 @@ export function MyTalkingLamb() {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full select-none pb-8 animate-fade-in text-warm-cocoa font-sans relative">
+      <div className="absolute -inset-x-10 -top-8 h-44 rounded-full bg-gradient-to-r from-rose-200/35 via-amber-100/45 to-sky-200/35 blur-3xl pointer-events-none" />
       
       {/* ─── SCREEN CANVAS VIEWPORT ────────────────────────────── */}
-      <div className="relative w-full h-[400px] rounded-[36px] overflow-hidden border border-stone-200 shadow-lg flex flex-col justify-between p-5 bg-stone-100">
+      <div className="relative w-full h-[420px] rounded-[42px] overflow-hidden border-[6px] border-white/80 shadow-[0_24px_80px_rgba(120,86,62,0.22)] flex flex-col justify-between p-5 bg-gradient-to-br from-rose-50 via-amber-50 to-sky-50 ring-1 ring-rose-100/80">
+        <div className="absolute inset-0 pointer-events-none z-[1] bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.58),transparent_24%),radial-gradient(circle_at_82%_8%,rgba(253,186,116,0.18),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.18),transparent_42%)]" />
+        <div className="absolute left-7 top-5 z-[2] text-[10px] font-serif font-bold tracking-[0.28em] text-white/90 drop-shadow-sm pointer-events-none">
+          SELAH&apos;S COTTAGE
+        </div>
         
         {/* ROOM BACKGROUND SVGS (IMPROVED GRAPHICS) */}
         <div className="absolute inset-0 pointer-events-none z-0">
@@ -1606,21 +1672,21 @@ export function MyTalkingLamb() {
         {/* TOP PANEL HUD OVERLAYS */}
         <div className="w-full flex items-center justify-between z-10 relative">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-extrabold text-white bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 px-3 py-1 rounded-full flex items-center gap-1 shadow-md select-none border border-amber-300">
-              ✨ 🪙 {coins} Gold Coins
+            <span className="text-[10px] font-extrabold text-amber-900 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 shadow-[0_8px_24px_rgba(120,86,62,0.14)] select-none border border-amber-200/80 ring-2 ring-white/35">
+              ✨ 🪙 {coins} Coins
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
             {/* Expression Indicator */}
-            <span className="text-[8.5px] uppercase font-bold px-2 py-0.5 rounded-full bg-white/80 border border-stone-200/50 shadow-xs select-none">
+            <span className="text-[8.5px] uppercase font-bold px-2.5 py-1 rounded-full bg-white/80 backdrop-blur-md border border-rose-100 shadow-sm select-none text-[#6b4b3a]">
               Selah: {expression.label}
             </span>
 
             {/* Challenges board */}
             <button
               onClick={() => setIsChallengesOpen(true)}
-              className="relative p-2 rounded-full bg-white/90 border border-stone-200/50 shadow-sm active:scale-90 transition-all cursor-pointer text-warm-cocoa"
+              className="relative p-2 rounded-full bg-white/85 backdrop-blur-md border border-white/80 shadow-sm active:scale-90 transition-all cursor-pointer text-warm-cocoa hover:bg-rose-50"
             >
               <CheckSquare className="w-3.5 h-3.5" />
               {hasUnclaimedChallenges && (
@@ -1631,7 +1697,7 @@ export function MyTalkingLamb() {
             {/* Shop */}
             <button
               onClick={() => setIsShopOpen(true)}
-              className="p-2 rounded-full bg-white/90 border border-stone-200/50 shadow-sm active:scale-90 transition-all cursor-pointer text-warm-cocoa"
+              className="p-2 rounded-full bg-white/85 backdrop-blur-md border border-white/80 shadow-sm active:scale-90 transition-all cursor-pointer text-warm-cocoa hover:bg-amber-50"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
             </button>
@@ -1639,7 +1705,7 @@ export function MyTalkingLamb() {
             {/* Map */}
             <button
               onClick={() => setIsMapOpen(true)}
-              className="px-3 py-1 rounded-full bg-[#D4A5A5] hover:bg-[#c49292] text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-90 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-400 to-amber-300 hover:from-rose-500 hover:to-amber-400 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-[0_8px_20px_rgba(244,114,182,0.28)] active:scale-90 transition-all cursor-pointer border border-white/50"
             >
               <Map className="w-3.5 h-3.5" /> Map
             </button>
@@ -1804,12 +1870,12 @@ export function MyTalkingLamb() {
                 initial={{ scale: 0.8, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                className="absolute -top-16 bg-white/95 border-2 border-[#D4A5A5] text-[#4B3A3A] px-4 py-2 rounded-2xl shadow-md text-center max-w-[200px] text-[10px] font-bold z-48 pointer-events-auto"
+                className="absolute -top-20 bg-white/95 backdrop-blur-md border-2 border-rose-200 text-[#4B3A3A] px-4 py-3 rounded-[24px] shadow-[0_14px_38px_rgba(120,86,62,0.18)] text-center max-w-[240px] text-[10.5px] font-bold z-48 pointer-events-auto ring-4 ring-white/40"
               >
                 <div className="relative text-center">
                   {dialogue}
                   {/* Speech bubble tail */}
-                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r-2 border-b-2 border-[#D4A5A5] rotate-45" />
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-r-2 border-b-2 border-rose-200 rotate-45" />
                 </div>
               </motion.div>
             )}
@@ -1852,7 +1918,26 @@ export function MyTalkingLamb() {
             } ${activeRoom === "bathroom" ? "translate-y-4" : ""}`}
             style={{ animationDuration: "0.6s" }}
           >
-            <svg viewBox="0 0 200 200" width="100%" height="100%">
+            <svg viewBox="0 0 200 200" width="100%" height="100%" className="drop-shadow-[0_18px_18px_rgba(82,52,38,0.18)]">
+              <defs>
+                <radialGradient id="selahWool" cx="45%" cy="28%" r="78%">
+                  <stop offset="0%" stopColor="#FFFFFF" />
+                  <stop offset="62%" stopColor="#FFF7ED" />
+                  <stop offset="100%" stopColor="#F5D9C8" />
+                </radialGradient>
+                <linearGradient id="selahFace" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={isSick ? "#EFFDF3" : "#FFF4EF"} />
+                  <stop offset="100%" stopColor={isSick ? "#CDEFD8" : "#FFD9D0"} />
+                </linearGradient>
+                <linearGradient id="selahPink" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#FFE4E6" />
+                  <stop offset="100%" stopColor="#FDA4AF" />
+                </linearGradient>
+                <filter id="softWoolShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="2" floodColor="#9A6B57" floodOpacity="0.18" />
+                </filter>
+              </defs>
+              <ellipse cx="100" cy="178" rx="58" ry="11" fill="#6B4B3A" opacity="0.14" />
               {/* STINK LINES (cleanliness < 30) */}
               {cleanliness < 30 && (
                 <g className="animate-pulse">
@@ -1863,18 +1948,20 @@ export function MyTalkingLamb() {
               )}
 
               {/* legs */}
-              <rect x="78" y="162" width="10" height="16" rx="4" fill="#FFE2E2" stroke="#E6D3D3" strokeWidth={1.5} />
-              <rect x="112" y="162" width="10" height="16" rx="4" fill="#FFE2E2" stroke="#E6D3D3" strokeWidth={1.5} />
+              <rect x="78" y="162" width="10" height="16" rx="4" fill="url(#selahPink)" stroke="#EBC8BC" strokeWidth={1.5} />
+              <rect x="112" y="162" width="10" height="16" rx="4" fill="url(#selahPink)" stroke="#EBC8BC" strokeWidth={1.5} />
 
               {/* body wool */}
-              <circle cx="82" cy="144" r="15" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="100" cy="148" r="17" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="118" cy="144" r="15" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="90" cy="136" r="14" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="110" cy="136" r="14" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="100" cy="142" r="18" fill="#FFFFFF" />
-              <circle cx="90" cy="144" r="12" fill="#FFFFFF" />
-              <circle cx="110" cy="144" r="12" fill="#FFFFFF" />
+              <g filter="url(#softWoolShadow)">
+                <circle cx="82" cy="144" r="15" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="100" cy="148" r="17" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="118" cy="144" r="15" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="90" cy="136" r="14" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="110" cy="136" r="14" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="100" cy="142" r="18" fill="url(#selahWool)" />
+                <circle cx="90" cy="144" r="12" fill="url(#selahWool)" />
+                <circle cx="110" cy="144" r="12" fill="url(#selahWool)" />
+              </g>
 
               {/* Blanket overlay (only when sleeping in bedroom) */}
               {isSleeping && activeRoom === "bedroom" && (
@@ -1895,15 +1982,15 @@ export function MyTalkingLamb() {
               {/* ears */}
               <g>
                 <path d="M 66 105 Q 40 102 46 118 Q 58 120 66 112 Z" fill="#FFF0F0" stroke="#F0D3D3" strokeWidth={1.5} />
-                <path d="M 62 107 Q 44 106 48 115 Q 56 116 62 111 Z" fill="#FFB7B7" opacity="0.5" />
+                <path d="M 62 107 Q 44 106 48 115 Q 56 116 62 111 Z" fill="url(#selahPink)" opacity="0.7" />
               </g>
               <g>
                 <path d="M 134 105 Q 160 102 154 118 Q 142 120 134 112 Z" fill="#FFF0F0" stroke="#F0D3D3" strokeWidth={1.5} />
-                <path d="M 138 107 Q 156 106 152 115 Q 144 116 138 111 Z" fill="#FFB7B7" opacity="0.5" />
+                <path d="M 138 107 Q 156 106 152 115 Q 144 116 138 111 Z" fill="url(#selahPink)" opacity="0.7" />
               </g>
 
               {/* face */}
-              <ellipse cx="100" cy="115" rx="36" ry="30" fill={isSick ? "#E8F5E9" : "#FFF0F0"} stroke="#F0D3D3" strokeWidth={2} />
+              <ellipse cx="100" cy="115" rx="36" ry="30" fill="url(#selahFace)" stroke="#F0D3D3" strokeWidth={2} />
               <circle cx="76" cy="122" r="7" fill={isSick ? "#81C784" : "#FFB7B7"} opacity="0.6" />
               <circle cx="124" cy="122" r="7" fill={isSick ? "#81C784" : "#FFB7B7"} opacity="0.6" />
 
@@ -1973,12 +2060,14 @@ export function MyTalkingLamb() {
               )}
 
               {/* head wool */}
-              <circle cx="86" cy="94" r="10" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="100" cy="88" r="12" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="114" cy="94" r="10" fill="#FFFFFF" stroke="#E6D3D3" strokeWidth={1.5} />
-              <circle cx="94" cy="94" r="10" fill="#FFFFFF" />
-              <circle cx="106" cy="94" r="10" fill="#FFFFFF" />
-              <circle cx="100" cy="96" r="11" fill="#FFFFFF" />
+              <g filter="url(#softWoolShadow)">
+                <circle cx="86" cy="94" r="10" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="100" cy="88" r="12" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="114" cy="94" r="10" fill="url(#selahWool)" stroke="#E6D3D3" strokeWidth={1.5} />
+                <circle cx="94" cy="94" r="10" fill="url(#selahWool)" />
+                <circle cx="106" cy="94" r="10" fill="url(#selahWool)" />
+                <circle cx="100" cy="96" r="11" fill="url(#selahWool)" />
+              </g>
 
               {/* MUD SPLATTERS */}
               {mudFactor >= 1 && <ellipse cx="88" cy="144" rx="5.5" ry="3.5" fill="#783F04" opacity="0.85" />}
@@ -2824,10 +2913,10 @@ export function MyTalkingLamb() {
 
               <div className="w-full">
                 <h3 className="font-serif text-base font-bold text-warm-cocoa mb-0.5 flex items-center justify-center gap-1">
-                  🍳 Selah's Cooking Table
+                  🍳 Selah&apos;s Cooking Table
                 </h3>
                 <p className="text-[9px] text-warm-grey/50 italic mb-4">
-                  Bird's-eye view cutting board & mixing bowl
+                  Bird&apos;s-eye view cutting board & mixing bowl
                 </p>
               </div>
 
@@ -3267,23 +3356,23 @@ export function MyTalkingLamb() {
               <div className="w-full">
                 <span className="text-[8.5px] uppercase font-bold text-stone-400 tracking-wider">Bedtime Story Reading</span>
                 <h3 className="font-serif text-sm font-bold text-warm-cocoa mb-4">
-                  Selah the Little Lamb's Peaceful Night 🌙
+                  Selah the Little Lamb&apos;s Peaceful Night 🌙
                 </h3>
               </div>
 
               {/* STORYBOOK PAGE CONTENT */}
               <div className="flex-1 flex items-center justify-center p-4 bg-white/70 rounded-2xl border border-stone-200/50 mb-5 leading-relaxed text-xs text-warm-cocoa font-medium font-serif italic text-left">
                 {storyPage === 0 && (
-                  <span>"Once upon a time in a beautiful green valley, there was a tiny lamb named Selah. Selah loved to run and jump all day under the warm sun, chasing butterflies."</span>
+                  <span>&ldquo;Once upon a time in a beautiful green valley, there was a tiny lamb named Selah. Selah loved to run and jump all day under the warm sun, chasing butterflies.&rdquo;</span>
                 )}
                 {storyPage === 1 && (
-                  <span>"But as the night fell, the stars began to twinkle in the sky like tiny candles. The Good Shepherd called: 'Come back to the fold, little Selah.'"</span>
+                  <span>&ldquo;But as the night fell, the stars began to twinkle in the sky like tiny candles. The Good Shepherd called: &lsquo;Come back to the fold, little Selah.&rsquo;&rdquo;</span>
                 )}
                 {storyPage === 2 && (
-                  <span>"Selah walked slowly to the cozy bedroom, snuggling into the soft hay. The Shepherd covered Selah with a warm blanket, whispering: 'Do not fear, you are safe.'"</span>
+                  <span>&ldquo;Selah walked slowly to the cozy bedroom, snuggling into the soft hay. The Shepherd covered Selah with a warm blanket, whispering: &lsquo;Do not fear, you are safe.&rsquo;&rdquo;</span>
                 )}
                 {storyPage === 3 && (
-                  <span>"Selah listened to the gentle night wind outside, closed her eyes, and smiled. 'He watches over His sheep.' Goodnight, sweet Selah. Zzz..."</span>
+                  <span>&ldquo;Selah listened to the gentle night wind outside, closed her eyes, and smiled. &lsquo;He watches over His sheep.&rsquo; Goodnight, sweet Selah. Zzz...&rdquo;</span>
                 )}
               </div>
 
