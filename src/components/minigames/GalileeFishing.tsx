@@ -4,32 +4,32 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Anchor, BookOpen, Fish, Sparkles, Waves } from "lucide-react";
 
-type CastState = "idle" | "casting" | "waiting" | "bite" | "reeling" | "caught" | "missed";
-type CatchRarity = "common" | "blessed" | "miracle";
+type Phase = "ready" | "casting" | "waiting" | "hook" | "reeling" | "caught" | "lost";
+type Rarity = "common" | "blessed" | "miracle";
 
 interface CatchItem {
   id: string;
   name: string;
   emoji: string;
-  rarity: CatchRarity;
+  rarity: Rarity;
   points: number;
   verse: string;
   reference: string;
-  color: string;
-}
-
-interface FloatingCatch extends CatchItem {
-  caughtId: string;
+  gradient: string;
 }
 
 interface SaveData {
-  totalFish?: number;
-  bestStreak?: number;
   pearls?: number;
+  bestStreak?: number;
+  lifetime?: number;
   journal?: string[];
 }
 
-const SAVE_KEY = "selahly_galilee_fishing_v2";
+interface BasketItem extends CatchItem {
+  catchId: string;
+}
+
+const SAVE_KEY = "selahly_galilee_fishing_v3";
 
 const CATCHES: CatchItem[] = [
   {
@@ -40,7 +40,7 @@ const CATCHES: CatchItem[] = [
     points: 10,
     verse: "Follow me, and I will make you fishers of men.",
     reference: "Matthew 4:19",
-    color: "from-sky-200 to-cyan-300",
+    gradient: "from-sky-200 to-cyan-300",
   },
   {
     id: "peace",
@@ -50,7 +50,7 @@ const CATCHES: CatchItem[] = [
     points: 11,
     verse: "Peace I leave with you; my peace I give unto you.",
     reference: "John 14:27",
-    color: "from-teal-200 to-emerald-300",
+    gradient: "from-teal-200 to-emerald-300",
   },
   {
     id: "mercy",
@@ -60,7 +60,7 @@ const CATCHES: CatchItem[] = [
     points: 12,
     verse: "His mercies are new every morning.",
     reference: "Lamentations 3:23",
-    color: "from-rose-200 to-orange-200",
+    gradient: "from-rose-200 to-orange-200",
   },
   {
     id: "loaves",
@@ -70,7 +70,7 @@ const CATCHES: CatchItem[] = [
     points: 24,
     verse: "They did all eat, and were filled.",
     reference: "Matthew 14:20",
-    color: "from-amber-200 to-yellow-300",
+    gradient: "from-amber-200 to-yellow-300",
   },
   {
     id: "pearl",
@@ -80,86 +80,109 @@ const CATCHES: CatchItem[] = [
     points: 28,
     verse: "The kingdom of heaven is like unto a merchant seeking goodly pearls.",
     reference: "Matthew 13:45",
-    color: "from-violet-200 to-rose-200",
+    gradient: "from-violet-200 to-rose-200",
   },
   {
     id: "net",
     name: "Overflowing Net",
     emoji: "🕸️",
     rarity: "miracle",
-    points: 45,
+    points: 46,
     verse: "They enclosed a great multitude of fishes.",
     reference: "Luke 5:6",
-    color: "from-indigo-200 via-sky-200 to-amber-200",
+    gradient: "from-indigo-200 via-sky-200 to-amber-200",
   },
 ];
 
-const rarityStyle: Record<CatchRarity, string> = {
-  common: "bg-sky-50 text-sky-700 border-sky-200",
-  blessed: "bg-amber-50 text-amber-800 border-amber-200",
-  miracle: "bg-violet-50 text-violet-800 border-violet-200",
+const RARITY_META: Record<Rarity, { label: string; badge: string; taps: number; zone: number; speed: number; seconds: number; pearls: number }> = {
+  common: {
+    label: "Gentle",
+    badge: "border-sky-200 bg-sky-50 text-sky-700",
+    taps: 3,
+    zone: 24,
+    speed: 4.2,
+    seconds: 10,
+    pearls: 1,
+  },
+  blessed: {
+    label: "Blessed",
+    badge: "border-amber-200 bg-amber-50 text-amber-800",
+    taps: 4,
+    zone: 19,
+    speed: 5.2,
+    seconds: 9,
+    pearls: 3,
+  },
+  miracle: {
+    label: "Miracle",
+    badge: "border-violet-200 bg-violet-50 text-violet-800",
+    taps: 5,
+    zone: 15,
+    speed: 6.4,
+    seconds: 8,
+    pearls: 5,
+  },
 };
 
-const catchDifficulty: Record<CatchRarity, { taps: number; zone: number; speed: number; seconds: number }> = {
-  common: { taps: 3, zone: 22, speed: 3.8, seconds: 9 },
-  blessed: { taps: 4, zone: 18, speed: 4.8, seconds: 8 },
-  miracle: { taps: 5, zone: 14, speed: 5.8, seconds: 7 },
-};
+const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
 
-function chooseCatch(streak: number): CatchItem {
+function chooseCatch(streak: number) {
   const roll = Math.random();
-  const miracleChance = Math.min(0.04 + streak * 0.008, 0.13);
-  const blessedChance = Math.min(0.22 + streak * 0.012, 0.38);
-
-  const pool =
-    roll < miracleChance
-      ? CATCHES.filter((item) => item.rarity === "miracle")
-      : roll < blessedChance
-        ? CATCHES.filter((item) => item.rarity === "blessed")
-        : CATCHES.filter((item) => item.rarity === "common");
-
+  const miracleChance = Math.min(0.035 + streak * 0.007, 0.12);
+  const blessedChance = Math.min(0.22 + streak * 0.012, 0.36);
+  const rarity: Rarity = roll < miracleChance ? "miracle" : roll < blessedChance ? "blessed" : "common";
+  const pool = CATCHES.filter((item) => item.rarity === rarity);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
 export function GalileeFishing() {
-  const [castState, setCastState] = useState<CastState>("idle");
+  const [phase, setPhase] = useState<Phase>("ready");
+  const [message, setMessage] = useState("Cast from the shore. Watch the bobber, then set the hook when the ripple blooms.");
+  const [currentCatch, setCurrentCatch] = useState<CatchItem | null>(null);
   const [score, setScore] = useState(0);
   const [pearls, setPearls] = useState(0);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
-  const [totalFish, setTotalFish] = useState(0);
-  const [message, setMessage] = useState("First-person fishing: cast into the quiet water and wait for a real bite.");
-  const [currentCatch, setCurrentCatch] = useState<CatchItem | null>(null);
-  const [floatingCatches, setFloatingCatches] = useState<FloatingCatch[]>([]);
+  const [lifetime, setLifetime] = useState(0);
   const [journal, setJournal] = useState<string[]>([]);
-  const [rippleX, setRippleX] = useState(52);
-  const [bobberX, setBobberX] = useState(52);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [reelCursor, setReelCursor] = useState(8);
-  const [targetStart, setTargetStart] = useState(42);
-  const [targetWidth, setTargetWidth] = useState(20);
-  const [reelProgress, setReelProgress] = useState(0);
-  const [requiredTaps, setRequiredTaps] = useState(3);
-  const [misses, setMisses] = useState(0);
+  const [basket, setBasket] = useState<BasketItem[]>([]);
   const [showJournal, setShowJournal] = useState(false);
 
-  const biteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const biteWindowRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const reelCursorRef = useRef(8);
-  const reelDirectionRef = useRef<1 | -1>(1);
-  const targetStartRef = useRef(42);
-  const targetWidthRef = useRef(20);
+  const [bobberX, setBobberX] = useState(56);
+  const [rippleX, setRippleX] = useState(56);
+  const [hookWindow, setHookWindow] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [meterCursor, setMeterCursor] = useState(10);
+  const [targetStart, setTargetStart] = useState(40);
+  const [targetWidth, setTargetWidth] = useState(22);
+  const [reelHits, setReelHits] = useState(0);
+  const [requiredHits, setRequiredHits] = useState(3);
+  const [mistakes, setMistakes] = useState(0);
+  const [tension, setTension] = useState(42);
+
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
+  const cursorRef = useRef(10);
+  const cursorDirectionRef = useRef<1 | -1>(1);
+  const targetStartRef = useRef(40);
+  const targetWidthRef = useRef(22);
+  const activeCatchRef = useRef<CatchItem | null>(null);
 
   const discovered = useMemo(() => CATCHES.filter((item) => journal.includes(item.id)), [journal]);
 
-  const clearTimers = useCallback(() => {
-    if (biteTimerRef.current) clearTimeout(biteTimerRef.current);
-    if (biteWindowRef.current) clearTimeout(biteWindowRef.current);
-    if (tickerRef.current) clearInterval(tickerRef.current);
-    biteTimerRef.current = null;
-    biteWindowRef.current = null;
-    tickerRef.current = null;
+  const clearClock = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    intervalsRef.current.forEach(clearInterval);
+    timersRef.current = [];
+    intervalsRef.current = [];
+  }, []);
+
+  const addTimer = useCallback((timer: ReturnType<typeof setTimeout>) => {
+    timersRef.current.push(timer);
+  }, []);
+
+  const addInterval = useCallback((interval: ReturnType<typeof setInterval>) => {
+    intervalsRef.current.push(interval);
   }, []);
 
   useEffect(() => {
@@ -170,8 +193,8 @@ export function GalileeFishing() {
       const saved = JSON.parse(raw) as SaveData;
       queueMicrotask(() => {
         setPearls(saved.pearls ?? 0);
-        setTotalFish(saved.totalFish ?? 0);
         setBestStreak(saved.bestStreak ?? 0);
+        setLifetime(saved.lifetime ?? 0);
         setJournal(saved.journal ?? []);
       });
     } catch {
@@ -180,407 +203,457 @@ export function GalileeFishing() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ pearls, totalFish, bestStreak, journal }));
-  }, [bestStreak, journal, pearls, totalFish]);
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ pearls, bestStreak, lifetime, journal }));
+  }, [bestStreak, journal, lifetime, pearls]);
 
-  useEffect(() => () => clearTimers(), [clearTimers]);
+  useEffect(() => () => clearClock(), [clearClock]);
 
-  const resetRound = useCallback((nextMessage?: string) => {
-    clearTimers();
+  const resetRound = useCallback((text = "The water is calm again. Cast when you are ready.") => {
+    clearClock();
+    activeCatchRef.current = null;
     setCurrentCatch(null);
+    setHookWindow(0);
     setTimeLeft(0);
-    setReelProgress(0);
-    setMisses(0);
-    setCastState("idle");
-    if (nextMessage) setMessage(nextMessage);
-  }, [clearTimers]);
-
-  const failRound = useCallback((text: string) => {
-    clearTimers();
-    setCastState("missed");
-    setStreak(0);
-    setMisses(0);
-    setReelProgress(0);
+    setReelHits(0);
+    setMistakes(0);
+    setTension(42);
+    setPhase("ready");
     setMessage(text);
-    setTimeout(() => resetRound("Cast again. The lake rewards patience, not button mashing."), 1500);
-  }, [clearTimers, resetRound]);
+  }, [clearClock]);
+
+  const loseRound = useCallback((text: string) => {
+    clearClock();
+    setPhase("lost");
+    setStreak(0);
+    setMessage(text);
+    addTimer(setTimeout(() => resetRound("Try again with a slower rhythm. Grace, not panic."), 1500));
+  }, [addTimer, clearClock, resetRound]);
 
   const finishCatch = useCallback((catchItem: CatchItem) => {
-    clearTimers();
-    const streakBonus = Math.min(streak * 3, 24);
-    const earned = catchItem.points + streakBonus;
-    const pearlBonus = catchItem.rarity === "miracle" ? 5 : catchItem.rarity === "blessed" ? 3 : 1;
-    const caught: FloatingCatch = { ...catchItem, caughtId: crypto.randomUUID() };
+    clearClock();
+    const meta = RARITY_META[catchItem.rarity];
+    const earned = catchItem.points + Math.min(streak * 3, 24);
+    const caught: BasketItem = { ...catchItem, catchId: crypto.randomUUID() };
 
-    setCastState("caught");
+    setPhase("caught");
     setScore((value) => value + earned);
-    setPearls((value) => value + pearlBonus);
-    setTotalFish((value) => value + 1);
+    setPearls((value) => value + meta.pearls);
+    setLifetime((value) => value + 1);
     setStreak((value) => {
       const next = value + 1;
       setBestStreak((best) => Math.max(best, next));
       return next;
     });
     setJournal((items) => Array.from(new Set([...items, catchItem.id])));
-    setFloatingCatches((items) => [caught, ...items].slice(0, 4));
-    setMessage(`${catchItem.emoji} ${catchItem.name}! +${earned} grace points • ${catchItem.reference}`);
-    setTimeout(() => resetRound("The water settles. Cast again when you are ready."), 2100);
-  }, [clearTimers, resetRound, streak]);
+    setBasket((items) => [caught, ...items].slice(0, 4));
+    setMessage(`${catchItem.emoji} ${catchItem.name} landed! +${earned} points • ${catchItem.reference}`);
+    addTimer(setTimeout(() => resetRound("Beautiful catch. The lake is ready for another cast."), 2100));
+  }, [addTimer, clearClock, resetRound, streak]);
 
-  const beginReeling = useCallback((catchItem: CatchItem) => {
-    clearTimers();
-    const difficulty = catchDifficulty[catchItem.rarity];
-    const start = 16 + Math.random() * (74 - difficulty.zone);
+  const startReeling = useCallback((catchItem: CatchItem) => {
+    clearClock();
+    const meta = RARITY_META[catchItem.rarity];
+    const start = 14 + Math.random() * (78 - meta.zone);
 
-    reelCursorRef.current = 8;
-    reelDirectionRef.current = 1;
+    activeCatchRef.current = catchItem;
+    cursorRef.current = 8;
+    cursorDirectionRef.current = 1;
     targetStartRef.current = start;
-    targetWidthRef.current = difficulty.zone;
-    setReelCursor(8);
-    setTargetStart(start);
-    setTargetWidth(difficulty.zone);
-    setRequiredTaps(difficulty.taps);
-    setReelProgress(0);
-    setMisses(0);
-    setTimeLeft(difficulty.seconds);
-    setCastState("reeling");
-    setMessage("Set! Now land it: tap Reel only when the marker passes through the glowing zone.");
+    targetWidthRef.current = meta.zone;
 
-    tickerRef.current = setInterval(() => {
-      reelCursorRef.current += difficulty.speed * reelDirectionRef.current;
-      if (reelCursorRef.current >= 98) {
-        reelCursorRef.current = 98;
-        reelDirectionRef.current = -1;
+    setPhase("reeling");
+    setMeterCursor(8);
+    setTargetStart(start);
+    setTargetWidth(meta.zone);
+    setReelHits(0);
+    setRequiredHits(meta.taps);
+    setMistakes(0);
+    setTension(44);
+    setTimeLeft(meta.seconds);
+    setMessage("Now reel steadily. Tap only when the marker passes through the gold zone.");
+
+    addInterval(setInterval(() => {
+      cursorRef.current += meta.speed * cursorDirectionRef.current;
+      if (cursorRef.current >= 98) {
+        cursorRef.current = 98;
+        cursorDirectionRef.current = -1;
       }
-      if (reelCursorRef.current <= 2) {
-        reelCursorRef.current = 2;
-        reelDirectionRef.current = 1;
+      if (cursorRef.current <= 2) {
+        cursorRef.current = 2;
+        cursorDirectionRef.current = 1;
       }
-      setReelCursor(reelCursorRef.current);
-      setTimeLeft((previous) => {
-        if (previous <= 1) {
-          failRound("The line went slack. The fish escaped into deeper water.");
+      setMeterCursor(cursorRef.current);
+      setTension((value) => clamp(value + 2.8));
+      setTimeLeft((value) => {
+        if (value <= 1) {
+          loseRound("The fish dove deep and the line went slack.");
           return 0;
         }
-        return previous - 1;
+        return value - 1;
       });
-    }, 620);
-  }, [clearTimers, failRound]);
+    }, 650));
+  }, [addInterval, clearClock, loseRound]);
 
-  const startBiteWindow = useCallback(() => {
+  const beginBite = useCallback(() => {
+    clearClock();
     const catchItem = chooseCatch(streak);
-    const nextRipple = 18 + Math.random() * 64;
+    const ripple = 24 + Math.random() * 52;
+    const bobber = clamp(ripple + (Math.random() * 24 - 12), 18, 82);
+
+    activeCatchRef.current = catchItem;
     setCurrentCatch(catchItem);
-    setRippleX(nextRipple);
-    setBobberX(nextRipple + (Math.random() * 20 - 10));
+    setRippleX(ripple);
+    setBobberX(bobber);
+    setHookWindow(100);
     setTimeLeft(3);
-    setCastState("bite");
-    setMessage("Bite! The rod is pulling — set the hook quickly!");
+    setPhase("hook");
+    setMessage("Bite! Wait until the bobber is close to the glowing ripple, then set the hook.");
 
-    tickerRef.current = setInterval(() => {
-      setTimeLeft((previous) => Math.max(0, previous - 1));
-      setBobberX((previous) => Math.min(88, Math.max(12, previous + (Math.random() * 16 - 8))));
-    }, 700);
+    addInterval(setInterval(() => {
+      setBobberX((value) => clamp(value + (Math.random() * 18 - 9), 16, 84));
+      setHookWindow((value) => Math.max(0, value - 23));
+      setTimeLeft((value) => Math.max(0, value - 1));
+    }, 600));
 
-    biteWindowRef.current = setTimeout(() => {
-      failRound("Too slow — the fish felt the line and slipped away.");
-    }, 2600);
-  }, [failRound, streak]);
+    addTimer(setTimeout(() => {
+      loseRound("Too slow — the fish felt the hook and slipped away.");
+    }, 2900));
+  }, [addInterval, addTimer, clearClock, loseRound, streak]);
 
   const castLine = () => {
-    if (castState !== "idle") return;
+    if (phase !== "ready") return;
 
-    clearTimers();
-    setCastState("casting");
+    clearClock();
+    setPhase("casting");
     setCurrentCatch(null);
-    setRippleX(20 + Math.random() * 60);
-    setBobberX(36 + Math.random() * 28);
-    setMessage("You cast from the shoreline. Watch the bobber; the bite will be quick.");
+    setRippleX(55);
+    setBobberX(55);
+    setMessage("Casting...");
 
-    setTimeout(() => {
-      setCastState("waiting");
-      setMessage("Wait for the rod tip to dip and the golden ripple to appear...");
-      biteTimerRef.current = setTimeout(startBiteWindow, 1800 + Math.random() * 2600);
-    }, 850);
+    addTimer(setTimeout(() => {
+      setPhase("waiting");
+      setMessage("Line is in. Watch the bobber and wait for a bite.");
+      addTimer(setTimeout(beginBite, 1500 + Math.random() * 2200));
+    }, 700));
   };
 
   const setHook = () => {
-    if (castState !== "bite" || !currentCatch) return;
+    if (phase !== "hook" || !activeCatchRef.current) return;
 
     const accuracy = Math.abs(bobberX - rippleX);
-    if (accuracy > 15) {
-      failRound("You jerked too early. Wait until the bobber is near the golden ripple.");
+    if (accuracy > 13 || hookWindow <= 0) {
+      loseRound("Missed hook set. Wait for the bobber to line up with the ripple.");
       return;
     }
 
-    beginReeling(currentCatch);
+    startReeling(activeCatchRef.current);
   };
 
-  const reelTap = () => {
-    if (castState !== "reeling" || !currentCatch) return;
+  const reel = () => {
+    const catchItem = activeCatchRef.current;
+    if (phase !== "reeling" || !catchItem) return;
 
     const inZone =
-      reelCursorRef.current >= targetStartRef.current &&
-      reelCursorRef.current <= targetStartRef.current + targetWidthRef.current;
+      cursorRef.current >= targetStartRef.current &&
+      cursorRef.current <= targetStartRef.current + targetWidthRef.current;
 
     if (!inZone) {
-      const nextMisses = misses + 1;
-      setMisses(nextMisses);
-      setMessage(nextMisses >= 3 ? "The line snapped from rough reeling!" : "Careful — reel inside the glowing zone.");
-      if (nextMisses >= 3) {
-        failRound("The line snapped from rough reeling. Try a steadier rhythm.");
+      const nextMistakes = mistakes + 1;
+      setMistakes(nextMistakes);
+      setTension((value) => clamp(value + 16));
+      setMessage(nextMistakes >= 3 ? "Too many rough pulls — the line snapped." : "Easy. Wait for the gold zone before reeling.");
+      if (nextMistakes >= 3) {
+        loseRound("The line snapped from rough reeling.");
       }
       return;
     }
 
-    const nextProgress = reelProgress + 1;
-    const difficulty = catchDifficulty[currentCatch.rarity];
-    const nextStart = 10 + Math.random() * (84 - difficulty.zone);
+    const nextHits = reelHits + 1;
+    const meta = RARITY_META[catchItem.rarity];
+    const nextZone = Math.max(12, meta.zone - nextHits * 1.8);
+    const nextTarget = 10 + Math.random() * (84 - nextZone);
 
-    setReelProgress(nextProgress);
-    setMisses(0);
-    setTargetStart(nextStart);
-    setTargetWidth(Math.max(12, difficulty.zone - nextProgress));
-    targetStartRef.current = nextStart;
-    targetWidthRef.current = Math.max(12, difficulty.zone - nextProgress);
-    setMessage(nextProgress >= requiredTaps ? "Landed!" : `Good reel! ${requiredTaps - nextProgress} more steady pulls.`);
+    setReelHits(nextHits);
+    setMistakes(0);
+    setTension((value) => clamp(value - 18));
+    setTargetStart(nextTarget);
+    setTargetWidth(nextZone);
+    targetStartRef.current = nextTarget;
+    targetWidthRef.current = nextZone;
 
-    if (nextProgress >= requiredTaps) {
-      finishCatch(currentCatch);
+    if (nextHits >= requiredHits) {
+      finishCatch(catchItem);
+    } else {
+      setMessage(`Good pull. ${requiredHits - nextHits} more clean reel${requiredHits - nextHits === 1 ? "" : "s"}.`);
     }
   };
 
-  const hookAccuracy = Math.max(10, 100 - Math.round(Math.abs(bobberX - rippleX) * 5));
-  const reelAccuracy =
-    reelCursor >= targetStart && reelCursor <= targetStart + targetWidth ? 100 : Math.max(10, 75 - Math.round(Math.abs(reelCursor - (targetStart + targetWidth / 2)) * 2));
+  const phaseLabel: Record<Phase, string> = {
+    ready: "Ready",
+    casting: "Casting",
+    waiting: "Waiting",
+    hook: "Set hook",
+    reeling: "Reeling",
+    caught: "Caught",
+    lost: "Lost",
+  };
+
+  const hookAccuracy = clamp(100 - Math.abs(bobberX - rippleX) * 6);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 text-warm-cocoa">
-      <div className="relative overflow-hidden rounded-[38px] border-[7px] border-white/85 bg-[#eef8ff] p-5 shadow-[0_28px_90px_rgba(32,74,105,0.26)]">
-        <div className="absolute -left-20 top-6 h-64 w-64 rounded-full bg-sky-300/35 blur-3xl" />
-        <div className="absolute -right-14 -top-20 h-72 w-72 rounded-full bg-amber-200/55 blur-3xl" />
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 text-warm-cocoa">
+      <section className="relative overflow-hidden rounded-[34px] border border-white/80 bg-gradient-to-br from-[#fff6df] via-[#e9f8ff] to-[#d8f3f0] p-4 shadow-[0_24px_70px_rgba(55,93,118,0.2)]">
+        <div className="absolute -left-20 top-16 h-60 w-60 rounded-full bg-sky-300/25 blur-3xl" />
+        <div className="absolute -right-20 -top-16 h-64 w-64 rounded-full bg-amber-200/45 blur-3xl" />
 
-        <div className="relative z-10 flex flex-col gap-4">
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="mb-2 inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white/75 px-3 py-1 text-[9px] font-black uppercase tracking-[0.24em] text-sky-700 shadow-sm">
-                <Waves className="h-3 w-3" /> Sea of Galilee • First Person
+        <div className="relative z-10 grid gap-4 lg:grid-cols-[1fr_230px]">
+          <div className="overflow-hidden rounded-[28px] border-4 border-white/80 bg-[#bde6f2] shadow-inner">
+            <div className="relative h-[460px] overflow-hidden">
+              <svg className="absolute inset-0 h-full w-full" viewBox="0 0 760 460" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="fofSky" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#ffe7b0" />
+                    <stop offset="45%" stopColor="#9bd8ef" />
+                    <stop offset="100%" stopColor="#5fb8d0" />
+                  </linearGradient>
+                  <linearGradient id="fofWater" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#64c4dc" />
+                    <stop offset="58%" stopColor="#2387a6" />
+                    <stop offset="100%" stopColor="#0f536d" />
+                  </linearGradient>
+                  <linearGradient id="fofRod" x1="0" x2="1" y1="1" y2="0">
+                    <stop offset="0%" stopColor="#2b1f1a" />
+                    <stop offset="55%" stopColor="#7a4b2d" />
+                    <stop offset="100%" stopColor="#1f1713" />
+                  </linearGradient>
+                  <linearGradient id="fofSkin" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#c88c63" />
+                    <stop offset="100%" stopColor="#8f593f" />
+                  </linearGradient>
+                </defs>
+
+                <rect width="760" height="460" fill="url(#fofSky)" />
+                <circle cx="112" cy="82" r="34" fill="#ffe680" />
+                <circle cx="112" cy="82" r="72" fill="#ffe680" opacity="0.16" />
+                <path d="M0 166 C110 112 171 144 256 104 C340 66 418 106 504 86 C614 61 684 88 760 50 L760 232 L0 232Z" fill="#806c53" opacity="0.45" />
+                <path d="M0 194 C98 145 177 169 276 137 C376 105 462 148 552 121 C638 95 696 118 760 92 L760 232 L0 232Z" fill="#534335" opacity="0.48" />
+                <rect y="218" width="760" height="242" fill="url(#fofWater)" />
+                {Array.from({ length: 9 }).map((_, index) => (
+                  <path
+                    key={index}
+                    d={`M ${-120 + index * 58} ${252 + index * 20} C ${76 + index * 22} ${232 + index * 12}, ${245 + index * 25} ${278 + index * 9}, ${900 - index * 38} ${252 + index * 18}`}
+                    fill="none"
+                    stroke={index % 2 === 0 ? "#d9fbff" : "#92ddeb"}
+                    strokeWidth={index < 4 ? 2.2 : 1.3}
+                    opacity={0.24}
+                  />
+                ))}
+                <path d="M0 408 C145 360 282 420 428 382 C548 350 644 374 760 348 L760 460 L0 460Z" fill="#5f4635" opacity="0.9" />
+                <path d="M0 424 C110 398 175 414 260 394 C352 374 440 423 542 393 C642 365 704 388 760 374 L760 460 L0 460Z" fill="#302923" opacity="0.4" />
+              </svg>
+
+              <div className="absolute left-4 top-4 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm backdrop-blur-md">
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-sky-700">
+                  <Waves className="h-3.5 w-3.5" /> Sea of Galilee
+                </div>
+                <div className="font-serif text-lg font-black text-[#3f332e]">Fishers of Faith</div>
               </div>
-              <h2 className="font-serif text-2xl font-black text-[#3f332e]">Fishers of Faith</h2>
-              <p className="max-w-md text-[11px] leading-relaxed text-warm-grey/70">
-                Set the hook, control the line, and land scripture treasures with steady timing.
-              </p>
+
+              <div className="absolute right-4 top-4 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 text-right shadow-sm backdrop-blur-md">
+                <div className="text-[8px] font-black uppercase tracking-[0.18em] text-warm-grey/55">Phase</div>
+                <div className="text-sm font-black text-[#3f332e]">{phaseLabel[phase]}</div>
+              </div>
+
+              <AnimatePresence>
+                {phase === "hook" && (
+                  <motion.div
+                    className="absolute z-20 h-24 w-24 -translate-x-1/2 rounded-full border-4 border-amber-200/80 bg-amber-100/20 shadow-[0_0_35px_rgba(251,191,36,0.42)]"
+                    style={{ left: `${rippleX}%`, top: "232px" }}
+                    initial={{ opacity: 0, scale: 0.45 }}
+                    animate={{ opacity: [0.9, 0.35, 0.9], scale: [0.72, 1.28, 0.86] }}
+                    exit={{ opacity: 0, scale: 0.3 }}
+                    transition={{ repeat: Infinity, duration: 0.82 }}
+                  />
+                )}
+              </AnimatePresence>
+
+              {(phase === "waiting" || phase === "hook" || phase === "reeling") && (
+                <motion.div
+                  className="absolute z-30 -translate-x-1/2 text-3xl drop-shadow-lg"
+                  style={{ left: `${bobberX}%`, top: "255px" }}
+                  animate={{ y: phase === "hook" ? [0, -16, 10, -5, 0] : [0, 4, 0], rotate: phase === "hook" ? [-8, 14, -12, 6, 0] : 0 }}
+                  transition={{ repeat: Infinity, duration: phase === "hook" ? 0.54 : 1.8 }}
+                >
+                  🪝
+                </motion.div>
+              )}
+
+              <motion.svg
+                className="absolute inset-x-0 bottom-0 z-40 h-52 w-full overflow-visible"
+                viewBox="0 0 760 210"
+                preserveAspectRatio="none"
+                animate={phase === "casting" ? { y: [0, -12, 0] } : phase === "reeling" ? { x: [-2, 3, -2, 1, 0] } : {}}
+                transition={{ duration: phase === "casting" ? 0.75 : 0.42, repeat: phase === "reeling" ? Infinity : 0 }}
+              >
+                <ellipse cx="382" cy="208" rx="230" ry="42" fill="#1d1714" opacity="0.24" />
+                <path d="M292 205 C275 153 297 110 342 120 C383 129 389 171 369 220Z" fill="url(#fofSkin)" />
+                <path d="M432 220 C396 173 405 124 448 116 C490 109 511 159 482 220Z" fill="url(#fofSkin)" />
+                <ellipse cx="350" cy="135" rx="36" ry="22" fill="#d79a70" opacity="0.92" />
+                <ellipse cx="444" cy="134" rx="38" ry="23" fill="#d79a70" opacity="0.92" />
+                <path d="M384 142 C480 78 560 29 720 -58" fill="none" stroke="url(#fofRod)" strokeWidth="13" strokeLinecap="round" />
+                <path d="M403 146 C497 87 583 38 730 -50" fill="none" stroke="#f6d7a0" strokeWidth="2" strokeLinecap="round" opacity="0.42" />
+                {(phase === "waiting" || phase === "hook" || phase === "reeling") && (
+                  <path d={`M710 -54 C662 62, 612 155, ${bobberX * 7.6} 290`} fill="none" stroke="#fff8df" strokeWidth="1.45" strokeDasharray="4 5" opacity="0.9" />
+                )}
+                <circle cx="405" cy="140" r="27" fill="none" stroke="#261c17" strokeWidth="8" />
+                <circle cx="405" cy="140" r="10" fill="#d89b56" stroke="#261c17" strokeWidth="4" />
+              </motion.svg>
+
+              {phase === "reeling" && (
+                <div className="absolute bottom-24 left-5 right-5 z-50 rounded-[22px] border border-white/80 bg-white/86 p-4 shadow-xl backdrop-blur-md">
+                  <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wider text-[#4d4039]">
+                    <span>Reel timing</span>
+                    <span>{reelHits}/{requiredHits} pulls • {mistakes}/3 misses</span>
+                  </div>
+                  <div className="relative h-9 overflow-hidden rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-white to-sky-100">
+                    <div
+                      className="absolute top-0 h-full rounded-full bg-gradient-to-r from-amber-300 to-emerald-300 shadow-[0_0_18px_rgba(52,211,153,.4)]"
+                      style={{ left: `${targetStart}%`, width: `${targetWidth}%` }}
+                    />
+                    <div
+                      className="absolute top-[-5px] h-11 w-1.5 rounded-full bg-[#3f332e] shadow-lg transition-all duration-100"
+                      style={{ left: `${meterCursor}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <AnimatePresence>
+                {(phase === "caught" || phase === "lost") && (
+                  <motion.div
+                    className="absolute left-1/2 top-[118px] z-[60] w-[min(86%,380px)] -translate-x-1/2 rounded-[28px] border-4 border-white bg-white/92 px-6 py-4 text-center shadow-2xl"
+                    initial={{ y: 18, scale: 0.82, opacity: 0 }}
+                    animate={{ y: 0, scale: 1, opacity: 1 }}
+                    exit={{ y: -12, scale: 0.86, opacity: 0 }}
+                  >
+                    <div className="text-5xl">{phase === "caught" && currentCatch ? currentCatch.emoji : "🌊"}</div>
+                    <div className="mt-1 font-serif text-xl font-black text-[#3f332e]">
+                      {phase === "caught" && currentCatch ? currentCatch.name : "It slipped away"}
+                    </div>
+                    <p className="mt-1 text-[10px] font-bold italic leading-relaxed text-warm-grey/70">
+                      {phase === "caught" && currentCatch ? `“${currentCatch.verse}” — ${currentCatch.reference}` : "Resetting the line..."}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <aside className="flex flex-col gap-3">
+            <div className="rounded-[26px] border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur-md">
+              <div className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-sky-700">Guide</div>
+              <p className="min-h-[54px] text-[11px] font-bold leading-relaxed text-[#4f433d]">{message}</p>
+
+              {phase === "hook" && (
+                <div className="mt-3">
+                  <div className="mb-1 flex justify-between text-[9px] font-black uppercase tracking-wider text-warm-grey/55">
+                    <span>Hook window</span>
+                    <span>{timeLeft}s</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-sky-100">
+                    <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-emerald-300" style={{ width: `${Math.min(hookAccuracy, hookWindow)}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {phase === "reeling" && (
+                <div className="mt-3">
+                  <div className="mb-1 flex justify-between text-[9px] font-black uppercase tracking-wider text-warm-grey/55">
+                    <span>Tension</span>
+                    <span>{timeLeft}s</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-sky-100">
+                    <div className={`h-full rounded-full ${tension > 78 ? "bg-rose-400" : tension > 55 ? "bg-amber-400" : "bg-emerald-400"}`} style={{ width: `${tension}%` }} />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2 shadow-sm">
-                <span className="block text-[8px] font-black uppercase tracking-wider text-sky-600/70">Points</span>
+              <div className="rounded-2xl border border-white/80 bg-white/70 px-2 py-2 shadow-sm">
+                <span className="block text-[8px] font-black uppercase tracking-wider text-sky-700/65">Points</span>
                 <span className="text-sm font-black">{score}</span>
               </div>
-              <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2 shadow-sm">
-                <span className="block text-[8px] font-black uppercase tracking-wider text-amber-600/70">Pearls</span>
-                <span className="text-sm font-black">🦪 {pearls}</span>
+              <div className="rounded-2xl border border-white/80 bg-white/70 px-2 py-2 shadow-sm">
+                <span className="block text-[8px] font-black uppercase tracking-wider text-amber-700/65">Pearls</span>
+                <span className="text-sm font-black">{pearls}</span>
               </div>
-              <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2 shadow-sm">
-                <span className="block text-[8px] font-black uppercase tracking-wider text-rose-600/70">Streak</span>
-                <span className="text-sm font-black">{streak} / {bestStreak}</span>
+              <div className="rounded-2xl border border-white/80 bg-white/70 px-2 py-2 shadow-sm">
+                <span className="block text-[8px] font-black uppercase tracking-wider text-rose-700/65">Streak</span>
+                <span className="text-sm font-black">{streak}/{bestStreak}</span>
               </div>
             </div>
-          </header>
 
-          <div className="relative h-[430px] overflow-hidden rounded-[34px] border border-white/80 bg-gradient-to-b from-[#ffdba6] via-[#9fd4ed] to-[#1c8aa9] shadow-inner">
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 720 430" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="galileeSky" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#ffe8b6" />
-                  <stop offset="45%" stopColor="#9fd4ed" />
-                  <stop offset="100%" stopColor="#68bad2" />
-                </linearGradient>
-                <linearGradient id="galileeWater" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#63b9d0" />
-                  <stop offset="55%" stopColor="#248dad" />
-                  <stop offset="100%" stopColor="#0d5c75" />
-                </linearGradient>
-                <radialGradient id="sunGlow" cx="18%" cy="18%" r="28%">
-                  <stop offset="0%" stopColor="#fff7b8" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#fff7b8" stopOpacity="0" />
-                </radialGradient>
-                <linearGradient id="shore" x1="0" x2="1" y1="0" y2="0">
-                  <stop offset="0%" stopColor="#66513d" />
-                  <stop offset="45%" stopColor="#d0a271" />
-                  <stop offset="100%" stopColor="#594837" />
-                </linearGradient>
-              </defs>
-
-              <rect width="720" height="430" fill="url(#galileeSky)" />
-              <rect width="720" height="190" fill="url(#sunGlow)" />
-              <circle cx="115" cy="78" r="32" fill="#ffe27a" opacity="0.95" />
-              <path d="M0 156 C95 108 155 141 240 103 C319 67 395 108 473 88 C575 64 642 92 720 52 L720 224 L0 224Z" fill="#806b55" opacity="0.42" />
-              <path d="M0 185 C85 139 174 164 256 135 C353 101 423 148 523 119 C603 96 658 115 720 91 L720 224 L0 224Z" fill="#604d3e" opacity="0.5" />
-              <rect y="205" width="720" height="225" fill="url(#galileeWater)" />
-              {Array.from({ length: 10 }).map((_, index) => (
-                <path
-                  key={index}
-                  d={`M ${-80 + index * 45} ${238 + index * 16} C ${55 + index * 26} ${220 + index * 12}, ${190 + index * 22} ${260 + index * 8}, ${820 - index * 28} ${236 + index * 17}`}
-                  fill="none"
-                  stroke={index % 2 === 0 ? "#dbfbff" : "#a7e5f0"}
-                  strokeWidth={index < 4 ? 2 : 1.2}
-                  opacity={0.22}
-                />
-              ))}
-              <path d="M0 390 C150 344 272 406 411 367 C531 333 642 367 720 345 L720 430 L0 430Z" fill="url(#shore)" opacity="0.96" />
-              <path d="M0 404 C95 384 148 396 224 382 C312 363 391 408 480 383 C584 352 655 380 720 365 L720 430 L0 430Z" fill="#3f342d" opacity="0.42" />
-            </svg>
-
-            <div className="absolute left-5 right-5 top-5 z-30 rounded-[24px] border border-white/75 bg-white/75 p-3 text-center shadow-sm backdrop-blur-md">
-              <p className="text-[11px] font-bold leading-relaxed text-[#4f433d]">{message}</p>
-              {(castState === "bite" || castState === "reeling") && (
-                <div className="mt-2 grid grid-cols-[1fr_auto] items-center gap-2">
-                  <div className="h-2 overflow-hidden rounded-full bg-sky-100">
-                    <div
-                      className={`h-full rounded-full transition-all ${castState === "bite" ? (hookAccuracy > 70 ? "bg-emerald-400" : "bg-amber-400") : reelAccuracy === 100 ? "bg-emerald-400" : "bg-rose-400"}`}
-                      style={{ width: `${castState === "bite" ? hookAccuracy : reelAccuracy}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-black text-[#5f4b42]">{timeLeft}s</span>
-                </div>
-              )}
-            </div>
-
-            <motion.div
-              className="absolute z-20 h-24 w-24 -translate-x-1/2 rounded-full border-4 border-amber-200/75 bg-amber-100/15"
-              style={{ left: `${rippleX}%`, bottom: "150px" }}
-              animate={castState === "bite" ? { scale: [0.65, 1.35, 0.85], opacity: [0.8, 0.35, 0.75] } : { opacity: 0 }}
-              transition={{ repeat: castState === "bite" ? Infinity : 0, duration: 0.88 }}
-            />
-
-            {(castState === "waiting" || castState === "bite" || castState === "reeling") && (
-              <motion.div
-                className="absolute z-30 -translate-x-1/2 text-3xl drop-shadow-lg"
-                style={{ left: `${bobberX}%`, bottom: "172px" }}
-                animate={{ y: castState === "bite" ? [0, -14, 8, -4, 0] : [0, 4, 0], rotate: castState === "bite" ? [-8, 12, -10, 8, 0] : 0 }}
-                transition={{ repeat: Infinity, duration: castState === "bite" ? 0.55 : 1.9 }}
-              >
-                🪝
-              </motion.div>
-            )}
-
-            {castState === "reeling" && currentCatch && (
-              <div className="absolute bottom-24 left-5 right-5 z-40 rounded-[24px] border border-white/80 bg-white/80 p-4 shadow-lg backdrop-blur-md">
-                <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-[#5f4b42]">
-                  <span>Line Control</span>
-                  <span>{reelProgress}/{requiredTaps} steady pulls • misses {misses}/3</span>
-                </div>
-                <div className="relative h-8 overflow-hidden rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-white to-sky-100">
-                  <div
-                    className="absolute top-0 h-full rounded-full bg-gradient-to-r from-amber-300 to-emerald-300 shadow-[0_0_18px_rgba(52,211,153,.45)]"
-                    style={{ left: `${targetStart}%`, width: `${targetWidth}%` }}
-                  />
-                  <div
-                    className="absolute top-[-4px] h-10 w-1.5 rounded-full bg-[#3f332e] shadow-lg transition-all duration-100"
-                    style={{ left: `${reelCursor}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-center text-[10px] font-bold text-warm-grey/65">
-                  {currentCatch.rarity === "miracle" ? "Miracle catch: tiny zone, fast line." : "Tap Reel when the dark marker crosses the glowing zone."}
-                </p>
-              </div>
-            )}
-
-            <motion.div
-              className="absolute inset-x-0 bottom-0 z-30 h-44"
-              animate={castState === "casting" ? { y: [0, -8, 0] } : castState === "reeling" ? { x: [-2, 3, -1, 2, 0] } : {}}
-              transition={{ duration: castState === "casting" ? 0.8 : 0.4, repeat: castState === "reeling" ? Infinity : 0 }}
-            >
-              <svg className="h-full w-full overflow-visible" viewBox="0 0 720 180" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="skinA" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#b87955" />
-                    <stop offset="100%" stopColor="#8a543b" />
-                  </linearGradient>
-                  <linearGradient id="rod" x1="0" x2="1" y1="1" y2="0">
-                    <stop offset="0%" stopColor="#3f2b22" />
-                    <stop offset="62%" stopColor="#6d4430" />
-                    <stop offset="100%" stopColor="#201611" />
-                  </linearGradient>
-                </defs>
-                <path d="M308 170 C292 125 310 94 346 103 C382 111 386 149 368 180Z" fill="url(#skinA)" opacity="0.98" />
-                <path d="M410 180 C385 143 392 107 428 101 C463 95 477 132 457 180Z" fill="url(#skinA)" opacity="0.98" />
-                <ellipse cx="356" cy="119" rx="32" ry="20" fill="#c88a63" opacity="0.9" />
-                <ellipse cx="428" cy="119" rx="32" ry="20" fill="#c88a63" opacity="0.9" />
-                <path d="M372 126 C452 78 526 35 654 -44" fill="none" stroke="url(#rod)" strokeWidth="12" strokeLinecap="round" />
-                <path d="M389 130 C482 82 548 43 664 -36" fill="none" stroke="#f4d6a4" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
-                {(castState === "waiting" || castState === "bite" || castState === "reeling") && (
-                  <path d={`M650 -42 C612 45, 580 105, ${bobberX * 7.2} 255`} fill="none" stroke="#f8f4df" strokeWidth="1.4" strokeDasharray="4 5" opacity="0.9" />
-                )}
-                <circle cx="389" cy="123" r="24" fill="none" stroke="#2b211c" strokeWidth="7" />
-                <circle cx="389" cy="123" r="9" fill="#d59a58" stroke="#2b211c" strokeWidth="4" />
-              </svg>
-            </motion.div>
-
-            <AnimatePresence>
-              {castState === "caught" && currentCatch && (
-                <motion.div
-                  className="absolute left-1/2 top-24 z-50 w-[min(86%,360px)] -translate-x-1/2 rounded-[30px] border-4 border-white bg-white/92 px-6 py-4 text-center shadow-2xl"
-                  initial={{ y: 28, scale: 0.72, opacity: 0 }}
-                  animate={{ y: 0, scale: 1, opacity: 1 }}
-                  exit={{ y: -20, scale: 0.8, opacity: 0 }}
-                >
-                  <div className="text-6xl">{currentCatch.emoji}</div>
-                  <div className="mt-1 font-serif text-xl font-black">{currentCatch.name}</div>
-                  <div className="mt-1 text-[10px] font-bold italic leading-relaxed text-warm-grey/70">&ldquo;{currentCatch.verse}&rdquo;</div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="absolute bottom-5 left-5 right-5 z-50 flex flex-wrap items-center justify-center gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={castLine}
-                disabled={castState !== "idle"}
-                className="rounded-2xl border border-white/70 bg-gradient-to-r from-sky-600 to-cyan-500 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={phase !== "ready"}
+                className="rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                Cast Line
+                Cast
               </button>
               <button
                 type="button"
                 onClick={setHook}
-                disabled={castState !== "bite"}
-                className="rounded-2xl border border-white/70 bg-gradient-to-r from-amber-500 to-rose-400 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={phase !== "hook"}
+                className="rounded-2xl bg-gradient-to-r from-amber-500 to-rose-400 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                Set Hook {castState === "bite" ? `(${timeLeft})` : ""}
+                Set Hook
               </button>
               <button
                 type="button"
-                onClick={reelTap}
-                disabled={castState !== "reeling"}
-                className="rounded-2xl border border-white/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                onClick={reel}
+                disabled={phase !== "reeling"}
+                className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Reel
               </button>
               <button
                 type="button"
                 onClick={() => setShowJournal(true)}
-                className="rounded-2xl border border-white/70 bg-white/80 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-[#5f4b42] shadow-sm transition-all active:scale-95"
+                className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-[#4d4039] shadow-sm transition active:scale-95"
               >
                 Journal
               </button>
             </div>
-          </div>
+
+            {currentCatch && (phase === "hook" || phase === "reeling") && (
+              <div className="rounded-[22px] border border-white/80 bg-white/70 p-3 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-2xl">{currentCatch.emoji}</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${RARITY_META[currentCatch.rarity].badge}`}>
+                    {RARITY_META[currentCatch.rarity].label}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs font-black">{currentCatch.name}</div>
+              </div>
+            )}
+          </aside>
         </div>
-      </div>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="rounded-3xl border border-white/70 bg-white/60 p-4 shadow-sm sm:col-span-2">
           <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-sky-700">
-            <Fish className="h-4 w-4" /> Recent Catches
+            <Fish className="h-4 w-4" /> Basket
           </div>
-          <div className="flex min-h-16 flex-wrap gap-2">
-            {floatingCatches.length === 0 ? (
-              <p className="text-[11px] italic text-warm-grey/50">Your basket is waiting. The new controls are intentionally harder.</p>
+          <div className="flex min-h-14 flex-wrap gap-2">
+            {basket.length === 0 ? (
+              <p className="text-[11px] italic text-warm-grey/50">No catches yet. Start with a clean cast and steady timing.</p>
             ) : (
-              floatingCatches.map((item) => (
-                <div key={item.caughtId} className={`rounded-2xl border bg-gradient-to-br ${item.color} px-3 py-2 shadow-sm`}>
+              basket.map((item) => (
+                <div key={item.catchId} className={`rounded-2xl border bg-gradient-to-br ${item.gradient} px-3 py-2 shadow-sm`}>
                   <span className="mr-1 text-lg">{item.emoji}</span>
                   <span className="text-[10px] font-black">{item.name}</span>
                 </div>
@@ -593,7 +666,7 @@ export function GalileeFishing() {
           <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-amber-700">
             <Anchor className="h-4 w-4" /> Lifetime
           </div>
-          <p className="text-2xl font-black">{totalFish}</p>
+          <p className="text-2xl font-black">{lifetime}</p>
           <p className="text-[10px] text-warm-grey/55">fish and treasures caught</p>
         </div>
 
@@ -615,7 +688,7 @@ export function GalileeFishing() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-[34px] border border-white/80 bg-[#fffaf0] p-5 shadow-2xl"
+              className="max-h-[82vh] w-full max-w-lg overflow-y-auto rounded-[34px] border border-white/80 bg-[#fffaf0] p-5 shadow-2xl"
               initial={{ scale: 0.94, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.94, y: 20 }}
@@ -649,8 +722,8 @@ export function GalileeFishing() {
                           <span className="text-2xl">{isFound ? item.emoji : "❔"}</span>
                           <div>
                             <p className="text-sm font-black">{isFound ? item.name : "Undiscovered Catch"}</p>
-                            <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${rarityStyle[item.rarity]}`}>
-                              {item.rarity}
+                            <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${RARITY_META[item.rarity].badge}`}>
+                              {RARITY_META[item.rarity].label}
                             </span>
                           </div>
                         </div>
