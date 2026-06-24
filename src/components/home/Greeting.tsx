@@ -31,6 +31,14 @@ export function Greeting({ displayName }: { displayName: string }) {
         } else {
             setEmoji("☁️");
         }
+
+        // Load saved team prediction if any
+        if (typeof window !== "undefined") {
+            const savedPick = localStorage.getItem("selahly_world_cup_prediction");
+            if (savedPick) {
+                setTeamPick(savedPick);
+            }
+        }
     }, []);
 
     const handleClickEmoji = () => {
@@ -44,6 +52,12 @@ export function Greeting({ displayName }: { displayName: string }) {
         } else {
             setIsGeneralModalOpen(true);
         }
+    };
+
+    const handlePickTeam = (team: string) => {
+        if (teamPick) return; // Prevent choosing again if locked in
+        setTeamPick(team);
+        localStorage.setItem("selahly_world_cup_prediction", team);
     };
 
     const renderModals = () => {
@@ -73,20 +87,28 @@ export function Greeting({ displayName }: { displayName: string }) {
                             </p>
 
                             <div className="mt-4 grid grid-cols-2 gap-2">
-                                {WORLD_CUP_TEAMS.map((team) => (
-                                    <button
-                                        key={team}
-                                        type="button"
-                                        onClick={() => setTeamPick(team)}
-                                        className={`rounded-full border px-3 py-2 text-sm font-semibold transition-all ${
-                                            teamPick === team
-                                                ? "border-muted-rose/50 bg-soft-blush text-warm-cocoa"
-                                                : "border-warm-grey/10 bg-white/70 text-warm-grey/70 hover:border-muted-rose/35 hover:text-warm-cocoa"
-                                        }`}
-                                    >
-                                        {team}
-                                    </button>
-                                ))}
+                                {WORLD_CUP_TEAMS.map((team) => {
+                                    const isSelected = teamPick === team;
+                                    const hasPicked = teamPick !== null;
+
+                                    return (
+                                        <button
+                                            key={team}
+                                            type="button"
+                                            disabled={hasPicked}
+                                            onClick={() => handlePickTeam(team)}
+                                            className={`rounded-full border px-3 py-2 text-sm font-semibold transition-all ${
+                                                isSelected
+                                                    ? "border-muted-rose/50 bg-soft-blush text-warm-cocoa"
+                                                    : hasPicked
+                                                        ? "border-warm-grey/5 bg-stone-50/50 text-warm-grey/30 cursor-not-allowed opacity-50"
+                                                        : "border-warm-grey/10 bg-white/70 text-warm-grey/70 hover:border-muted-rose/35 hover:text-warm-cocoa"
+                                            }`}
+                                        >
+                                            {team}
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             {teamPick && (
