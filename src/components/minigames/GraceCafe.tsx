@@ -6,7 +6,7 @@ import { X, ShoppingBag, Lock, Sparkles, Coffee, ChefHat, Star, Clock3 } from "l
 
 // --- Types & Data ---
 type AnimalType = "bunny" | "bear" | "kitty" | "fox" | "lamb";
-type CustState = "entering" | "waiting" | "eating" | "leaving";
+type CustState = "entering" | "reading" | "waiting" | "eating" | "leaving";
 type Station = "oven" | "drinks";
 type CafeRoom = "lobby" | "seating" | "kitchen";
 
@@ -107,6 +107,36 @@ const TABLES = [
   { id: 3, left: "72%" }
 ];
 
+const LOBBY_WAITING_SPOTS = [
+  { left: "50%", bottom: 48, delay: 0.05 },
+  { left: "65%", bottom: 38, delay: 0.22 },
+  { left: "78%", bottom: 44, delay: 0.38 },
+  { left: "40%", bottom: 32, delay: 0.14 }
+];
+
+const TUTORIAL_STEPS = [
+  {
+    title: "Welcome guests",
+    detail: "Customers stroll into the lobby, read the menu, then show what they want. When they are ready, tap them and choose an open table.",
+    room: "Lobby"
+  },
+  {
+    title: "Prep orders",
+    detail: "Go to the kitchen, pick recipes from the book, and collect finished batches from the oven or espresso machine.",
+    room: "Kitchen"
+  },
+  {
+    title: "Serve and clean",
+    detail: "Return to the dining room, tap waiting guests to serve complete orders, then clean tables after they leave.",
+    room: "Dining Room"
+  },
+  {
+    title: "Grow the cafe",
+    detail: "Use coins for staff, decor, and better appliances. Pay rent at the end of each day to keep Grace Cafe open.",
+    room: "Upgrades"
+  }
+];
+
 const SAVE_KEY = "selahly_grace_cafe_v3";
 const SHIFT_LENGTH = 300; // standard 5m shift
 
@@ -162,10 +192,13 @@ const CustomerAnimal: React.FC<{
   type: AnimalType;
   patience: number;
   state: CustState;
+  pose?: "standing" | "walking" | "sitting";
   accessory?: "bow" | "coin" | "cap" | "apron" | "kerchief";
-}> = ({ type, patience, state, accessory }) => {
+}> = ({ type, patience, state, pose = "standing", accessory }) => {
   const isSad = patience < 35 && state !== "eating";
   const isEating = state === "eating";
+  const isWalking = pose === "walking";
+  const isSitting = pose === "sitting";
   const style = CHARACTER_STYLES[type];
   const eyeStroke = style.outline;
 
@@ -200,11 +233,19 @@ const CustomerAnimal: React.FC<{
 
   return (
     <svg viewBox="0 0 100 110" className="h-16 w-16 select-none overflow-visible drop-shadow-md pointer-events-none">
-      <g stroke={style.outline} strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="50" cy="97" rx={isSitting ? "25" : "20"} ry="5" fill="#6F5144" opacity="0.16" />
+      <motion.g
+        stroke={style.outline}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        animate={isWalking ? { y: [0, -2.5, 0], rotate: [-1.5, 1.5, -1.5] } : isSitting ? { y: [2, 1, 2] } : { y: [0, -1.5, 0] }}
+        transition={isWalking ? { repeat: Infinity, duration: 0.45, ease: "easeInOut" } : { repeat: Infinity, duration: 2.1, ease: "easeInOut" }}
+        style={{ transformOrigin: "50px 78px" }}
+      >
         {type === "bunny" && (
           <>
-            <ellipse cx="35" cy="20" rx="8" ry="19" fill={style.body} strokeWidth="3" transform="rotate(-8 35 20)" />
-            <ellipse cx="65" cy="20" rx="8" ry="19" fill={style.body} strokeWidth="3" transform="rotate(8 65 20)" />
+            <motion.ellipse cx="35" cy="20" rx="8" ry="19" fill={style.body} strokeWidth="3" transform="rotate(-8 35 20)" animate={isWalking ? { rotate: [-10, -2, -10] } : { rotate: [-8, -12, -8] }} transition={{ repeat: Infinity, duration: isWalking ? 0.55 : 2.2 }} style={{ transformOrigin: "35px 39px" }} />
+            <motion.ellipse cx="65" cy="20" rx="8" ry="19" fill={style.body} strokeWidth="3" transform="rotate(8 65 20)" animate={isWalking ? { rotate: [10, 2, 10] } : { rotate: [8, 12, 8] }} transition={{ repeat: Infinity, duration: isWalking ? 0.55 : 2.2 }} style={{ transformOrigin: "65px 39px" }} />
             <ellipse cx="35" cy="22" rx="3.8" ry="12" fill={style.inner} stroke="none" transform="rotate(-8 35 22)" />
             <ellipse cx="65" cy="22" rx="3.8" ry="12" fill={style.inner} stroke="none" transform="rotate(8 65 22)" />
           </>
@@ -249,10 +290,21 @@ const CustomerAnimal: React.FC<{
 
         <ellipse cx="50" cy="55" rx="25" ry="22" fill={style.body} strokeWidth="3" />
         <path d="M27 52 Q50 71 73 52 L68 82 Q50 94 32 82 Z" fill={style.outfit} strokeWidth="3" />
-        <path d="M37 83 Q33 94 24 91" fill="none" strokeWidth="5" />
-        <path d="M63 83 Q67 94 76 91" fill="none" strokeWidth="5" />
-        <ellipse cx="34" cy="92" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" />
-        <ellipse cx="66" cy="92" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" />
+        {isSitting ? (
+          <>
+            <path d="M38 80 Q30 84 26 91" fill="none" strokeWidth="5" />
+            <path d="M62 80 Q70 84 74 91" fill="none" strokeWidth="5" />
+            <ellipse cx="30" cy="91" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" />
+            <ellipse cx="70" cy="91" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" />
+          </>
+        ) : (
+          <>
+            <motion.path d="M37 83 Q33 94 24 91" fill="none" strokeWidth="5" animate={isWalking ? { rotate: [-8, 8, -8] } : { rotate: 0 }} transition={{ repeat: Infinity, duration: 0.45, ease: "easeInOut" }} style={{ transformOrigin: "37px 83px" }} />
+            <motion.path d="M63 83 Q67 94 76 91" fill="none" strokeWidth="5" animate={isWalking ? { rotate: [8, -8, 8] } : { rotate: 0 }} transition={{ repeat: Infinity, duration: 0.45, ease: "easeInOut" }} style={{ transformOrigin: "63px 83px" }} />
+            <motion.ellipse cx="34" cy="92" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" animate={isWalking ? { x: [-2, 2, -2] } : { x: 0 }} transition={{ repeat: Infinity, duration: 0.45, ease: "easeInOut" }} />
+            <motion.ellipse cx="66" cy="92" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" animate={isWalking ? { x: [2, -2, 2] } : { x: 0 }} transition={{ repeat: Infinity, duration: 0.45, ease: "easeInOut" }} />
+          </>
+        )}
         <ellipse cx="50" cy="60" rx="12" ry="9" fill={type === "fox" ? "#fff8e9" : style.inner} strokeWidth="2" />
 
         {eyes}
@@ -281,10 +333,67 @@ const CustomerAnimal: React.FC<{
         {accessory === "cap" && <path d="M33 31 Q50 19 67 31 L62 38 Q50 34 38 38 Z" fill="#91b681" strokeWidth="3" />}
         {accessory === "apron" && <path d="M39 58 H61 L65 86 Q50 94 35 86 Z" fill="#fffaf0" strokeWidth="2.5" />}
         {accessory === "kerchief" && <path d="M38 67 L50 78 L62 67" fill="#f2ce74" strokeWidth="2.5" />}
-      </g>
+      </motion.g>
     </svg>
   );
 };
+
+const CoquetteOven: React.FC<{ isBusy: boolean; isReady: boolean; isUpgraded: boolean; readyEmoji?: string }> = ({ isBusy, isReady, isUpgraded, readyEmoji }) => (
+  <div className="relative grid h-[78px] w-[86px] place-items-center">
+    <div className="absolute -top-2 left-1/2 h-4 w-11 -translate-x-1/2 rounded-t-full border-3 border-[#6F5144] bg-[#F8D6CB]" />
+    <div className="absolute top-0 h-3 w-14 rounded-full border-2 border-[#6F5144] bg-[#FFF8E8] shadow-sm" />
+    <div className={`relative h-[68px] w-[76px] rounded-t-[26px] rounded-b-xl border-[4px] border-[#6F5144] shadow-[3px_4px_0_rgba(111,81,68,0.24)] ${isUpgraded ? "bg-[#F7BFC8]" : "bg-[#F3C9BF]"}`}>
+      <div className="absolute left-2 right-2 top-2 flex items-center justify-between">
+        {[0, 1, 2].map((knob) => (
+          <span key={knob} className="h-2.5 w-2.5 rounded-full border border-[#6F5144] bg-[#F9E7BC] shadow-inner" />
+        ))}
+      </div>
+      <div className="absolute left-1/2 top-6 h-24 w-24 -translate-x-1/2 rounded-full border border-white/30 opacity-30" />
+      <div className="absolute left-1/2 top-[24px] h-[30px] w-[48px] -translate-x-1/2 overflow-hidden rounded-lg border-[3px] border-[#6F5144] bg-[#3E2B28]">
+        <div className={`absolute inset-x-1 bottom-1 h-3 rounded-full ${isReady ? "bg-[#F2CE74] shadow-[0_0_12px_#F2CE74]" : isBusy ? "bg-[#E87D5A] shadow-[0_0_10px_#F2A45C]" : "bg-[#A36D61]/40"}`} />
+        {readyEmoji && <span className="absolute inset-0 grid place-items-center text-xl">{readyEmoji}</span>}
+        {isBusy && !readyEmoji && <span className="absolute inset-x-0 top-1 text-center text-[16px]">🔥</span>}
+      </div>
+      <div className="absolute bottom-2 left-2 right-2 h-1.5 rounded-full bg-[#6F5144]/40" />
+      <div className="absolute -right-3 top-6 h-5 w-6 rounded-r-full border-2 border-[#6F5144] bg-[#F9E7BC]" />
+      <div className="absolute -left-3 top-6 h-5 w-6 rounded-l-full border-2 border-[#6F5144] bg-[#F9E7BC]" />
+      <div className="absolute -top-4 right-1 flex items-center">
+        <span className="h-4 w-5 rounded-l-full border-2 border-[#6F5144] bg-[#FFF8E8]" />
+        <span className="h-3 w-3 rounded-full border-2 border-[#6F5144] bg-[#F2AEB3]" />
+        <span className="h-4 w-5 rounded-r-full border-2 border-[#6F5144] bg-[#FFF8E8]" />
+      </div>
+    </div>
+  </div>
+);
+
+const CoquetteEspresso: React.FC<{ isBusy: boolean; isReady: boolean; isUpgraded: boolean; readyEmoji?: string }> = ({ isBusy, isReady, isUpgraded, readyEmoji }) => (
+  <div className="relative grid h-[78px] w-[86px] place-items-center">
+    <div className="absolute top-0 h-5 w-12 rounded-t-2xl border-[3px] border-[#6F5144] bg-[#FFF8E8]" />
+    <div className={`relative mt-3 h-[62px] w-[74px] rounded-[24px] border-[4px] border-[#6F5144] shadow-[3px_4px_0_rgba(111,81,68,0.24)] ${isUpgraded ? "bg-[#D8ECF0]" : "bg-[#C7E4E1]"}`}>
+      <div className="absolute left-1/2 top-2 h-5 w-11 -translate-x-1/2 rounded-full border-2 border-[#6F5144] bg-[#F9E7BC]">
+        <span className={`absolute left-2 top-1 h-2 w-2 rounded-full ${isReady ? "bg-[#91B681]" : isBusy ? "bg-[#F2CE74]" : "bg-[#C87870]"}`} />
+        <span className="absolute right-2 top-1 h-2 w-2 rounded-full bg-[#FFF8E8] border border-[#6F5144]" />
+      </div>
+      <div className="absolute left-1/2 top-[24px] h-3 w-9 -translate-x-1/2 rounded-b-lg border-2 border-[#6F5144] bg-[#6F5144]" />
+      <div className="absolute left-[52px] top-[28px] h-3 w-7 rounded-r-full border-2 border-[#6F5144] bg-[#4D3A34]" />
+      <div className="absolute left-1/2 top-[38px] h-16 w-8 -translate-x-1/2 rounded-b-xl border-2 border-[#6F5144] bg-[#FFF8E8]" />
+      <div className={`absolute left-1/2 top-[43px] h-4 w-6 -translate-x-1/2 rounded-b-lg ${isReady ? "bg-[#B98562]" : isBusy ? "bg-[#D4A373] animate-pulse" : "bg-[#EADBC6]"}`} />
+      <div className="absolute bottom-2 left-2 right-2 h-2 rounded-full border border-[#6F5144] bg-[#F9E7BC]" />
+      {readyEmoji && <span className="absolute inset-x-0 top-[38px] text-center text-lg">{readyEmoji}</span>}
+      {isBusy && !readyEmoji && (
+        <div className="absolute left-1/2 top-[36px] flex -translate-x-1/2 gap-1">
+          <span className="h-5 w-0.5 animate-pulse rounded-full bg-[#6F5144]/50" />
+          <span className="h-4 w-0.5 animate-pulse rounded-full bg-[#6F5144]/40 [animation-delay:120ms]" />
+        </div>
+      )}
+      <div className="absolute -top-4 right-0 flex items-center">
+        <span className="h-4 w-5 rounded-l-full border-2 border-[#6F5144] bg-[#F8D6CB]" />
+        <span className="h-3 w-3 rounded-full border-2 border-[#6F5144] bg-[#FFF8E8]" />
+        <span className="h-4 w-5 rounded-r-full border-2 border-[#6F5144] bg-[#F8D6CB]" />
+      </div>
+    </div>
+  </div>
+);
 
 export function GraceCafe() {
   const [coins, setCoins] = useState(50);
@@ -303,6 +412,8 @@ export function GraceCafe() {
   const [owned, setOwned] = useState<string[]>([]);
   const [shopOpen, setShopOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(true);
+  const [tutorialStep, setTutorialStep] = useState(0);
   const [activeRoom, setActiveRoom] = useState<CafeRoom>("lobby");
   const [earnedToday, setEarnedToday] = useState(0);
   const [servedToday, setServedToday] = useState(0);
@@ -429,9 +540,11 @@ export function GraceCafe() {
     const patienceTimer = setInterval(() => {
       setCustomers((current) => {
         const leaves = (c: Customer) => {
-          if (c.state !== "entering" && c.state !== "waiting") return false;
+          if (c.state !== "entering" && c.state !== "reading" && c.state !== "waiting") return false;
           const drain = c.state === "entering"
             ? (hasUpgrade("hanging_plants") ? 0.25 : 0.35)
+            : c.state === "reading"
+              ? (hasUpgrade("hanging_plants") ? 0.4 : 0.55)
             : (hasUpgrade("hanging_plants") ? 0.7 : 1.0);
           return c.patience <= drain;
         };
@@ -445,9 +558,11 @@ export function GraceCafe() {
         return current
           .filter((c) => !leaves(c))
           .map((c) => {
-            if (c.state !== "entering" && c.state !== "waiting") return c;
+            if (c.state !== "entering" && c.state !== "reading" && c.state !== "waiting") return c;
             const drain = c.state === "entering"
               ? (hasUpgrade("hanging_plants") ? 0.25 : 0.35)
+              : c.state === "reading"
+                ? (hasUpgrade("hanging_plants") ? 0.4 : 0.55)
               : (hasUpgrade("hanging_plants") ? 0.7 : 1.0);
             return { ...c, patience: Math.max(0, c.patience - drain) };
           });
@@ -487,6 +602,28 @@ export function GraceCafe() {
     }
   };
 
+  const settleLobbyGuest = useCallback((customerId: string) => {
+    const readTimer = setTimeout(() => {
+      if (!shiftActiveRef.current) return;
+      setCustomers((current) => current.map((item) => (
+        item.id === customerId && item.tableId === -1 && item.state === "entering"
+          ? { ...item, state: "reading" }
+          : item
+      )));
+    }, 2200);
+
+    const decideTimer = setTimeout(() => {
+      if (!shiftActiveRef.current) return;
+      setCustomers((current) => current.map((item) => (
+        item.id === customerId && item.tableId === -1 && item.state === "reading"
+          ? { ...item, state: "waiting" }
+          : item
+      )));
+    }, 7200);
+
+    customerTimers.current.push(readTimer, decideTimer);
+  }, []);
+
   // Customer spawning loop
   useEffect(() => {
     if (!shiftActive) return;
@@ -514,13 +651,14 @@ export function GraceCafe() {
           state: "entering"
         };
 
-        setMessage(`A cute ${randAnimal} customer entered the lobby check-in queue!`);
+        settleLobbyGuest(newCust.id);
+        setMessage(`A cute ${randAnimal} customer strolled in and is reading the menu.`);
         return [...current, newCust];
       });
     }, Math.max(5000, 8000 - day * 400));
 
     return () => clearInterval(spawnTimer);
-  }, [day, shiftActive]);
+  }, [day, settleLobbyGuest, shiftActive]);
 
   // Kitchen cooking progress loop
   useEffect(() => {
@@ -600,6 +738,7 @@ export function GraceCafe() {
     };
 
     setCustomers([firstCust]);
+    settleLobbyGuest(firstCust.id);
     setCompletedJobs([]);
     setSeatingCustomer(null);
     setDirtyTables([]);
@@ -607,7 +746,7 @@ export function GraceCafe() {
     setJobs([]);
     setEarnedToday(0);
     setServedToday(0);
-    setMessage(`Day ${day} is open! A lamb customer entered the lobby. Click them to seat them.`);
+    setMessage(`Day ${day} is open! A lamb customer is strolling in to read the menu.`);
   };
 
   const startCooking = (item: MenuItem) => {
@@ -839,6 +978,17 @@ export function GraceCafe() {
           </div>
         </div>
         <div className="flex items-center gap-2 text-[10px] font-extrabold">
+          <button
+            type="button"
+            onClick={() => {
+              setTutorialStep(0);
+              setTutorialOpen(true);
+            }}
+            className="grid h-7 w-7 place-items-center rounded-full border border-[#FFF2D9]/50 bg-[#98534C]/60 text-[11px] font-black text-[#FFF8E8] transition hover:bg-[#8C4B45] active:scale-95"
+            aria-label="Open Grace Cafe tutorial"
+          >
+            ?
+          </button>
           <span className="rounded-full border border-[#FFF2D9]/40 bg-[#98534C]/60 px-3 py-1.5">DAY {day}</span>
           <span className="flex items-center gap-1 rounded-full border border-[#FFF2D9]/40 bg-[#98534C]/60 px-3 py-1.5">
             <Star className="h-3.5 w-3.5 fill-[#FFE49D] text-[#FFE49D]" /> {rating}%
@@ -945,16 +1095,23 @@ export function GraceCafe() {
               </div>
             )}
 
-            {/* Render Lobby Waiting Queue */}
-            <div className="absolute bottom-[36px] left-[150px] flex gap-3 items-end h-[100px] z-30">
-              {customers.filter(c => c.tableId === -1).map((c) => {
+            {/* Render Lobby Waiting Room */}
+            <div className="absolute inset-x-[150px] bottom-[24px] h-[128px] z-30">
+              {customers.filter(c => c.tableId === -1).map((c, index) => {
                 const isSelected = seatingCustomer?.id === c.id;
                 return (
                   <LobbyCustomer 
                     key={c.id} 
                     customer={c} 
+                    spotIndex={index}
                     isSelected={isSelected} 
-                    onClick={() => setSeatingCustomer(isSelected ? null : c)} 
+                    onClick={() => {
+                      if (c.state !== "waiting") {
+                        setMessage("Give them a moment to walk in and read the menu first.");
+                        return;
+                      }
+                      setSeatingCustomer(isSelected ? null : c);
+                    }} 
                   />
                 );
               })}
@@ -1095,6 +1252,7 @@ export function GraceCafe() {
               {(() => {
                 const completedOvenJob = completedJobs.find(j => MENU.find(m => m.id === j.itemId)?.station === "oven");
                 const ovenItem = completedOvenJob ? MENU.find(m => m.id === completedOvenJob.itemId) : null;
+                const ovenBusy = jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "oven");
                 
                 return (
                   <button
@@ -1106,16 +1264,15 @@ export function GraceCafe() {
                         setMessage("Stone Oven: Select a baking recipe below to start baking!");
                       }
                     }}
-                    className="h-20 w-20 rounded-t-3xl border-4 border-[#6F5144] bg-[#89544F] shadow-md flex items-center justify-center text-4xl relative cursor-pointer hover:brightness-105 active:scale-95 transition-all z-20"
+                    className="relative z-20 grid h-24 w-24 place-items-center rounded-[28px] border-2 border-[#F8E6CA]/80 bg-[#FFF8E8]/35 shadow-md transition-all hover:brightness-105 active:scale-95 cursor-pointer"
                   >
-                    {ovenItem ? (
-                      <span className="animate-pulse">{ovenItem.emoji}</span>
-                    ) : hasUpgrade("oven_pro") ? (
-                      "🍯"
-                    ) : (
-                      "♨️"
-                    )}
-                    {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "oven") && (
+                    <CoquetteOven
+                      isBusy={ovenBusy}
+                      isReady={Boolean(ovenItem)}
+                      isUpgraded={hasUpgrade("oven_pro")}
+                      readyEmoji={ovenItem?.emoji}
+                    />
+                    {ovenBusy && (
                       <div className="absolute inset-2 bg-orange-500/20 border border-orange-400 rounded-full animate-ping pointer-events-none" />
                     )}
                   </button>
@@ -1145,6 +1302,7 @@ export function GraceCafe() {
               {(() => {
                 const completedDrinksJob = completedJobs.find(j => MENU.find(m => m.id === j.itemId)?.station === "drinks");
                 const drinksItem = completedDrinksJob ? MENU.find(m => m.id === completedDrinksJob.itemId) : null;
+                const drinksBusy = jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "drinks");
                 
                 return (
                   <button
@@ -1156,16 +1314,15 @@ export function GraceCafe() {
                         setMessage("Espresso Machine: Select a beverage recipe below to start brewing!");
                       }
                     }}
-                    className="h-20 w-20 rounded-t-[28px] border-4 border-[#6F5144] bg-[#6C9794] shadow-md flex items-center justify-center text-4xl relative cursor-pointer hover:brightness-105 active:scale-95 transition-all z-20"
+                    className="relative z-20 grid h-24 w-24 place-items-center rounded-[28px] border-2 border-[#F8E6CA]/80 bg-[#FFF8E8]/35 shadow-md transition-all hover:brightness-105 active:scale-95 cursor-pointer"
                   >
-                    {drinksItem ? (
-                      <span className="animate-pulse">{drinksItem.emoji}</span>
-                    ) : hasUpgrade("espresso_pro") ? (
-                      "☁️"
-                    ) : (
-                      "☕"
-                    )}
-                    {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "drinks") && (
+                    <CoquetteEspresso
+                      isBusy={drinksBusy}
+                      isReady={Boolean(drinksItem)}
+                      isUpgraded={hasUpgrade("espresso_pro")}
+                      readyEmoji={drinksItem?.emoji}
+                    />
+                    {drinksBusy && (
                       <div className="absolute inset-2 bg-teal-500/20 border border-teal-400 rounded-full animate-ping pointer-events-none" />
                     )}
                   </button>
@@ -1348,6 +1505,80 @@ export function GraceCafe() {
           )}
         </div>
       )}
+
+      {/* ─── TUTORIAL OVERLAY ─── */}
+      <AnimatePresence>
+        {tutorialOpen && (
+          <div className="absolute inset-0 z-[70] grid place-items-center bg-[#4C382F]/60 p-4 backdrop-blur-[2px]">
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 16 }}
+              className="w-full max-w-sm overflow-hidden rounded-[30px] border-[3px] border-[#6F5144] bg-[#FFF8E8] shadow-2xl"
+            >
+              <div className="relative min-h-[136px] border-b-2 border-[#D7B99D] bg-[#F6D7D6] p-5 text-left">
+                <button
+                  type="button"
+                  onClick={() => setTutorialOpen(false)}
+                  className="absolute right-3 top-3 rounded-full border-2 border-[#6F5144] bg-[#FFF8E8] p-1 text-[#6F5144] active:scale-95"
+                  aria-label="Close tutorial"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <div className="absolute bottom-3 right-4 flex gap-1">
+                  {TUTORIAL_STEPS.map((_, index) => (
+                    <span
+                      key={index}
+                      className={`h-2 w-5 rounded-full border border-[#6F5144] ${index === tutorialStep ? "bg-[#C87870]" : "bg-[#FFF8E8]"}`}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="grid h-16 w-16 place-items-center rounded-3xl border-2 border-[#6F5144] bg-[#FFF8E8] shadow-md">
+                    {tutorialStep === 0 && <StaffAnimal staff="cherry" className="h-14 w-14" />}
+                    {tutorialStep === 1 && <div className="scale-[0.74]"><CoquetteOven isBusy={false} isReady={false} isUpgraded readyEmoji="🍪" /></div>}
+                    {tutorialStep === 2 && <CustomerAnimal type="lamb" patience={100} state="waiting" pose="sitting" />}
+                    {tutorialStep === 3 && <StaffAnimal staff="goldie" className="h-14 w-14" />}
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[#A36D61]">{TUTORIAL_STEPS[tutorialStep].room}</p>
+                    <h3 className="font-serif text-lg font-black leading-tight text-[#5D4439]">{TUTORIAL_STEPS[tutorialStep].title}</h3>
+                  </div>
+                </div>
+              </div>
+              <div className="p-5 text-left">
+                <p className="min-h-[58px] text-[11px] font-semibold leading-relaxed text-[#7C5B4D]">
+                  {TUTORIAL_STEPS[tutorialStep].detail}
+                </p>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTutorialStep((value) => Math.max(0, value - 1))}
+                    disabled={tutorialStep === 0}
+                    className="rounded-2xl border-2 border-[#6F5144] bg-[#F8E6CA] px-4 py-2 text-[9px] font-black uppercase tracking-wider text-[#6F5144] disabled:opacity-40 active:scale-95"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (tutorialStep === TUTORIAL_STEPS.length - 1) {
+                        setTutorialOpen(false);
+                        setMessage("Tutorial complete. Open the doors when you are ready!");
+                        return;
+                      }
+                      setTutorialStep((value) => Math.min(TUTORIAL_STEPS.length - 1, value + 1));
+                    }}
+                    className="flex-1 rounded-2xl border-2 border-[#6F5144] bg-[#C87870] px-4 py-2 text-[9px] font-black uppercase tracking-wider text-white shadow-[2px_3px_0_#6F5144] active:translate-y-0.5 active:shadow-none"
+                  >
+                    {tutorialStep === TUTORIAL_STEPS.length - 1 ? "Start Playing" : "Next"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ─── A. SHOP UPGRADES OVERLAY ─── */}
       <AnimatePresence>
@@ -1566,47 +1797,98 @@ function CustomerCharacter({ customer, onServe }: { customer: Customer; onServe:
 
 function LobbyCustomer({ 
   customer, 
+  spotIndex,
   isSelected, 
   onClick 
 }: { 
   customer: Customer; 
+  spotIndex: number;
   isSelected: boolean; 
   onClick: () => void; 
 }) {
   const isSad = customer.patience < 35;
+  const spot = LOBBY_WAITING_SPOTS[spotIndex % LOBBY_WAITING_SPOTS.length];
+  const isWalkingIn = customer.state === "entering";
+  const isReading = customer.state === "reading";
+  const shouldStroll = !isSelected && customer.state === "waiting";
 
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      initial={{ x: -20, opacity: 0, scale: 0.8 }}
-      animate={{ x: 0, opacity: 1, scale: isSelected ? 1.08 : 1 }}
-      transition={{ duration: 0.35 }}
-      className={`flex flex-col items-center p-2 rounded-2xl border-2 transition-all cursor-pointer select-none max-w-[64px] min-w-[64px] ${
+      initial={{ x: -120, y: 18, opacity: 0, scale: 0.72 }}
+      animate={{
+        x: isWalkingIn ? [-120, -58, -18, 0] : shouldStroll ? [0, 10, -6, 0] : 0,
+        y: isWalkingIn ? [18, -8, 2, 0] : shouldStroll ? [0, -3, 2, 0] : 0,
+        opacity: 1,
+        scale: isSelected ? 1.09 : 1,
+      }}
+      transition={isWalkingIn
+        ? { duration: 1.8, ease: "easeOut", delay: spot.delay }
+        : shouldStroll
+          ? { repeat: Infinity, repeatDelay: 3.2 + spot.delay, duration: 2.4, ease: "easeInOut" }
+          : { duration: 0.25 }}
+      className={`absolute flex flex-col items-center transition-all cursor-pointer select-none ${
         isSelected 
-          ? "border-amber-500 bg-amber-50/95 shadow-md -translate-y-1" 
-          : "border-stone-300 bg-white/75 hover:bg-white hover:border-stone-400"
+          ? "z-40 -translate-y-2" 
+          : "z-30"
       }`}
+      style={{ left: spot.left, bottom: spot.bottom }}
     >
-      <span className="text-[7px] font-black uppercase text-[#A36D61] leading-none mb-1">
-        {isSelected ? "Select Table" : "Seat Me!"}
-      </span>
-      
-      <CustomerAnimal type={customer.type} patience={customer.patience} state="waiting" />
-      
-      <div className="mt-1 h-1 w-10 overflow-hidden rounded-full border border-[#6F5144]/30 bg-[#FFFFAF]">
-        <div
-          className={`h-full transition-all ${isSad ? "bg-[#d66f68]" : "bg-[#91b681]"}`}
-          style={{ width: `${customer.patience}%` }}
-        />
-      </div>
+      <motion.div
+        animate={isSelected ? { y: [-2, -7, -2] } : { y: [0, -1.5, 0] }}
+        transition={{ repeat: Infinity, duration: isSelected ? 0.75 : 2.4, ease: "easeInOut" }}
+        className={`relative flex min-w-[70px] flex-col items-center px-1 py-1.5 ${
+          isSelected 
+            ? "rounded-2xl border-2 border-amber-500 bg-amber-50/70 shadow-[0_0_0_4px_rgba(245,158,11,0.25)]" 
+            : "drop-shadow-sm"
+        }`}
+      >
+        {!isWalkingIn && !isReading && (
+          <div className="absolute bottom-[29px] h-4 w-14 rounded-full border-2 border-[#6F5144] bg-[#C99E7F] shadow-sm" />
+        )}
 
-      <div className="mt-1 flex gap-0.5 text-[10px]">
-        {customer.order.map((id, index) => {
-          const item = MENU.find(m => m.id === id);
-          return <span key={`${customer.id}-lobby-item-${id}-${index}`}>{item?.emoji}</span>;
-        })}
-      </div>
+        <span className="relative z-10 mb-[-4px] rounded-full bg-[#FFF8E8]/80 px-2 py-0.5 text-[7px] font-black uppercase text-[#A36D61] leading-none shadow-sm">
+          {isSelected ? "Select Table" : isWalkingIn ? "Walking in..." : isReading ? "Reading menu..." : "Seat Me!"}
+        </span>
+      
+        <div className="relative z-10">
+          <CustomerAnimal
+            type={customer.type}
+            patience={customer.patience}
+            state={customer.state}
+            pose={isWalkingIn ? "walking" : "sitting"}
+          />
+        </div>
+
+        {isReading && (
+          <motion.div
+            animate={{ rotate: [-2, 2, -2], y: [0, -1, 0] }}
+            transition={{ repeat: Infinity, duration: 1.1, ease: "easeInOut" }}
+            className="relative z-20 mt-[-17px] flex h-7 w-10 items-center justify-center rounded-sm border-2 border-[#6F5144] bg-[#F3D6A7] text-[9px] shadow-sm"
+          >
+            <span className="absolute left-1 top-1 h-4 w-3 rounded-sm border border-[#B98562] bg-[#FFF3CF]" />
+            <span className="absolute right-1 top-1 h-4 w-3 rounded-sm border border-[#B98562] bg-[#FFF3CF]" />
+            <span className="relative z-10 text-[8px]">☕</span>
+          </motion.div>
+        )}
+      
+        <div className="relative z-10 mt-[-2px] h-1 w-10 overflow-hidden rounded-full border border-[#6F5144]/30 bg-[#FFFFAF]">
+          <div
+            className={`h-full transition-all ${isSad ? "bg-[#d66f68]" : "bg-[#91b681]"}`}
+            style={{ width: `${customer.patience}%` }}
+          />
+        </div>
+
+        {customer.state === "waiting" && (
+          <div className="relative z-10 mt-1 flex gap-0.5 text-[10px]">
+            {customer.order.map((id, index) => {
+              const item = MENU.find(m => m.id === id);
+              return <span key={`${customer.id}-lobby-item-${id}-${index}`}>{item?.emoji}</span>;
+            })}
+          </div>
+        )}
+      </motion.div>
     </motion.button>
   );
 }
