@@ -1,21 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChefHat,
-  Clock3,
-  Coffee,
-  Lock,
-  ShoppingBag,
-  Sparkles,
-  Star,
-  X,
-} from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, ShoppingBag, Lock, Sparkles, Coffee, ChefHat, Star, Clock3 } from "lucide-react";
 
-type Animal = "bunny" | "bear" | "deer" | "mouse" | "sloth";
-type CustomerState = "waiting" | "eating" | "leaving";
+// --- Types & Data ---
+type AnimalType = "bunny" | "bear" | "kitty" | "fox" | "lamb";
+type CustState = "entering" | "waiting" | "eating" | "leaving";
 type Station = "oven" | "drinks";
+type CafeRoom = "lobby" | "seating" | "kitchen";
 
 interface MenuItem {
   id: string;
@@ -28,15 +21,17 @@ interface MenuItem {
   batch: number;
   seconds: number;
   unlockDay: number;
+  description: string;
 }
 
 interface Customer {
   id: string;
-  animal: Animal;
-  order: string[];
+  type: AnimalType;
+  order: string[]; // item IDs
   patience: number;
+  maxPatience: number;
   tableId: number;
-  state: CustomerState;
+  state: CustState;
 }
 
 interface CookingJob {
@@ -46,126 +41,234 @@ interface CookingJob {
   finishesAt: number;
 }
 
-interface Upgrade {
-  id: "oven" | "machine" | "plants" | "helper";
+interface UpgradeItem {
+  id: string;
   name: string;
   emoji: string;
-  price: number;
+  cost: number;
+  type: "appliance" | "decor" | "staff";
   description: string;
+  purchased: boolean;
+  wage?: number;
 }
 
-interface SaveData {
-  coins?: number;
-  day?: number;
-  rating?: number;
-  owned?: Upgrade["id"][];
+interface ScrambleWord {
+  word: string;
+  scrambled: string;
+  clue: string;
 }
 
 const MENU: MenuItem[] = [
-  { id: "cookie", name: "Covenant Choco Cookies", shortName: "Choco cookies", emoji: "🍪", station: "oven", ingredientCost: 8, price: 8, batch: 3, seconds: 3, unlockDay: 1 },
-  { id: "cupcake", name: "Cherub Strawberry Cupcake", shortName: "Cupcake", emoji: "🧁", station: "oven", ingredientCost: 10, price: 12, batch: 2, seconds: 4, unlockDay: 1 },
-  { id: "latte", name: "Sanctuary Cinnamon Latte", shortName: "Cinnamon latte", emoji: "☕", station: "drinks", ingredientCost: 7, price: 15, batch: 1, seconds: 3, unlockDay: 1 },
-  { id: "pancake", name: "Pentecost Berry Pancakes", shortName: "Berry pancakes", emoji: "🥞", station: "oven", ingredientCost: 13, price: 18, batch: 2, seconds: 5, unlockDay: 2 },
-  { id: "tea", name: "Living Water Green Tea", shortName: "Green tea", emoji: "🍵", station: "drinks", ingredientCost: 9, price: 18, batch: 1, seconds: 4, unlockDay: 2 },
-  { id: "roll", name: "Grace Cinnamon Roll", shortName: "Cinnamon roll", emoji: "🥐", station: "oven", ingredientCost: 16, price: 14, batch: 3, seconds: 6, unlockDay: 3 },
-  { id: "boba", name: "Beatitude Strawberry Boba", shortName: "Strawberry boba", emoji: "🧋", station: "drinks", ingredientCost: 14, price: 24, batch: 1, seconds: 5, unlockDay: 4 },
-  { id: "cake", name: "Selah Strawberry Cake", shortName: "Strawberry cake", emoji: "🍰", station: "oven", ingredientCost: 24, price: 22, batch: 3, seconds: 7, unlockDay: 5 },
+  { id: "choco_cookies", name: "Covenant Choco Cookies", shortName: "Choco cookies", emoji: "🍪", station: "oven", ingredientCost: 8, price: 15, batch: 4, seconds: 3, unlockDay: 1, description: "Classic chocolate chip cookies baked in a covenant of love." },
+  { id: "frosted_cookies", name: "Faith Frosted Cookies", shortName: "Frosted cookies", emoji: "🧁", station: "oven", ingredientCost: 10, price: 20, batch: 3, seconds: 4, unlockDay: 1, description: "Sweet frosted cookies to fuel your faith." },
+  { id: "cherub_cupcake", name: "Cherub Cupcakes", shortName: "Cherub cupcakes", emoji: "🧁", station: "oven", ingredientCost: 15, price: 25, batch: 5, seconds: 5, unlockDay: 1, description: "Bite-sized sweet cupcakes, fit for angels." },
+  { id: "sanctuary_latte", name: "Sanctuary Latte", emoji: "☕", shortName: "Sanctuary latte", station: "drinks", ingredientCost: 20, price: 45, batch: 2, seconds: 4, unlockDay: 1, description: "A warm cup of coffee brewed in the sanctuary." },
+  
+  { id: "pentecost_pancakes", name: "Pentecost Pancakes", emoji: "🥞", shortName: "Pentecost pancakes", station: "oven", ingredientCost: 25, price: 50, batch: 2, seconds: 6, unlockDay: 2, description: "Fluffy pancakes served with maple syrup." },
+  { id: "divine_donuts", name: "Divine Donuts", emoji: "🍩", shortName: "Divine donuts", station: "oven", ingredientCost: 25, price: 40, batch: 3, seconds: 5, unlockDay: 2, description: "Glazed donuts with divine sprinkles." },
+  { id: "green_tea", name: "Living Water Green Tea", emoji: "🍵", shortName: "Green tea", station: "drinks", ingredientCost: 30, price: 60, batch: 2, seconds: 5, unlockDay: 2, description: "A calming green tea brewed with living water." },
+  
+  { id: "grace_rolls", name: "Grace Cinnamon Rolls", emoji: "🍥", shortName: "Cinnamon rolls", station: "oven", ingredientCost: 35, price: 75, batch: 4, seconds: 7, unlockDay: 3, description: "Frosted warm rolls packed with grace." },
+  { id: "manna_milkshake", name: "Manna Milkshake", emoji: "🥤", shortName: "Manna milkshake", station: "drinks", ingredientCost: 40, price: 90, batch: 2, seconds: 4, unlockDay: 3, description: "Rich creamy milkshake made of manna." },
+  
+  { id: "strawberry_cake", name: "Selah Strawberry Cake", emoji: "🍰", shortName: "Strawberry cake", station: "oven", ingredientCost: 45, price: 110, batch: 2, seconds: 8, unlockDay: 4, description: "Fresh strawberry layered cake." },
+  { id: "bubble_tea", name: "Beatitude Bubble Tea", emoji: "🧋", shortName: "Bubble tea", station: "drinks", ingredientCost: 50, price: 120, batch: 2, seconds: 6, unlockDay: 4, description: "Refreshing bubble tea with tapioca pearls." },
+  
+  { id: "hot_chocolate", name: "Heavenly Hot Chocolate", emoji: "🍫", shortName: "Hot chocolate", station: "drinks", ingredientCost: 60, price: 150, batch: 2, seconds: 5, unlockDay: 5, description: "Hot cocoa topped with whipped cream." }
 ];
 
-const UPGRADES: Upgrade[] = [
-  { id: "oven", name: "Honeybee Oven", emoji: "🍯", price: 120, description: "Bakes every pastry 30% faster." },
-  { id: "machine", name: "Cloud Milk Frother", emoji: "☁️", price: 140, description: "Makes every drink 30% faster." },
-  { id: "plants", name: "Trailing Pothos", emoji: "🌿", price: 90, description: "Customers lose patience more slowly." },
-  { id: "helper", name: "Muffin the Helper", emoji: "🐰", price: 180, description: "Cleans used tables automatically." },
+const SCRAMBLE_WORDS: ScrambleWord[] = [
+  { word: "FAITHFUL", scrambled: "IFAHTLFU", clue: "God is ___ and true." },
+  { word: "SHEPHERD", scrambled: "PEHDRESH", clue: "The Lord is my ___." },
+  { word: "SALVATION", scrambled: "TIANASLOV", clue: "The helmet of ___." },
+  { word: "GRACE", scrambled: "REGAC", clue: "Saved by His ___." },
+  { word: "BLESSING", scrambled: "LSEBSIGN" , clue: "Count your ___ one by one." },
+  { word: "PEACEFUL", scrambled: "EAEFCLUP", clue: "A calm and quiet heart." }
 ];
 
 const TABLES = [
-  { id: 1, left: "43%" },
-  { id: 2, left: "64%" },
-  { id: 3, left: "84%" },
+  { id: 1, left: "28%" },
+  { id: 2, left: "50%" },
+  { id: 3, left: "72%" }
 ];
 
-const ANIMALS: Record<Animal, { emoji: string; name: string; color: string }> = {
-  bunny: { emoji: "🐰", name: "Bunny", color: "#f8d9df" },
-  bear: { emoji: "🐻", name: "Bear", color: "#d8b69b" },
-  deer: { emoji: "🦌", name: "Deer", color: "#e4c39e" },
-  mouse: { emoji: "🐭", name: "Mouse", color: "#cbd5d8" },
-  sloth: { emoji: "🦥", name: "Sloth", color: "#c9b9a4" },
-};
-
 const SAVE_KEY = "selahly_grace_cafe_v3";
-const SHIFT_LENGTH = 55;
+const SHIFT_LENGTH = 30; // standard 30s shift
 
-const menuItem = (id: string) => MENU.find((item) => item.id === id);
-
-function makeCustomer(day: number, tableId: number): Customer {
-  const unlocked = MENU.filter((item) => item.unlockDay <= day);
-  const orderSize = day >= 3 && Math.random() > 0.68 ? 2 : 1;
-  const order = Array.from({ length: orderSize }, () => unlocked[Math.floor(Math.random() * unlocked.length)].id);
-  const animals = Object.keys(ANIMALS) as Animal[];
-
-  return {
-    id: crypto.randomUUID(),
-    animal: animals[Math.floor(Math.random() * animals.length)],
-    order,
-    patience: 100,
-    tableId,
-    state: "waiting",
-  };
-}
-
-function CustomerCharacter({ customer, onServe }: { customer: Customer; onServe: () => void }) {
-  const animal = ANIMALS[customer.animal];
+// --- Cute Animal SVG Component ---
+const CustomerAnimal: React.FC<{ type: AnimalType; patience: number; state: CustState }> = ({ type, patience, state }) => {
+  const isSad = patience < 35 && state !== "eating";
+  const isEating = state === "eating";
 
   return (
-    <motion.button
-      type="button"
-      aria-label={`Serve ${animal.name}`}
-      initial={{ y: 22, opacity: 0, scale: 0.85 }}
-      animate={{
-        y: customer.state === "eating" ? [0, -3, 0] : 0,
-        opacity: customer.state === "leaving" ? 0 : 1,
-        scale: customer.state === "leaving" ? 0.8 : 1,
-      }}
-      transition={customer.state === "eating" ? { repeat: Infinity, duration: 1.2 } : { duration: 0.35 }}
-      onClick={onServe}
-      disabled={customer.state !== "waiting"}
-      className="absolute bottom-[36px] z-30 flex -translate-x-1/2 flex-col items-center disabled:cursor-default"
-      style={{ left: TABLES.find((table) => table.id === customer.tableId)?.left }}
-    >
-      {customer.state === "waiting" && (
-        <div className="mb-1 min-w-[76px] rounded-[14px] border-2 border-[#6f5144] bg-[#fffaf0] px-2 py-1 text-center shadow-[2px_3px_0_#6f5144]">
-          <span className="block text-[7px] font-black uppercase tracking-[0.14em] text-[#a36d61]">May I have…</span>
-          <span className="flex justify-center gap-1 text-[17px] leading-5">
-            {customer.order.map((id, index) => <span key={`${id}-${index}`}>{menuItem(id)?.emoji}</span>)}
-          </span>
-        </div>
+    <svg viewBox="0 0 100 100" className="w-14 h-14 filter drop-shadow-md select-none pointer-events-none">
+      {/* 1. Bunny */}
+      {type === "bunny" && (
+        <g>
+          <ellipse cx="38" cy="22" rx="7" ry="20" fill="#FFF0F5" stroke="#F5D3E3" strokeWidth="1.5" />
+          <ellipse cx="38" cy="24" rx="4" ry="14" fill="#FFD2E5" opacity="0.6" />
+          
+          <ellipse cx="62" cy="22" rx="7" ry="20" fill="#FFF0F5" stroke="#F5D3E3" strokeWidth="1.5" />
+          <ellipse cx="62" cy="24" rx="4" ry="14" fill="#FFD2E5" opacity="0.6" />
+          
+          <circle cx="50" cy="55" r="24" fill="#FFF8FB" stroke="#F5D3E3" strokeWidth="1.5" />
+          {isEating ? (
+            <>
+              <path d="M 38 48 Q 41 53 44 48" fill="none" stroke="#4A343F" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 56 48 Q 59 53 62 48" fill="none" stroke="#4A343F" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
+            <>
+              <path d="M 38 52 Q 43 47 45 53" fill="none" stroke="#4A343F" strokeWidth="2" strokeLinecap="round" />
+              <path d="M 55 53 Q 57 47 62 52" fill="none" stroke="#4A343F" strokeWidth="2" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="41" cy="50" r="3.5" fill="#4A343F" />
+              <circle cx="39.5" cy="48.5" r="1.2" fill="#FFF" />
+              <circle cx="59" cy="50" r="3.5" fill="#4A343F" />
+              <circle cx="57.5" cy="48.5" r="1.2" fill="#FFF" />
+            </>
+          )}
+          <circle cx="34" cy="58" r="3" fill="#FFB7D5" opacity="0.6" />
+          <circle cx="66" cy="58" r="3" fill="#FFB7D5" opacity="0.6" />
+          <path d="M 48 57 Q 50 60 52 57" fill="none" stroke="#4A343F" strokeWidth="1.5" strokeLinecap="round" />
+        </g>
       )}
-      {customer.state === "eating" && (
-        <div className="mb-1 rounded-full border border-[#a8be98] bg-[#f4f7e9] px-2 py-0.5 text-[9px] font-black text-[#58704d]">
-          yum! ♡
-        </div>
+
+      {/* 2. Bear */}
+      {type === "bear" && (
+        <g>
+          <circle cx="32" cy="36" r="8" fill="#D7CCC8" stroke="#BCAAA4" strokeWidth="1.5" />
+          <circle cx="32" cy="36" r="4.5" fill="#FFCDD2" opacity="0.5" />
+          <circle cx="68" cy="36" r="8" fill="#D7CCC8" stroke="#BCAAA4" strokeWidth="1.5" />
+          <circle cx="68" cy="36" r="4.5" fill="#FFCDD2" opacity="0.5" />
+          
+          <circle cx="50" cy="58" r="22" fill="#EFEBE9" stroke="#D7CCC8" strokeWidth="1.5" />
+          <ellipse cx="50" cy="64" rx="8" ry="6" fill="#FFF" stroke="#E0D7D7" strokeWidth="1" />
+          {isEating ? (
+            <>
+              <path d="M 38 50 Q 41 54 44 50" fill="none" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 56 50 Q 59 54 62 50" fill="none" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
+            <>
+              <path d="M 39 54 L 44 54" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 56 54 L 61 54" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="41" cy="52" r="3" fill="#5D4037" />
+              <circle cx="59" cy="52" r="3" fill="#5D4037" />
+            </>
+          )}
+          <ellipse cx="50" cy="62" rx="2" ry="1.5" fill="#5D4037" />
+          <path d="M 48 66 Q 50 68 52 66" fill="none" stroke="#5D4037" strokeWidth="1.2" strokeLinecap="round" />
+        </g>
       )}
-      <div
-        className="grid h-14 w-14 place-items-center rounded-[45%_45%_40%_40%] border-2 border-[#6f5144] text-[35px] shadow-[2px_3px_0_rgba(111,81,68,.28)]"
-        style={{ backgroundColor: animal.color }}
-      >
-        {animal.emoji}
-      </div>
-      {customer.state === "waiting" && (
-        <div className="mt-1 h-1.5 w-12 overflow-hidden rounded-full border border-[#6f5144]/40 bg-[#fffaf0]">
-          <div
-            className={`h-full transition-all ${customer.patience < 35 ? "bg-[#d66f68]" : "bg-[#91b681]"}`}
-            style={{ width: `${customer.patience}%` }}
-          />
-        </div>
+
+      {/* 3. Kitty */}
+      {type === "kitty" && (
+        <g>
+          <polygon points="26,45 22,25 42,39" fill="#ECEFF1" stroke="#CFD8DC" strokeWidth="1.5" />
+          <polygon points="27,41 25,29 38,37" fill="#FFCDD2" opacity="0.5" />
+          <polygon points="74,45 78,25 58,39" fill="#ECEFF1" stroke="#CFD8DC" strokeWidth="1.5" />
+          <polygon points="73,41 75,29 62,37" fill="#FFCDD2" opacity="0.5" />
+          
+          <ellipse cx="50" cy="58" rx="23" ry="20" fill="#F5F5F5" stroke="#E0E0E0" strokeWidth="1.5" />
+          {isEating ? (
+            <>
+              <path d="M 37 50 Q 40 55 43 50" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 57 50 Q 60 55 63 50" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
+            <>
+              <path d="M 37 54 C 37 50, 43 50, 43 54" fill="none" stroke="#37474F" strokeWidth="2" strokeLinecap="round" />
+              <path d="M 57 54 C 57 50, 63 50, 63 54" fill="none" stroke="#37474F" strokeWidth="2" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="40" cy="52" r="3.5" fill="#37474F" />
+              <circle cx="60" cy="52" r="3.5" fill="#37474F" />
+            </>
+          )}
+          <polygon points="48,58 52,58 50,60" fill="#FF8A80" />
+          <line x1="24" y1="58" x2="14" y2="57" stroke="#B0BEC5" strokeWidth="1.5" />
+          <line x1="24" y1="62" x2="12" y2="63" stroke="#B0BEC5" strokeWidth="1.5" />
+          <line x1="76" y1="58" x2="86" y2="57" stroke="#B0BEC5" strokeWidth="1.5" />
+          <line x1="76" y1="62" x2="88" y2="63" stroke="#B0BEC5" strokeWidth="1.5" />
+          <path d="M 47 62 Q 50 64 53 62" fill="none" stroke="#37474F" strokeWidth="1.2" strokeLinecap="round" />
+        </g>
       )}
-    </motion.button>
+
+      {/* 4. Fox */}
+      {type === "fox" && (
+        <g>
+          <polygon points="24,42 16,22 38,36" fill="#FF7043" stroke="#E64A19" strokeWidth="1.5" />
+          <polygon points="76,42 84,22 62,36" fill="#FF7043" stroke="#E64A19" strokeWidth="1.5" />
+          
+          <polygon points="26,50 74,50 50,78" fill="#FF7043" stroke="#E64A19" strokeWidth="1.5" />
+          <polygon points="26,50 38,50 28,64" fill="#FFF" />
+          <polygon points="74,50 62,50 72,64" fill="#FFF" />
+          
+          {isEating ? (
+            <>
+              <path d="M 35 45 Q 39 49 43 45" fill="none" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 57 45 Q 61 49 65 45" fill="none" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
+            <>
+              <path d="M 36 48 L 42 50" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 64 48 L 58 50" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="39" cy="47" r="3.2" fill="#3E2723" />
+              <circle cx="61" cy="47" r="3.2" fill="#3E2723" />
+            </>
+          )}
+          <circle cx="50" cy="74" r="2.5" fill="#212121" />
+        </g>
+      )}
+
+      {/* 5. Lamb */}
+      {type === "lamb" && (
+        <g>
+          <path d="M 24 45 Q 12 43 14 53 Q 22 55 24 49 Z" fill="#FFF" stroke="#E0D3D3" strokeWidth="1" />
+          <path d="M 76 45 Q 88 43 86 53 Q 78 55 76 49 Z" fill="#FFF" stroke="#E0D3D3" strokeWidth="1" />
+          
+          <circle cx="40" cy="38" r="8" fill="#FFF" stroke="#ECEFF1" strokeWidth="1" />
+          <circle cx="50" cy="36" r="9" fill="#FFF" stroke="#ECEFF1" strokeWidth="1" />
+          <circle cx="60" cy="38" r="8" fill="#FFF" stroke="#ECEFF1" strokeWidth="1" />
+          
+          <ellipse cx="50" cy="56" rx="20" ry="17" fill="#FFFAFA" stroke="#E6D3D3" strokeWidth="1.5" />
+          {isEating ? (
+            <>
+              <path d="M 39 49 Q 42 53 45 49" fill="none" stroke="#4E342E" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M 55 49 Q 58 53 61 49" fill="none" stroke="#4E342E" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          ) : isSad ? (
+            <>
+              <path d="M 40 54 Q 44 50 46 55" fill="none" stroke="#4E342E" strokeWidth="2" strokeLinecap="round" />
+              <path d="M 60 54 Q 56 50 54 55" fill="none" stroke="#4E342E" strokeWidth="2" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="42" cy="51" r="3" fill="#4E342E" />
+              <circle cx="58" cy="51" r="3" fill="#4E342E" />
+            </>
+          )}
+          <circle cx="36" cy="59" r="2" fill="#FFCDD2" opacity="0.6" />
+          <circle cx="64" cy="59" r="2" fill="#FFCDD2" opacity="0.6" />
+          <path d="M 48 59 Q 50 61 52 59" fill="none" stroke="#4E342E" strokeWidth="1" strokeLinecap="round" />
+        </g>
+      )}
+    </svg>
   );
-}
+};
 
 export function GraceCafe() {
-  const [coins, setCoins] = useState(70);
+  const [coins, setCoins] = useState(100);
   const [day, setDay] = useState(1);
   const [rating, setRating] = useState(100);
   const [timeLeft, setTimeLeft] = useState(SHIFT_LENGTH);
@@ -174,30 +277,68 @@ export function GraceCafe() {
   const [dirtyTables, setDirtyTables] = useState<number[]>([]);
   const [stock, setStock] = useState<Record<string, number>>({});
   const [jobs, setJobs] = useState<CookingJob[]>([]);
-  const [owned, setOwned] = useState<Upgrade["id"][]>([]);
+  
+  // Upgrades list - synced with variables
+  const [owned, setOwned] = useState<string[]>([]);
   const [shopOpen, setShopOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [activeRoom, setActiveRoom] = useState<CafeRoom>("lobby");
   const [earnedToday, setEarnedToday] = useState(0);
   const [servedToday, setServedToday] = useState(0);
+  
+  // Scripture Unscramble Drawer (Grace Period)
+  const [isScrambleActive, setIsScrambleActive] = useState(false);
+  const [scrambleInfo, setScrambleInfo] = useState<ScrambleWord | null>(null);
+  const [scrambleLetters, setScrambleLetters] = useState<{ id: number; char: string; clicked: boolean }[]>([]);
+  const [scrambleAnswer, setScrambleAnswer] = useState<string[]>([]);
+  const [scrambleMessage, setScrambleMessage] = useState("");
+
   const [message, setMessage] = useState("Welcome to Grace Café! Open the doors when you are ready.");
   const [now, setNow] = useState(0);
+  
   const nowRef = useRef(0);
   const customerTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const shiftActiveRef = useRef(false);
 
-  const hasUpgrade = useCallback((id: Upgrade["id"]) => owned.includes(id), [owned]);
+  const hasUpgrade = useCallback((id: string) => owned.includes(id), [owned]);
 
+  const upgradesList = useMemo<UpgradeItem[]>(() => [
+    { id: "oven_pro", name: "Honeybee Stone Oven", emoji: "⚡🍯", cost: 250, type: "appliance", description: "Bakes pastries 30% faster.", purchased: hasUpgrade("oven_pro") },
+    { id: "espresso_pro", name: "Cloud Milk Espresso", emoji: "⚡☁️", cost: 300, type: "appliance", description: "Brews lattes and green tea 30% faster.", purchased: hasUpgrade("espresso_pro") },
+    { id: "hanging_plants", name: "Trailing Pothos Vines", emoji: "🌿💚", cost: 180, type: "decor", description: "Customers lose patience 20% slower.", purchased: hasUpgrade("hanging_plants") },
+    
+    // Scratch Hired Staff
+    { id: "staff_floofer", name: "Floofer", emoji: "🐶", cost: 160, type: "staff", description: "Dog helper. Reduces eating duration. (Wages: 🪙160/day)", purchased: hasUpgrade("staff_floofer"), wage: 160 },
+    { id: "staff_flash", name: "Flash", emoji: "🦥", cost: 100, type: "staff", description: "Sloth helper. Reduces shift from 25s to 20s. (Wages: 🪙60/day)", purchased: hasUpgrade("staff_flash"), wage: 60 },
+    { id: "staff_cherry", name: "Cherry", emoji: "🐱", cost: 200, type: "staff", description: "Cat helper. Stops slow service penalties. (Wages: 🪙200/day)", purchased: hasUpgrade("staff_cherry"), wage: 200 },
+    { id: "staff_goldie", name: "Goldie", emoji: "🐹", cost: 300, type: "staff", description: "Hamster helper. 15% end-of-day cash bonus. (Wages: 🪙300/day)", purchased: hasUpgrade("staff_goldie"), wage: 300 },
+    { id: "staff_muffin", name: "Muffin", emoji: "🐰", cost: 80, type: "staff", description: "Bunny helper. Auto-cleans used tables. (Wages: 🪙20/day)", purchased: hasUpgrade("staff_muffin"), wage: 20 }
+  ], [hasUpgrade]);
+
+  const getStaffWages = useCallback(() => {
+    let wages = 0;
+    upgradesList.forEach(u => {
+      if (u.purchased && u.wage) wages += u.wage;
+    });
+    return wages;
+  }, [upgradesList]);
+
+  const getDayTotalDeductions = useCallback(() => {
+    return 10 + getStaffWages(); // rent is 10 + staff wages
+  }, [getStaffWages]);
+
+  // Sync state values on start
   useEffect(() => {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
     try {
-      const saved = JSON.parse(raw) as SaveData;
-      queueMicrotask(() => {
-        setCoins(saved.coins ?? 70);
+      const saved = JSON.parse(raw);
+      setTimeout(() => {
+        setCoins(saved.coins ?? 100);
         setDay(saved.day ?? 1);
         setRating(saved.rating ?? 100);
         setOwned(saved.owned ?? []);
-      });
+      }, 0);
     } catch {
       localStorage.removeItem(SAVE_KEY);
     }
@@ -214,8 +355,6 @@ export function GraceCafe() {
     customerTimers.current = [];
   }, []);
 
-  useEffect(() => () => clearCustomerTimers(), [clearCustomerTimers]);
-
   const endShift = useCallback(() => {
     shiftActiveRef.current = false;
     setShiftActive(false);
@@ -224,9 +363,10 @@ export function GraceCafe() {
     setDirtyTables([]);
     clearCustomerTimers();
     setReportOpen(true);
-    setMessage("The café is closed for the evening. Lovely work today!");
+    setMessage("The café doors are closed for the evening. Lovely work today!");
   }, [clearCustomerTimers]);
 
+  // Shift length timer loop
   useEffect(() => {
     if (!shiftActive) return;
 
@@ -243,45 +383,80 @@ export function GraceCafe() {
     return () => clearInterval(timer);
   }, [endShift, shiftActive]);
 
+  // Customer patience loop
   useEffect(() => {
     if (!shiftActive) return;
 
     const patienceTimer = setInterval(() => {
+      const drain = hasUpgrade("hanging_plants") ? 3 : 5;
+      
       setCustomers((current) => {
-        const drain = hasUpgrade("plants") ? 3 : 5;
-        const impatient = current.filter((customer) => customer.state === "waiting" && customer.patience <= drain);
+        const impatient = current.filter((c) => c.state === "waiting" && c.patience <= drain);
         if (impatient.length) {
-          setRating((value) => Math.max(20, value - impatient.length * 4));
-          setMessage("Oh crumbs—someone waited too long. Prep a small batch before the next guest!");
+          setRating((value) => Math.max(30, value - impatient.length * 4));
+          setMessage("Oh crumbs! A customer lost patience and walked out.");
         }
         return current
-          .filter((customer) => !(customer.state === "waiting" && customer.patience <= drain))
-          .map((customer) => customer.state === "waiting"
-            ? { ...customer, patience: Math.max(0, customer.patience - drain) }
-            : customer);
+          .filter((c) => !(c.state === "waiting" && c.patience <= drain))
+          .map((c) => c.state === "waiting"
+            ? { ...c, patience: Math.max(0, c.patience - drain) }
+            : c);
       });
     }, 1000);
 
     return () => clearInterval(patienceTimer);
   }, [hasUpgrade, shiftActive]);
 
+  // Customer walking/seating transition
+  const guideGuestToSeat = useCallback((customer: Customer) => {
+    const timer = setTimeout(() => {
+      if (!shiftActiveRef.current) return;
+      setCustomers((current) => current.map((item) => (
+        item.id === customer.id ? { ...item, state: "waiting" } : item
+      )));
+      setMessage(`${customer.type.toUpperCase()} is seated at table ${customer.tableId}.`);
+    }, 2000);
+    customerTimers.current.push(timer);
+  }, []);
+
+  // Customer spawning loop
   useEffect(() => {
     if (!shiftActive) return;
 
     const spawnTimer = setInterval(() => {
       setCustomers((current) => {
-        const occupied = new Set(current.map((customer) => customer.tableId));
+        const occupied = new Set(current.map((c) => c.tableId));
         const available = TABLES.find((table) => !occupied.has(table.id) && !dirtyTables.includes(table.id));
         if (!available) return current;
-        const customer = makeCustomer(day, available.id);
-        setMessage(`${ANIMALS[customer.animal].name} found a cozy table and is ready to order.`);
-        return [...current, customer];
+
+        const animalPool: AnimalType[] = ["bunny", "bear", "kitty", "fox", "lamb"];
+        const randAnimal = animalPool[Math.floor(Math.random() * animalPool.length)];
+
+        // Choose order items from unlocked menu
+        const unlockedMenu = MENU.filter((m) => m.unlockDay <= day);
+        const orderSize = day >= 3 && Math.random() > 0.65 ? 2 : 1;
+        const order = Array.from({ length: orderSize }, () => unlockedMenu[Math.floor(Math.random() * unlockedMenu.length)].id);
+
+        const newCust: Customer = {
+          id: Math.random().toString(),
+          type: randAnimal,
+          order,
+          patience: 100,
+          maxPatience: 100,
+          tableId: available.id,
+          state: "entering"
+        };
+
+        guideGuestToSeat(newCust);
+        setMessage(`A cute ${randAnimal} customer entered the lobby and requested table ${available.id}.`);
+        return [...current, newCust];
       });
-    }, Math.max(4300, 6800 - day * 250));
+    }, Math.max(4500, 7500 - day * 400));
 
     return () => clearInterval(spawnTimer);
-  }, [day, dirtyTables, shiftActive]);
+  }, [day, dirtyTables, guideGuestToSeat, shiftActive]);
 
+  // Kitchen cooking progress loop
   useEffect(() => {
     if (!shiftActive || jobs.length === 0) return;
 
@@ -289,6 +464,7 @@ export function GraceCafe() {
       nowRef.current += 250;
       const timestamp = nowRef.current;
       setNow(timestamp);
+      
       setJobs((current) => {
         const finished = current.filter((job) => job.finishesAt <= timestamp);
         if (!finished.length) return current;
@@ -296,12 +472,13 @@ export function GraceCafe() {
         setStock((currentStock) => {
           const next = { ...currentStock };
           finished.forEach((job) => {
-            const item = menuItem(job.itemId);
+            const item = MENU.find((m) => m.id === job.itemId);
             if (item) next[item.id] = (next[item.id] ?? 0) + item.batch;
           });
           return next;
         });
-        setMessage("Ding! A fresh batch is waiting on the serving counter.");
+
+        setMessage("Ding! Batch cooking finished! Items added to prep serving counter.");
         return current.filter((job) => job.finishesAt > timestamp);
       });
     }, 250);
@@ -309,13 +486,14 @@ export function GraceCafe() {
     return () => clearInterval(jobTimer);
   }, [jobs.length, shiftActive]);
 
+  // Muffin helper auto-bussing
   useEffect(() => {
-    if (!shiftActive || !hasUpgrade("helper") || dirtyTables.length === 0) return;
+    if (!shiftActive || !hasUpgrade("staff_muffin") || dirtyTables.length === 0) return;
     const tableId = dirtyTables[0];
     const timer = setTimeout(() => {
       setDirtyTables((current) => current.filter((id) => id !== tableId));
-      setMessage(`Muffin polished table ${tableId} until it sparkled.`);
-    }, 2200);
+      setMessage(`Muffin bunny automatically cleaned and polished table ${tableId}! 🧹`);
+    }, 3000);
     return () => clearTimeout(timer);
   }, [dirtyTables, hasUpgrade, shiftActive]);
 
@@ -324,36 +502,55 @@ export function GraceCafe() {
     shiftActiveRef.current = true;
     setShiftActive(true);
     setReportOpen(false);
-    setTimeLeft(SHIFT_LENGTH);
+
+    // Flash helper reduces shift length
+    const hasFlash = hasUpgrade("staff_flash");
+    const shiftLength = hasFlash ? 20 : 25;
+    
+    setTimeLeft(shiftLength);
     nowRef.current = 0;
     setNow(0);
-    setCustomers([makeCustomer(day, 1)]);
+    setActiveRoom("lobby");
+
+    const firstCust: Customer = {
+      id: Math.random().toString(),
+      type: "lamb",
+      order: [MENU[0].id],
+      patience: 100,
+      maxPatience: 100,
+      tableId: 1,
+      state: "entering"
+    };
+
+    setCustomers([firstCust]);
+    guideGuestToSeat(firstCust);
     setDirtyTables([]);
     setStock({});
     setJobs([]);
     setEarnedToday(0);
     setServedToday(0);
-    setMessage(`Day ${day} is open! Your first guest is already seated.`);
+    setMessage(`Day ${day} is open! Prepare your kitchen for guest orders.`);
   };
 
   const startCooking = (item: MenuItem) => {
     if (!shiftActive || item.unlockDay > day || jobs.length >= 3) return;
     if (coins < item.ingredientCost) {
-      setMessage("Not enough coins for those ingredients yet.");
+      setMessage("Not enough Gold Coins to purchase these batch ingredients.");
       return;
     }
 
-    const isFaster = item.station === "oven" ? hasUpgrade("oven") : hasUpgrade("machine");
+    const isFaster = item.station === "oven" ? hasUpgrade("oven_pro") : hasUpgrade("espresso_pro");
     const duration = item.seconds * (isFaster ? 0.7 : 1) * 1000;
     const timestamp = nowRef.current;
+    
     setCoins((value) => value - item.ingredientCost);
     setJobs((current) => [...current, {
-      jobId: crypto.randomUUID(),
+      jobId: Math.random().toString(),
       itemId: item.id,
       startedAt: timestamp,
-      finishesAt: timestamp + duration,
+      finishesAt: timestamp + duration
     }]);
-    setMessage(`${item.name} is ${item.station === "oven" ? "baking" : "brewing"} now.`);
+    setMessage(`Preparing: ${item.name} batch (${item.station === "oven" ? "baking" : "brewing"})...`);
   };
 
   const serveCustomer = (customer: Customer) => {
@@ -362,196 +559,437 @@ export function GraceCafe() {
     const needed: Record<string, number> = {};
     customer.order.forEach((id) => { needed[id] = (needed[id] ?? 0) + 1; });
     const missing = Object.entries(needed).find(([id, amount]) => (stock[id] ?? 0) < amount);
+    
     if (missing) {
-      setMessage(`You still need ${menuItem(missing[0])?.shortName ?? "part of this order"}.`);
+      const item = MENU.find(m => m.id === missing[0]);
+      setMessage(`You still need to prepare: ${item?.shortName ?? "part of this order"}.`);
       return;
     }
 
-    const earnings = customer.order.reduce((total, id) => total + (menuItem(id)?.price ?? 0), 0);
-    const tip = customer.patience >= 70 ? 3 : 0;
+    const earnings = customer.order.reduce((total, id) => total + (MENU.find(m => m.id === id)?.price ?? 0), 0);
+    const patienceBonus = customer.patience >= 70 ? 3 : 0;
+    let finalEarning = earnings + patienceBonus;
+
+    // Cherry helper stops slow service penalties
+    const isSlow = customer.patience < 35;
+    const stopSlow = hasUpgrade("staff_cherry");
+    
+    let ratingGain = 3;
+    if (isSlow && !stopSlow) {
+      finalEarning = Math.round(finalEarning * 0.5);
+      ratingGain = 1;
+      setMessage("Slow service! Customer left a very small tip. (Hire Cherry to prevent this).");
+    } else if (isSlow && stopSlow) {
+      setMessage("Cherry's hospitality negated the slow service penalty! Full tip earned.");
+    }
+
     setStock((current) => {
       const next = { ...current };
       Object.entries(needed).forEach(([id, amount]) => { next[id] = Math.max(0, (next[id] ?? 0) - amount); });
       return next;
     });
+
     setCustomers((current) => current.map((item) => item.id === customer.id ? { ...item, state: "eating" } : item));
-    setMessage(`Order served! ${ANIMALS[customer.animal].name} is happily eating.`);
+
+    // Floofer reduces customer eating speed
+    const hasFloofer = hasUpgrade("staff_floofer");
+    const eatDuration = hasFloofer ? 8400 : 12000;
 
     const finishTimer = setTimeout(() => {
       if (!shiftActiveRef.current) return;
-      setCoins((value) => value + earnings + tip);
-      setEarnedToday((value) => value + earnings + tip);
+      setCoins((value) => value + finalEarning);
+      setEarnedToday((value) => value + finalEarning);
       setServedToday((value) => value + 1);
-      setRating((value) => Math.min(100, value + (tip ? 2 : 1)));
+      setRating((value) => Math.min(100, value + ratingGain));
       setDirtyTables((current) => [...current, customer.tableId]);
       setCustomers((current) => current.map((item) => item.id === customer.id ? { ...item, state: "leaving" } : item));
-      setMessage(`${ANIMALS[customer.animal].name} left ${earnings + tip} coins${tip ? " including a sweet-service tip" : ""}.`);
+      setMessage(`${customer.type.toUpperCase()} finished eating and left 🪙${finalEarning} Gold Coins tip.`);
 
       const leaveTimer = setTimeout(() => {
         if (!shiftActiveRef.current) return;
         setCustomers((current) => current.filter((item) => item.id !== customer.id));
       }, 700);
       customerTimers.current.push(leaveTimer);
-    }, 3800);
+    }, eatDuration);
+    
     customerTimers.current.push(finishTimer);
   };
 
   const cleanTable = (tableId: number) => {
     if (!dirtyTables.includes(tableId)) return;
     setDirtyTables((current) => current.filter((id) => id !== tableId));
-    setMessage(`Table ${tableId} is clean and ready for another guest.`);
+    setCoins((c) => c + 1); // cleaning bonus
+    setMessage(`Table ${tableId} is cleaned! Earned +1 Gold Coin.`);
   };
 
-  const buyUpgrade = (upgrade: Upgrade) => {
+  const buyUpgrade = (upgrade: UpgradeItem) => {
     if (owned.includes(upgrade.id)) return;
-    if (coins < upgrade.price) {
-      setMessage("Save a few more coins for that café upgrade.");
+    if (coins < upgrade.cost) {
+      setMessage("Save a few more Gold Coins to afford this upgrade.");
       return;
     }
-    setCoins((value) => value - upgrade.price);
+    setCoins((value) => value - upgrade.cost);
     setOwned((current) => [...current, upgrade.id]);
-    setMessage(`${upgrade.name} is now part of Grace Café!`);
+    setMessage(`Unlocked: ${upgrade.name}! Cozy benefits applied.`);
   };
 
-  const payRentAndContinue = () => {
-    const rent = 12 + Math.max(0, day - 1) * 2;
-    setCoins((value) => Math.max(20, value - rent));
-    setDay((value) => value + 1);
-    setReportOpen(false);
-    setMessage(`Rent paid. The kitchen is ready for day ${day + 1}.`);
+  const handlePayRent = () => {
+    const totalDeduction = getDayTotalDeductions();
+    
+    if (coins >= totalDeduction) {
+      let nextCoins = coins - totalDeduction;
+      
+      // Goldie 15% end-of-day money multiplier
+      const hasGoldie = hasUpgrade("staff_goldie");
+      if (hasGoldie) {
+        nextCoins = Math.round(nextCoins * 1.15);
+      }
+      
+      const nextDay = day + 1;
+      setCoins(nextCoins);
+      setDay(nextDay);
+      setReportOpen(false);
+      setMessage(`Rent and wages of 🪙${totalDeduction} paid! Ready for Day ${nextDay}.`);
+    } else {
+      setIsScrambleActive(true);
+      startScrambleWord();
+    }
+  };
+
+  // --- Scripture Unscramble Drawer (Grace Period) ---
+  const startScrambleWord = () => {
+    const wordInfo = SCRAMBLE_WORDS[Math.floor(Math.random() * SCRAMBLE_WORDS.length)];
+    setScrambleInfo(wordInfo);
+    
+    const letters = wordInfo.scrambled.split("").map((c, i) => ({
+      id: i,
+      char: c,
+      clicked: false
+    }));
+    setScrambleLetters(letters);
+    setScrambleAnswer([]);
+    setScrambleMessage("");
+  };
+
+  const handleScrambleLetterClick = (letterId: number, char: string) => {
+    setScrambleLetters((prev) => prev.map((l) => (l.id === letterId ? { ...l, clicked: true } : l)));
+    setScrambleAnswer((prev) => [...prev, char]);
+  };
+
+  const handleScrambleUndo = () => {
+    if (scrambleAnswer.length === 0) return;
+    const removedChar = scrambleAnswer[scrambleAnswer.length - 1];
+    setScrambleAnswer((prev) => prev.slice(0, -1));
+
+    setScrambleLetters((prev) => {
+      let found = false;
+      return prev.map((l) => {
+        if (!found && l.char === removedChar && l.clicked) {
+          found = true;
+          return { ...l, clicked: false };
+        }
+        return l;
+      });
+    });
+  };
+
+  const checkScrambleSubmit = () => {
+    if (!scrambleInfo) return;
+    const guess = scrambleAnswer.join("");
+    if (guess === scrambleInfo.word) {
+      const totalDeduction = getDayTotalDeductions();
+      const bonusCoins = totalDeduction + 10;
+      
+      let finalCoins = coins + bonusCoins - totalDeduction;
+      const hasGoldie = hasUpgrade("staff_goldie");
+      if (hasGoldie) {
+        finalCoins = Math.round(finalCoins * 1.15);
+      }
+      
+      const nextDay = day + 1;
+      setCoins(finalCoins);
+      setDay(nextDay);
+      setIsScrambleActive(false);
+      setReportOpen(false);
+      setMessage(`Grace Period challenge passed! Rent paid & advanced to Day ${nextDay}! 🎉`);
+    } else {
+      setScrambleMessage("Not quite correct. Check the letter tiles order again!");
+    }
   };
 
   const stockItems = useMemo(
     () => MENU.filter((item) => (stock[item.id] ?? 0) > 0),
-    [stock],
+    [stock]
   );
 
   return (
-    <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-[30px] border-[3px] border-[#6f5144] bg-[#f8efe0] text-[#5d4439] shadow-[0_18px_50px_rgba(93,68,57,.22)]">
-      <header className="flex items-center justify-between border-b-[3px] border-[#6f5144] bg-[#b96f69] px-4 py-3 text-[#fff9ed]">
+    <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-[36px] border-4 border-[#C8B097] bg-[#FAF3E8] text-[#5D4439] shadow-2xl flex flex-col select-none">
+      
+      {/* ─── HUD Header Bar ─── */}
+      <header className="flex items-center justify-between border-b-4 border-[#C8B097] bg-[#B96F69] px-5 py-4 text-[#FFF9ED] shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-full border-2 border-[#fff2d9] bg-[#89544f] text-xl">☕</div>
-          <div>
-            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-[#ffe4bd]">A little place to pause</p>
-            <h2 className="font-serif text-lg font-black leading-none">Grace Café</h2>
+          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#98534C] border border-white/20 text-lg shadow-inner">౨ৎ</div>
+          <div className="text-left">
+            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-[#FFE4BD]">Cozy Tabernacle simulation</p>
+            <h2 className="font-serif text-base font-bold leading-none">Grace Café</h2>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-black">
-          <span className="rounded-full border border-[#fff2d9]/60 bg-[#89544f]/60 px-2.5 py-1">DAY {day}</span>
-          <span className="flex items-center gap-1 rounded-full border border-[#fff2d9]/60 bg-[#89544f]/60 px-2.5 py-1">
-            <Star className="h-3 w-3 fill-[#ffe49d] text-[#ffe49d]" /> {rating}%
+        <div className="flex items-center gap-2 text-[10px] font-extrabold">
+          <span className="rounded-full border border-[#FFF2D9]/40 bg-[#98534C]/60 px-3 py-1.5">DAY {day}</span>
+          <span className="flex items-center gap-1 rounded-full border border-[#FFF2D9]/40 bg-[#98534C]/60 px-3 py-1.5">
+            <Star className="h-3.5 w-3.5 fill-[#FFE49D] text-[#FFE49D]" /> {rating}%
           </span>
-          <span className="flex items-center gap-1 rounded-full border border-[#fff2d9]/60 bg-[#89544f]/60 px-2.5 py-1">
-            <Clock3 className="h-3 w-3" /> {shiftActive ? `${timeLeft}s` : "closed"}
+          <span className="flex items-center gap-1 rounded-full border border-[#FFF2D9]/40 bg-[#98534C]/60 px-3 py-1.5">
+            <Clock3 className="h-3.5 w-3.5" /> {shiftActive ? `${timeLeft}s` : "closed"}
           </span>
         </div>
       </header>
 
-      <section className="relative h-[300px] overflow-hidden border-b-[3px] border-[#6f5144] bg-[#f5dfc5]">
-        <div className="absolute inset-x-0 top-0 h-[205px] bg-[linear-gradient(#f7e7cf_0_73%,#e9c7ad_73%)]" />
-        <div className="absolute inset-x-0 top-4 flex justify-around px-8">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <span key={index} className={`h-2.5 w-2.5 rounded-full border border-[#6f5144] ${index % 3 === 0 ? "bg-[#f2b2a0]" : index % 3 === 1 ? "bg-[#f4d685]" : "bg-[#a9c7aa]"} shadow-[0_0_8px_#fff3bd]`} />
-          ))}
-        </div>
+      {/* ─── Room Tabs Navigation ─── */}
+      <div className="flex items-center gap-2 border-b-4 border-[#C8B097] bg-[#FAF8E4] px-4 py-2.5">
+        {(["lobby", "seating", "kitchen"] as CafeRoom[]).map((room) => {
+          const active = activeRoom === room;
+          const label = room === "lobby" ? "Lobby" : room === "seating" ? "Dining Room" : "Kitchen";
+          const emoji = room === "lobby" ? "🚪" : room === "seating" ? "🪑" : "🍳";
+          
+          const lobbyCount = room === "lobby" ? customers.filter((c) => c.state === "entering").length : 0;
+          const seatingCount = room === "seating" ? customers.filter((c) => c.state === "waiting" || c.state === "eating").length : 0;
+          const kitchenCount = room === "kitchen" ? jobs.length : 0;
+          const badgeCount = lobbyCount || seatingCount || kitchenCount;
 
-        <div className="absolute left-5 top-10 h-[104px] w-[132px] rounded-t-[62px] border-[3px] border-[#6f5144] bg-[#b9d7d0] p-2 shadow-[inset_0_0_0_5px_#f8efe0]">
-          <div className="h-full rounded-t-[48px] bg-[linear-gradient(145deg,#cfe7e1_0_48%,#fff7df_49%_52%,#b5d2cb_53%)]" />
-          <div className="absolute -bottom-2 left-1/2 h-4 w-36 -translate-x-1/2 rounded border-2 border-[#6f5144] bg-[#c68c67]" />
-        </div>
-
-        <div className="absolute left-[177px] top-10 w-[124px] -rotate-2 rounded border-[3px] border-[#6f5144] bg-[#fff8e8] p-2 text-center shadow-[3px_4px_0_#d8a783]">
-          <p className="font-serif text-[13px] font-black">give thanks</p>
-          <p className="text-[7px] font-bold uppercase tracking-widest text-[#a36d61]">in every little thing</p>
-          <div className="mt-1 text-sm">🌼 ☕ 🌿</div>
-        </div>
-
-        {hasUpgrade("plants") && <div className="absolute right-6 top-0 text-5xl drop-shadow-md">🌿</div>}
-        <div className="absolute left-0 top-[145px] h-[62px] w-[35%] rounded-tr-[24px] border-r-[3px] border-t-[3px] border-[#6f5144] bg-[#9faf82]">
-          <div className="absolute -top-12 left-5 flex items-end gap-3">
-            <div className="grid h-14 w-16 place-items-center rounded-t-xl border-[3px] border-[#6f5144] bg-[#d9b88d] text-3xl">{hasUpgrade("oven") ? "🍯" : "♨️"}</div>
-            <div className="grid h-16 w-14 place-items-center rounded-t-[18px] border-[3px] border-[#6f5144] bg-[#91b6b2] text-3xl">{hasUpgrade("machine") ? "☁️" : "☕"}</div>
-          </div>
-          <span className="absolute bottom-2 left-5 font-serif text-[11px] font-black text-[#fff9ed]">GRACE KITCHEN</span>
-          {hasUpgrade("helper") && <span className="absolute bottom-5 right-4 text-4xl">🐰</span>}
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 h-[95px] border-t-[3px] border-[#6f5144] bg-[#d5b28f] bg-[linear-gradient(45deg,rgba(255,248,232,.22)_25%,transparent_25%_75%,rgba(255,248,232,.22)_75%),linear-gradient(45deg,rgba(255,248,232,.22)_25%,transparent_25%_75%,rgba(255,248,232,.22)_75%)] bg-[position:0_0,15px_15px] bg-[size:30px_30px]" />
-
-        {TABLES.map((table) => {
-          const dirty = dirtyTables.includes(table.id);
           return (
             <button
-              key={table.id}
+              key={room}
               type="button"
-              onClick={() => cleanTable(table.id)}
-              className="absolute bottom-[18px] z-20 h-12 w-[76px] -translate-x-1/2 rounded-[50%] border-[3px] border-[#6f5144] bg-[#f7e8cf] shadow-[0_8px_0_#9b735d]"
-              style={{ left: table.left }}
+              onClick={() => setActiveRoom(room)}
+              className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-2 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] transition active:scale-95 sm:flex-none ${
+                active
+                  ? "border-[#6F5144] bg-[#C87870] text-white shadow-[2px_3px_0_#6F5144]"
+                  : "border-[#D4AD8D] bg-[#F8E6CA] text-[#7C5B4D] hover:bg-[#FBEFD9]"
+              }`}
             >
-              {dirty ? <span className="text-xl">🧽</span> : <span className="text-[8px] font-black text-[#a36d61]">TABLE {table.id}</span>}
+              <span>{emoji}</span>
+              <span>{label}</span>
+              {badgeCount > 0 && (
+                <span className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[8px] ${active ? "bg-white text-[#A45D59]" : "bg-[#B96F69] text-white"}`}>
+                  {badgeCount}
+                </span>
+              )}
             </button>
           );
         })}
+        <p className="hidden flex-1 text-right font-serif text-[10px] font-bold italic text-[#8D7064] sm:block">
+          {activeRoom === "lobby" && "🚪 Check in customers and assign seats"}
+          {activeRoom === "seating" && "🪑 Deliver food and clean tables"}
+          {activeRoom === "kitchen" && "🍳 Brew and bake recipe batches"}
+        </p>
+      </div>
 
+      {/* ─── Dynamic Room Canvas floor ─── */}
+      <section className="relative h-[280px] overflow-hidden border-b-[3px] border-[#6F5144] bg-[#F5DFC5]">
+        <div className="absolute inset-x-0 top-0 h-[190px] bg-[linear-gradient(#f7e7cf_0_75%,#e9c7ad_75%)]" />
+        
+        {/* Cozy String Lights */}
+        <div className="absolute inset-x-0 top-4 flex justify-around px-8">
+          {Array.from({ length: 11 }).map((_, index) => (
+            <span key={index} className={`h-2.5 w-2.5 rounded-full border border-[#6F5144] ${index % 3 === 0 ? "bg-[#f2b2a0]" : index % 3 === 1 ? "bg-[#f4d685]" : "bg-[#a9c7aa]"} shadow-[0_0_8px_#fff3bd] animate-pulse`} style={{ animationDelay: `${index * 0.15}s` }} />
+          ))}
+        </div>
+
+        {/* 1. LOBBY VIEW */}
+        {activeRoom === "lobby" && (
+          <>
+            {/* Reception Desk */}
+            <div className="absolute left-6 bottom-[40px] h-24 w-32 rounded-t-3xl border-4 border-[#6F5144] bg-[#AF9A85] shadow-lg flex flex-col justify-between p-2">
+              <span className="rounded-full bg-white/60 border border-[#6F5144] px-2 py-0.5 text-[7px] font-black uppercase text-[#6F5144] tracking-wider self-center mt-1">Check-in</span>
+              <div className="flex justify-around text-lg">📚 💐</div>
+            </div>
+            
+            {/* Cozy sofa */}
+            <div className="absolute right-6 bottom-[30px] h-12 w-48 rounded-2xl border-4 border-[#6F5144] bg-[#91B6B2] text-center shadow-md flex items-center justify-center">
+              <span className="text-[9px] font-black uppercase tracking-widest text-[#FFF]">Cozy Waiting Area</span>
+            </div>
+          </>
+        )}
+
+        {/* 2. DINING ROOM (SEATING) VIEW */}
+        {activeRoom === "seating" && (
+          <>
+            {/* Plants Frame wall decor */}
+            <div className="absolute top-8 left-6 text-4xl drop-shadow-md z-0">🖼️</div>
+            {hasUpgrade("hanging_plants") && <div className="absolute right-6 top-0 text-5xl drop-shadow-md z-0">🌿</div>}
+            
+            {/* Render 3 seating tables */}
+            {TABLES.map((table) => {
+              const dirty = dirtyTables.includes(table.id);
+              const occupied = customers.some(c => c.tableId === table.id && c.state !== "leaving");
+              return (
+                <div
+                  key={table.id}
+                  className="absolute bottom-[24px] z-10 -translate-x-1/2 flex flex-col items-center"
+                  style={{ left: table.left }}
+                >
+                  {/* Chairs */}
+                  <div className="h-6 w-8 rounded-t-md bg-[#8D6E63] border-2 border-[#6F5144] mb-[-4px]" />
+                  
+                  {/* Table Round Top */}
+                  <button
+                    type="button"
+                    onClick={() => dirty && cleanTable(table.id)}
+                    className={`h-11 w-16 rounded-full border-2 border-[#6F5144] flex items-center justify-center shadow-md transition-all ${
+                      dirty 
+                        ? "bg-[#D7CCC8] border-amber-500 hover:bg-amber-100 cursor-pointer animate-pulse" 
+                        : "bg-[#FFF9F2]"
+                    }`}
+                  >
+                    {dirty ? (
+                      <span className="text-xs">🧹</span>
+                    ) : occupied ? (
+                      <span className="text-xs">🍽️</span>
+                    ) : (
+                      <span className="text-[7px] font-black text-stone-400">TABLE {table.id}</span>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/* 3. KITCHEN VIEW */}
+        {activeRoom === "kitchen" && (
+          <div className="absolute inset-x-0 bottom-[40px] h-[130px] border-y-4 border-[#6F5144] bg-[#9FAF82] flex justify-around items-center px-4">
+            
+            {/* Stone Hearth Baking Oven */}
+            <div className="flex flex-col items-center">
+              <span className="text-[8px] font-black text-white bg-[#6F5144] px-2 py-0.5 rounded-md mb-1.5 shadow-sm">Stone Oven</span>
+              <div className="h-20 w-20 rounded-t-3xl border-4 border-[#6F5144] bg-[#89544F] shadow-md flex items-center justify-center text-4xl relative">
+                {hasUpgrade("oven_pro") ? "🍯" : "♨️"}
+                {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "oven") && (
+                  <div className="absolute inset-2 bg-orange-500/20 border border-orange-400 rounded-full animate-ping pointer-events-none" />
+                )}
+              </div>
+            </div>
+
+            {/* Brass Espresso Maker */}
+            <div className="flex flex-col items-center">
+              <span className="text-[8px] font-black text-white bg-[#6F5144] px-2 py-0.5 rounded-md mb-1.5 shadow-sm">Espresso Machine</span>
+              <div className="h-20 w-20 rounded-t-[28px] border-4 border-[#6F5144] bg-[#6C9794] shadow-md flex items-center justify-center text-4xl relative">
+                {hasUpgrade("espresso_pro") ? "☁️" : "☕"}
+                {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "drinks") && (
+                  <div className="absolute inset-2 bg-teal-500/20 border border-teal-400 rounded-full animate-ping pointer-events-none" />
+                )}
+              </div>
+            </div>
+
+            {/* Kitchen staff animation if helper is owned */}
+            {hasUpgrade("staff_muffin") && (
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-black text-[#58704D] bg-[#F4F7E9] px-2 py-0.5 rounded-md mb-1 shadow-sm">Helper</span>
+                <span className="text-4xl animate-bounce">🐰</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Floor styling boards */}
+        <div className="absolute inset-x-0 bottom-0 h-[48px] border-t-2 border-[#6F5144]/60 bg-[#C89E7F] bg-[linear-gradient(45deg,rgba(255,248,232,.12)_25%,transparent_25%_75%,rgba(255,248,232,.12)_75%)] bg-[size:20px_20px] pointer-events-none" />
+
+        {/* Render Customer Characters inside Seating room */}
         <AnimatePresence>
-          {customers.map((customer) => (
-            <CustomerCharacter key={customer.id} customer={customer} onServe={() => serveCustomer(customer)} />
+          {activeRoom === "seating" && customers.filter((c) => c.state !== "entering").map((c) => (
+            <CustomerCharacter key={c.id} customer={c} onServe={() => serveCustomer(c)} />
+          ))}
+          {activeRoom === "lobby" && customers.filter((c) => c.state === "entering").map((c) => (
+            <LobbyCustomer key={c.id} customer={c} />
           ))}
         </AnimatePresence>
       </section>
 
-      <div className="flex items-center justify-between gap-3 border-b-2 border-[#d2ad91] bg-[#fff8e8] px-4 py-2.5">
-        <span className="rounded-full border-2 border-[#8c684f] bg-[#f2ce74] px-3 py-1 text-[11px] font-black shadow-[2px_2px_0_#8c684f]">🪙 {coins}</span>
-        <p className="flex-1 text-center font-serif text-[11px] font-bold italic text-[#7c5b4d]">{message}</p>
-        <button type="button" onClick={() => setShopOpen(true)} className="flex items-center gap-1.5 rounded-full border-2 border-[#6f5144] bg-[#b6c99e] px-3 py-1 text-[10px] font-black shadow-[2px_2px_0_#6f5144] transition active:translate-y-0.5 active:shadow-none">
-          <ShoppingBag className="h-3.5 w-3.5" /> Shop
+      {/* ─── Notification Text Log ─── */}
+      <div className="flex items-center justify-between gap-3 border-b-2 border-[#D2AD91] bg-[#FFF8E8] px-4 py-2.5">
+        <span className="rounded-full border-2 border-[#8C684F] bg-[#F2CE74] px-4 py-1 text-[11px] font-black shadow-[2px_2px_0_#8C684F]">
+          🪙 {coins} Gold Coins
+        </span>
+        <p className="flex-1 text-center font-serif text-[11px] font-semibold italic text-[#7C5B4D] leading-tight">
+          💬 {message}
+        </p>
+        <button 
+          type="button" 
+          onClick={() => setShopOpen(true)} 
+          className="flex items-center gap-1.5 rounded-full border-2 border-[#6F5144] bg-[#B6C99E] px-4 py-1 text-[10px] font-black shadow-[2px_2px_0_#6F5144] transition active:scale-95 active:shadow-none cursor-pointer"
+        >
+          <ShoppingBag className="h-3.5 w-3.5" /> Upgrades
         </button>
       </div>
 
+      {/* ─── Bottom Console Control Station Panels ─── */}
       {!shiftActive ? (
-        <div className="grid min-h-[245px] place-items-center bg-[#f8efe0] p-8 text-center">
+        <div className="grid min-h-[220px] place-items-center bg-[#FAF3E8] p-6 text-center">
           <div>
-            <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full border-[3px] border-[#6f5144] bg-[#f3c4bb] text-3xl shadow-[4px_5px_0_#d7a487]">🏡</div>
-            <h3 className="font-serif text-xl font-black">Ready for a cozy shift?</h3>
-            <p className="mx-auto mt-1 max-w-sm text-[11px] leading-relaxed text-[#8d7064]">Bake a few treats, tap a guest when their complete order is ready, and clean the table after they leave.</p>
-            <button type="button" onClick={startShift} className="mt-4 rounded-2xl border-[3px] border-[#6f5144] bg-[#c87870] px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] text-white shadow-[3px_4px_0_#6f5144] transition active:translate-y-1 active:shadow-none">
-              Open for day {day} ✦
+            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full border-3 border-[#6F5144] bg-[#F3C4BB] text-2xl shadow-md">🏡</div>
+            <h3 className="font-serif text-base font-black">Open Sanctuary Cafe</h3>
+            <p className="mx-auto mt-1 max-w-sm text-[10px] leading-relaxed text-[#8D7064]">
+              Start the shift to welcome travelers! Prepare recipes, deliver complete orders, and clean dirty tables to build reputation.
+            </p>
+            <button 
+              type="button" 
+              onClick={startShift} 
+              className="mt-4 rounded-2xl border-3 border-[#6F5144] bg-[#C87870] px-6 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-md active:scale-95 transition cursor-pointer"
+            >
+              Open for Day {day} shift ✦
             </button>
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 bg-[#f8efe0] p-3 md:grid-cols-[1fr_1.8fr]">
-          <div className="space-y-3">
-            <div className="rounded-2xl border-2 border-[#9a7662] bg-[#fff8e8] p-3 shadow-[2px_3px_0_#d6b294]">
-              <p className="mb-2 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#a36d61]"><Sparkles className="h-3 w-3" /> Serving counter</p>
+        <div className="grid gap-3 bg-[#FAF3E8] p-3 md:grid-cols-[1.2fr_1.8fr]">
+          <div className="space-y-3 text-left">
+            {/* Serving Pickup stock counter */}
+            <div className="rounded-2xl border-2 border-[#9A7662] bg-[#FFF8E8] p-3 shadow-[2px_3px_0_#D6B294]">
+              <p className="mb-2 flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-wider text-[#A36D61]"><Sparkles className="h-3 w-3" /> Pickup Counter</p>
               {stockItems.length ? (
                 <div className="flex flex-wrap gap-2">
                   {stockItems.map((item) => (
-                    <span key={item.id} className="rounded-xl border-2 border-[#d4ad8d] bg-[#f9e6c8] px-2 py-1 text-[11px] font-black">
+                    <span key={item.id} className="rounded-xl border-2 border-[#D4AD8D] bg-[#F9E6C8] px-2.5 py-1 text-[10px] font-black">
                       {item.emoji} ×{stock[item.id]}
                     </span>
                   ))}
                 </div>
-              ) : <p className="text-[10px] italic text-[#a08a7e]">Fresh food will appear here.</p>}
+              ) : (
+                <p className="text-[9px] italic text-[#A08A7E]">Ready batches will land here...</p>
+              )}
             </div>
 
-            <div className="rounded-2xl border-2 border-[#9a7662] bg-[#e4ecd8] p-3 shadow-[2px_3px_0_#b8c69f]">
-              <p className="mb-2 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#617557]"><Clock3 className="h-3 w-3" /> In the kitchen · {jobs.length}/3</p>
-              {jobs.length ? jobs.map((job) => {
-                const item = menuItem(job.itemId);
-                const progress = Math.min(100, ((now - job.startedAt) / (job.finishesAt - job.startedAt)) * 100);
-                return (
-                  <div key={job.jobId} className="mb-2 last:mb-0">
-                    <div className="mb-0.5 flex justify-between text-[9px] font-bold"><span>{item?.emoji} {item?.shortName}</span><span>{Math.max(0, Math.ceil((job.finishesAt - now) / 1000))}s</span></div>
-                    <div className="h-2 overflow-hidden rounded-full border border-[#708365] bg-[#fff8e8]"><div className="h-full bg-[#91b681]" style={{ width: `${progress}%` }} /></div>
-                  </div>
-                );
-              }) : <p className="text-[10px] italic text-[#718069]">Choose a recipe to begin.</p>}
+            {/* Active preparation progress bars */}
+            <div className="rounded-2xl border-2 border-[#9A7662] bg-[#E4ECD8] p-3 shadow-[2px_3px_0_#B8C69F]">
+              <p className="mb-2 flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-wider text-[#617557]"><Clock3 className="h-3 w-3" /> Prep Queues ({jobs.length}/3)</p>
+              {jobs.length ? (
+                <div className="space-y-2">
+                  {jobs.map((job) => {
+                    const item = MENU.find((m) => m.id === job.itemId);
+                    const progress = Math.min(100, ((now - job.startedAt) / (job.finishesAt - job.startedAt)) * 100);
+                    return (
+                      <div key={job.jobId} className="flex flex-col gap-1">
+                        <div className="flex justify-between text-[8px] font-bold text-stone-700">
+                          <span>{item?.emoji} {item?.shortName}</span>
+                          <span>{Math.max(0, Math.ceil((job.finishesAt - now) / 1000))}s</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full border border-[#708365] bg-[#FFF8E8]">
+                          <div className="h-full bg-[#91B681]" style={{ width: `${progress}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[9px] italic text-[#718069]">No recipes currently cooking.</p>
+              )}
             </div>
           </div>
 
-          <div className="rounded-2xl border-2 border-[#9a7662] bg-[#fffaf0] p-3 shadow-[2px_3px_0_#d6b294]">
-            <p className="mb-2 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#a36d61]"><ChefHat className="h-3 w-3" /> Recipe book</p>
+          {/* Active Recipe book grid */}
+          <div className="rounded-2xl border-2 border-[#9A7662] bg-[#FFFAF0] p-3 shadow-[2px_3px_0_#D6B294] text-left">
+            <p className="mb-2 flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-wider text-[#A36D61]"><ChefHat className="h-3 w-3" /> Prep Recipes Book</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {MENU.map((item) => {
                 const locked = item.unlockDay > day;
@@ -562,12 +1000,19 @@ export function GraceCafe() {
                     type="button"
                     disabled={disabled}
                     onClick={() => startCooking(item)}
-                    className="relative min-h-[76px] rounded-xl border-2 border-[#c99e7f] bg-[#f8e6ca] p-2 text-left shadow-[2px_2px_0_#c99e7f] transition enabled:hover:-translate-y-0.5 enabled:hover:bg-[#fcefdc] disabled:cursor-not-allowed disabled:opacity-45"
+                    className="relative min-h-[72px] rounded-xl border-2 border-[#C99E7F] bg-[#F8E6CA] p-2 text-left shadow-[2px_2px_0_#C99E7F] transition enabled:hover:-translate-y-0.5 enabled:hover:bg-[#FCEFDC] disabled:cursor-not-allowed disabled:opacity-45 cursor-pointer"
                   >
-                    {locked ? <Lock className="mb-1 h-4 w-4" /> : <span className="text-xl">{item.emoji}</span>}
-                    <span className="block truncate text-[9px] font-black">{locked ? `Unlocks day ${item.unlockDay}` : item.shortName}</span>
-                    {!locked && <span className="mt-1 flex items-center justify-between text-[8px] font-bold text-[#9c6c58]"><span>🪙{item.ingredientCost}</span><span>makes {item.batch}</span></span>}
-                    <span className="absolute right-1.5 top-1.5 text-[#8d7064]">{item.station === "drinks" ? <Coffee className="h-3 w-3" /> : <ChefHat className="h-3 w-3" />}</span>
+                    {locked ? <Lock className="mb-1 h-3.5 w-3.5 text-stone-400" /> : <span className="text-lg">{item.emoji}</span>}
+                    <span className="block truncate text-[8.5px] font-black">{locked ? `Day ${item.unlockDay} Unlock` : item.shortName}</span>
+                    {!locked && (
+                      <span className="mt-1 flex items-center justify-between text-[7.5px] font-bold text-[#9C6C58]">
+                        <span>🪙{item.ingredientCost}</span>
+                        <span>makes {item.batch}</span>
+                      </span>
+                    )}
+                    <span className="absolute right-1.5 top-1.5 text-[#8D7064]">
+                      {item.station === "drinks" ? <Coffee className="h-3 w-3" /> : <ChefHat className="h-3 w-3" />}
+                    </span>
                   </button>
                 );
               })}
@@ -576,23 +1021,35 @@ export function GraceCafe() {
         </div>
       )}
 
+      {/* ─── A. SHOP UPGRADES OVERLAY ─── */}
       <AnimatePresence>
         {shopOpen && (
-          <div className="absolute inset-0 z-50 grid place-items-center bg-[#4c382f]/55 p-4 backdrop-blur-[2px]">
-            <motion.div initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }} className="w-full max-w-md rounded-[26px] border-[3px] border-[#6f5144] bg-[#fff8e8] p-5 shadow-2xl">
+          <div className="absolute inset-0 z-50 grid place-items-center bg-[#4C382F]/55 p-4 backdrop-blur-[2px]">
+            <motion.div initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }} className="w-full max-w-md rounded-[26px] border-[3px] border-[#6F5144] bg-[#FFF8E8] p-5 shadow-2xl">
               <div className="mb-4 flex items-start justify-between">
-                <div><p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#a36d61]">The cozy corner shop</p><h3 className="font-serif text-lg font-black">Café upgrades</h3></div>
-                <button type="button" onClick={() => setShopOpen(false)} className="rounded-full border-2 border-[#6f5144] bg-[#f1c2b8] p-1"><X className="h-4 w-4" /></button>
+                <div className="text-left">
+                  <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#A36D61]">The cozy corner shop</p>
+                  <h3 className="font-serif text-base font-black">Café Hired Staff & Upgrades</h3>
+                </div>
+                <button type="button" onClick={() => setShopOpen(false)} className="rounded-full border-2 border-[#6F5144] bg-[#F1C2B8] p-1 cursor-pointer"><X className="h-4 w-4" /></button>
               </div>
-              <div className="space-y-2">
-                {UPGRADES.map((upgrade) => {
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {upgradesList.map((upgrade) => {
                   const purchased = owned.includes(upgrade.id);
                   return (
-                    <div key={upgrade.id} className="flex items-center gap-3 rounded-2xl border-2 border-[#d0aa8b] bg-[#f9e8cf] p-3">
-                      <span className="grid h-11 w-11 place-items-center rounded-full border-2 border-[#9b765f] bg-[#fff8e8] text-2xl">{upgrade.emoji}</span>
-                      <div className="min-w-0 flex-1"><p className="text-[11px] font-black">{upgrade.name}</p><p className="text-[9px] text-[#8d7064]">{upgrade.description}</p></div>
-                      <button type="button" disabled={purchased} onClick={() => buyUpgrade(upgrade)} className="rounded-xl border-2 border-[#6f5144] bg-[#b6c99e] px-2.5 py-1 text-[9px] font-black disabled:bg-[#ddd2c2]">
-                        {purchased ? "Owned" : `🪙 ${upgrade.price}`}
+                    <div key={upgrade.id} className="flex items-center gap-3 rounded-2xl border-2 border-[#D0AA8B] bg-[#F9E8CF] p-3 text-left">
+                      <span className="grid h-11 w-11 place-items-center rounded-full border-2 border-[#9B765F] bg-[#FFF8E8] text-2xl">{upgrade.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-black">{upgrade.name}</p>
+                        <p className="text-[9px] text-[#8D7064] leading-tight">{upgrade.description}</p>
+                      </div>
+                      <button 
+                        type="button" 
+                        disabled={purchased} 
+                        onClick={() => buyUpgrade(upgrade)} 
+                        className="rounded-xl border-2 border-[#6F5144] bg-[#B6C99E] px-2.5 py-1 text-[9px] font-black disabled:bg-[#DDD2C2] cursor-pointer shrink-0"
+                      >
+                        {purchased ? "Owned" : `🪙 ${upgrade.cost}`}
                       </button>
                     </div>
                   );
@@ -603,25 +1060,198 @@ export function GraceCafe() {
         )}
       </AnimatePresence>
 
+      {/* ─── B. SHIFT SUMMARY REPORT OVERLAY ─── */}
       <AnimatePresence>
         {reportOpen && (
-          <div className="absolute inset-0 z-40 grid place-items-center bg-[#4c382f]/55 p-4 backdrop-blur-[2px]">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="w-full max-w-sm rounded-[28px] border-[3px] border-[#6f5144] bg-[#fff8e8] p-6 text-center shadow-2xl">
-              <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full border-[3px] border-[#6f5144] bg-[#f2ce74] text-2xl">✨</div>
-              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[#a36d61]">Day {day} complete</p>
-              <h3 className="font-serif text-xl font-black">The doors are closed</h3>
+          <div className="absolute inset-0 z-40 grid place-items-center bg-[#4C382F]/55 p-4 backdrop-blur-[2px]">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="w-full max-w-sm rounded-[28px] border-[3px] border-[#6F5144] bg-[#FFF8E8] p-6 text-center shadow-2xl">
+              <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full border-[3px] border-[#6F5144] bg-[#F2CE74] text-2xl">✨</div>
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[#A36D61]">Day {day} complete</p>
+              <h3 className="font-serif text-lg font-black">The doors are closed</h3>
               <div className="my-4 grid grid-cols-2 gap-2">
-                <div className="rounded-2xl border-2 border-[#d0aa8b] bg-[#f9e8cf] p-3"><p className="text-xl font-black">{servedToday}</p><p className="text-[8px] font-black uppercase tracking-wider">guests served</p></div>
-                <div className="rounded-2xl border-2 border-[#a8bd91] bg-[#e4ecd8] p-3"><p className="text-xl font-black">+{earnedToday}</p><p className="text-[8px] font-black uppercase tracking-wider">coins earned</p></div>
+                <div className="rounded-2xl border-2 border-[#D0AA8B] bg-[#F9E8CF] p-3 text-center">
+                  <p className="text-xl font-black">{servedToday}</p>
+                  <p className="text-[8px] font-black uppercase tracking-wider text-[#A36D61]">guests served</p>
+                </div>
+                <div className="rounded-2xl border-2 border-[#A8BD91] bg-[#E4ECD8] p-3 text-center">
+                  <p className="text-xl font-black">+{earnedToday}</p>
+                  <p className="text-[8px] font-black uppercase tracking-wider text-[#617557]">coins earned</p>
+                </div>
               </div>
-              <p className="mb-4 text-[10px] text-[#8d7064]">Evening rent: {12 + Math.max(0, day - 1) * 2} coins. You will always keep enough to reopen.</p>
-              <button type="button" onClick={payRentAndContinue} className="w-full rounded-2xl border-[3px] border-[#6f5144] bg-[#c87870] py-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-white shadow-[3px_4px_0_#6f5144] active:translate-y-1 active:shadow-none">
-                Close the register
+              <div className="bg-[#FAF3E8] p-3 rounded-2xl text-[10px] text-stone-600 space-y-1 mb-4 border border-stone-200 text-left">
+                <div className="flex justify-between"><span>Base Rent Charge:</span><span className="font-bold text-red-500">-🪙 10</span></div>
+                {getStaffWages() > 0 && (
+                  <div className="flex justify-between"><span>Hired Staff Wages:</span><span className="font-bold text-red-400">-🪙 {getStaffWages()}</span></div>
+                )}
+                {hasUpgrade("staff_goldie") && (
+                  <div className="flex justify-between text-yellow-600 font-bold"><span>Goldie Multiplier:</span><span>Applied (+15%) 💫</span></div>
+                )}
+                <div className="border-t border-stone-300 pt-1.5 flex justify-between font-bold text-stone-850"><span>Current Cash:</span><span>🪙 {coins}</span></div>
+              </div>
+              <button 
+                type="button" 
+                onClick={handlePayRent} 
+                className="w-full rounded-2xl border-[3px] border-[#6F5144] bg-[#C87870] py-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-white shadow-[3px_4px_0_#6F5144] active:translate-y-1 active:shadow-none cursor-pointer"
+              >
+                {coins >= getDayTotalDeductions() 
+                  ? `Pay Rent & Wages 🪙${getDayTotalDeductions()}` 
+                  : "Request Grace Period 🙏"}
               </button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* ─── C. SCRIPTURE UNSCRAMBLE DRAWER (GRACE PERIOD) ─── */}
+      <AnimatePresence>
+        {isScrambleActive && scrambleInfo && (
+          <div className="absolute inset-0 bg-stone-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-60 animate-fade-in">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#FFF9F2] border-4 border-amber-300 p-6 rounded-[36px] shadow-2xl text-center max-w-sm w-full relative min-h-[340px] flex flex-col justify-between"
+            >
+              <div className="w-full">
+                <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-600 block">Grace Period Challenge</span>
+                <h3 className="font-serif text-sm font-bold text-amber-800 mb-1">
+                  ✍️ Scripture Unscramble
+                </h3>
+                <p className="text-[9px] text-stone-500 italic mb-4">
+                  Unscramble the holy word below to receive emergency Gold Coins!
+                </p>
+              </div>
+
+              <div className="bg-amber-50/50 border border-amber-200/50 rounded-2xl p-3 text-[10px] text-amber-900 font-bold mb-4">
+                💡 Clue: &quot;{scrambleInfo.clue}&quot;
+              </div>
+
+              <div className="flex flex-col gap-1 items-center justify-center my-2">
+                <span className="text-[8.5px] uppercase font-bold text-stone-400 tracking-wider">Your Answer:</span>
+                <div className="flex gap-1 h-9 items-center justify-center border-b-2 border-dashed border-stone-300 w-full px-4 text-sm font-extrabold text-stone-850 tracking-widest">
+                  {scrambleAnswer.length === 0 ? (
+                    <span className="text-[10px] font-bold text-stone-400 italic">Tap letter blocks...</span>
+                  ) : (
+                    scrambleAnswer.join(" ")
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-center flex-wrap my-3">
+                {scrambleLetters.map((l) => (
+                  <button
+                    key={l.id}
+                    disabled={l.clicked}
+                    onClick={() => handleScrambleLetterClick(l.id, l.char)}
+                    className={`w-9 h-9 rounded-xl font-extrabold text-xs shadow-xs active:scale-90 transition-all cursor-pointer border flex items-center justify-center ${
+                      l.clicked
+                        ? "bg-stone-100 border-stone-200 text-stone-300 opacity-40 pointer-events-none"
+                        : "bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100"
+                    }`}
+                  >
+                    {l.char}
+                  </button>
+                ))}
+              </div>
+
+              {scrambleMessage && (
+                <span className="text-[9px] font-bold text-red-500 italic block py-0.5">{scrambleMessage}</span>
+              )}
+
+              <div className="flex gap-3 w-full mt-4">
+                <button
+                  onClick={handleScrambleUndo}
+                  className="flex-1 py-2 rounded-xl border border-stone-250 text-stone-600 font-bold text-[9.5px] uppercase tracking-wider active:scale-95 transition-all cursor-pointer"
+                >
+                  Undo
+                </button>
+                <button
+                  onClick={checkScrambleSubmit}
+                  className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[9.5px] uppercase tracking-wider active:scale-95 transition-all cursor-pointer shadow-sm"
+                >
+                  Submit
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
+  );
+}
+
+// --- Customer and Lobby characters components ---
+function CustomerCharacter({ customer, onServe }: { customer: Customer; onServe: () => void }) {
+  const animal = customer.type;
+
+  return (
+    <motion.button
+      type="button"
+      aria-label={`Serve ${animal}`}
+      initial={{ y: 22, opacity: 0, scale: 0.85 }}
+      animate={{
+        y: customer.state === "eating" ? [0, -3, 0] : 0,
+        opacity: customer.state === "leaving" ? 0 : 1,
+        scale: customer.state === "leaving" ? 0.8 : 1,
+      }}
+      transition={customer.state === "eating" ? { repeat: Infinity, duration: 1.2 } : { duration: 0.35 }}
+      onClick={onServe}
+      disabled={customer.state !== "waiting"}
+      className="absolute bottom-[28px] z-30 flex -translate-x-1/2 flex-col items-center disabled:cursor-default"
+      style={{ left: TABLES.find((table) => table.id === customer.tableId)?.left }}
+    >
+      {customer.state === "waiting" && (
+        <div className="mb-1 min-w-[76px] rounded-[14px] border-2 border-[#6F5144] bg-[#FFFAF0] px-2 py-1 text-center shadow-md animate-bounce flex flex-col items-center">
+          <span className="block text-[6.5px] font-black uppercase tracking-[0.14em] text-[#A36D61]">Ordering:</span>
+          <span className="flex justify-center gap-1 text-[15px] leading-5">
+            {customer.order.map((id, index) => {
+              const item = MENU.find(m => m.id === id);
+              return <span key={`${id}-${index}`}>{item?.emoji}</span>;
+            })}
+          </span>
+        </div>
+      )}
+      {customer.state === "eating" && (
+        <div className="mb-1 rounded-full border border-[#A8BE98] bg-[#F4F7E9] px-2 py-0.5 text-[9px] font-black text-[#58704D]">
+          yum! ♡
+        </div>
+      )}
+      
+      {/* Custom SVG Render */}
+      <CustomerAnimal type={customer.type} patience={customer.patience} state={customer.state} />
+      
+      {customer.state === "waiting" && (
+        <div className="mt-1 h-1.5 w-12 overflow-hidden rounded-full border border-[#6F5144]/40 bg-[#FFFFAF]">
+          <div
+            className={`h-full transition-all ${customer.patience < 35 ? "bg-[#d66f68]" : "bg-[#91b681]"}`}
+            style={{ width: `${customer.patience}%` }}
+          />
+        </div>
+      )}
+    </motion.button>
+  );
+}
+
+function LobbyCustomer({ customer }: { customer: Customer }) {
+  return (
+    <motion.div
+      initial={{ x: -46, y: 12, opacity: 0, scale: 0.84 }}
+      animate={{ x: [0, 34, 72], y: [10, 0, 7], opacity: 1, scale: 1 }}
+      exit={{ x: 126, opacity: 0, scale: 0.9 }}
+      transition={{ duration: 1.45, ease: "easeInOut" }}
+      className="absolute bottom-[44px] left-16 z-30 flex flex-col items-center"
+    >
+      <div className="mb-1 rounded-full border-2 border-[#C78D7E] bg-[#FFFAF0] px-2 py-0.5 text-[8px] font-black text-[#8D5D50] shadow-sm">
+        Table {customer.tableId}, please!
+      </div>
+      <CustomerAnimal type={customer.type} patience={customer.patience} state={customer.state} />
+      <div className="mt-1 flex gap-1 text-[13px]">
+        {customer.order.map((id, index) => {
+          const item = MENU.find(m => m.id === id);
+          return <span key={`${customer.id}-lobby-${id}-${index}`}>{item?.emoji}</span>;
+        })}
+      </div>
+    </motion.div>
   );
 }
