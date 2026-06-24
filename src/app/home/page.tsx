@@ -1,5 +1,3 @@
-import { Navbar } from "@/components/Navbar";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SocialFeed } from "@/components/social/SocialFeed";
 import { Greeting } from "@/components/home/Greeting";
@@ -7,6 +5,8 @@ import { DailyVerseCard } from "@/components/home/DailyVerseCard";
 import { SelahSisterCard } from "@/components/SelahSisterCard";
 import { InstagramEmbed } from "@/components/social/InstagramEmbed";
 import { HomeOnboarding } from "@/components/home/HomeOnboarding";
+import { HomeEventDecorations } from "@/components/home/HomeEventDecorations";
+import { ScriptureMoodMatch } from "@/components/home/ScriptureMoodMatch";
 
 export const dynamic = "force-dynamic";
 
@@ -49,26 +49,28 @@ export default async function UserHome(props: {
             const name = typeof searchParams.name === 'string' ? searchParams.name : "Sister";
             displayName = name;
         }
-    } catch (e) {
+    } catch {
         // Keys might be missing, fall back to params
         const name = typeof searchParams.name === 'string' ? searchParams.name : "Sister";
         displayName = name;
     }
 
     return (
-        <div className="min-h-screen bg-warm-paper">
+        <div className="relative min-h-screen overflow-hidden bg-warm-paper">
             {/* Note: Navbar is handled in Layout, but we might want a user-specific one. 
           For now, we'll reuse the layout's Navbar or assume it handles state. 
           If Layout has fixed Navbar, this content pushes down. */}
 
+            <HomeEventDecorations />
+
             {/* Onboarding Pop-up */}
             <HomeOnboarding />
 
-            <div className="container mx-auto px-4 pt-8 pb-20 max-w-5xl">
+            <div className="container relative z-10 mx-auto px-4 pt-8 pb-20 max-w-5xl">
                 {/* Welcome Section */}
                 <header className="mb-8 text-center md:text-left animate-fade-in-up">
                     <Greeting displayName={displayName} />
-                    <p className="text-warm-grey/60">"She is clothed with strength and dignity..." — Proverbs 31:25</p>
+                    <p className="text-warm-grey/60">&ldquo;She is clothed with strength and dignity...&rdquo; — Proverbs 31:25</p>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -81,6 +83,10 @@ export default async function UserHome(props: {
 
                         {/* Selah Sister Feature */}
                         <SelahSisterCard />
+
+                        <div className="block lg:hidden">
+                            <ScriptureMoodMatch />
+                        </div>
 
                         {/* Feed Header */}
                         <div className="flex items-center justify-between mb-2">
@@ -100,9 +106,7 @@ export default async function UserHome(props: {
                             <DailyVerseCard />
                         </div>
 
-
-
-
+                        <ScriptureMoodMatch />
 
                         {/* Instagram Embed (New Position) */}
                         <div className="glass-card p-6 rounded-3xl border border-white/60 bg-white/40">

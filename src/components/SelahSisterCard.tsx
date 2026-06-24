@@ -1,16 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { getDailySelahSister, SelahSister } from "@/data/selahSisters";
 
 export function SelahSisterCard() {
-    const [sister, setSister] = useState<SelahSister | null>(null);
-
-    useEffect(() => {
-        setSister(getDailySelahSister());
-    }, []);
+    const [sister] = useState<SelahSister | null>(() => getDailySelahSister());
 
     if (!sister) return null;
 
@@ -60,6 +56,18 @@ export function SelahSisterCard() {
                 <p className="text-warm-grey text-sm mb-6 leading-relaxed flex-1">
                     {sister.biography}
                 </p>
+
+                <div className="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-800/50">
+                        Reflection
+                    </p>
+                    <p className="mt-1 font-serif text-base leading-snug text-warm-cocoa">
+                        What can I learn from {sister.name} today?
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-warm-grey/70">
+                        Where can I practice her kind of faith in my real life?
+                    </p>
+                </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-stone-100/60 mt-auto">
                     <span className="text-[10px] text-sage-green font-bold flex items-center gap-1 font-sans bg-sage-green/10 px-2 py-0.5 rounded-full">

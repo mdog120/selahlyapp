@@ -467,6 +467,90 @@ export const selahSisters: SelahSister[] = [
         biography: "A mother who cried out to God in her debt. Through Elisha, God multiplied her small jar of oil to pay her debts and save her sons, demonstrating God's faithful provision.",
         book: "2 Kings",
         chapter: "4"
+    },
+    {
+        name: "Pharaoh's Daughter",
+        biography: "A princess moved by compassion. She rescued baby Moses from the Nile and raised him, becoming part of God's deliverance story.",
+        book: "Exodus",
+        chapter: "2"
+    },
+    {
+        name: "Persis",
+        biography: "A beloved sister who worked hard in the Lord. Paul honored her diligence, reminding us that faithful labor is seen by God.",
+        book: "Romans",
+        chapter: "16"
+    },
+    {
+        name: "Nympha",
+        biography: "A woman of hospitality who hosted a church in her home. Her open door became a gathering place for worship and community.",
+        book: "Colossians",
+        chapter: "4"
+    },
+    {
+        name: "Mary of Rome",
+        biography: "A hardworking servant in the early church. Paul praised her labor for the believers, showing the quiet strength of faithful service.",
+        book: "Romans",
+        chapter: "16"
+    },
+    {
+        name: "Rufus's Mother",
+        biography: "A nurturing woman whose care reached beyond her own family. Paul remembered her as a mother to him as well.",
+        book: "Romans",
+        chapter: "16"
+    },
+    {
+        name: "Chloe",
+        biography: "A woman connected to a household that cared about unity in the church. Her story reminds us that truth spoken in love can protect fellowship.",
+        book: "1 Corinthians",
+        chapter: "1"
+    },
+    {
+        name: "Wise Woman of Abel Beth Maacah",
+        biography: "A woman of courage and wise negotiation. Her counsel saved her city from destruction and turned away bloodshed.",
+        book: "2 Samuel",
+        chapter: "20"
+    },
+    {
+        name: "Jephthah's Daughter",
+        biography: "A daughter remembered for courage in a tragic story. Her life calls us to grieve injustice while honoring steadfast devotion.",
+        book: "Judges",
+        chapter: "11"
+    },
+    {
+        name: "Woman Bent Over for 18 Years",
+        biography: "A daughter of Abraham set free by Jesus. After years of suffering, she was lifted up and glorified God.",
+        book: "Luke",
+        chapter: "13"
+    },
+    {
+        name: "Widow of Nain",
+        biography: "A grieving mother met by the compassion of Christ. Jesus restored her son to life, showing His tenderness toward the brokenhearted.",
+        book: "Luke",
+        chapter: "7"
+    },
+    {
+        name: "Julia",
+        biography: "A faithful believer greeted by Paul among the saints in Rome. Her brief mention reminds us that every sister in Christ matters in the body.",
+        book: "Romans",
+        chapter: "16"
+    },
+    {
+        name: "Nereus's Sister",
+        biography: "A sister remembered among the Roman believers. Though unnamed, she stands as a witness that God knows every faithful woman by name.",
+        book: "Romans",
+        chapter: "16"
+    },
+    {
+        name: "Deborah, Rebekah's Nurse",
+        biography: "A beloved caregiver whose death was deeply mourned. Her remembrance shows the honor of quiet, lifelong faithfulness.",
+        book: "Genesis",
+        chapter: "35"
+    },
+    {
+        name: "Asenath",
+        biography: "The wife of Joseph and mother of Ephraim and Manasseh. Her family became woven into Israel's blessing and legacy.",
+        book: "Genesis",
+        chapter: "41"
     }
 ];
 
