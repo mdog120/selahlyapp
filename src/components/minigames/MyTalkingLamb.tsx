@@ -1795,7 +1795,10 @@ export function MyTalkingLamb() {
 
         {/* ROOM ACTIONS FLOATING BAR (LAPTPOP & MOBILE-SAFE) */}
         {!isCooking && (
-          <div className="absolute left-3 right-3 top-[76px] sm:left-4 sm:right-auto sm:top-16 z-30 flex max-h-[78px] flex-wrap gap-1.5 sm:gap-2 overflow-y-auto pointer-events-auto pr-1">
+          <div 
+            className="absolute left-3 right-3 top-[64px] sm:left-4 sm:right-auto sm:top-16 z-30 flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pointer-events-auto pr-1 py-1"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
             {activeRoom === "living" && (
               <>
                 <button
@@ -1965,7 +1968,7 @@ export function MyTalkingLamb() {
         )}
 
         {/* VIRTUAL LAMB CANVAS DOCK */}
-        <div className="absolute inset-x-0 bottom-24 sm:bottom-20 flex justify-center items-center h-32 sm:h-36 z-10 pointer-events-none">
+        <div className="absolute inset-x-0 bottom-24 sm:bottom-20 flex justify-center items-center h-32 sm:h-36 z-35 pointer-events-none">
           
           {/* Dialogue speech bubble */}
           <AnimatePresence>
@@ -1974,7 +1977,7 @@ export function MyTalkingLamb() {
                 initial={{ scale: 0.8, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                className="absolute -top-20 sm:-top-20 bg-white/95 backdrop-blur-md border-2 border-rose-200 text-[#4B3A3A] px-3 sm:px-4 py-2.5 sm:py-3 rounded-[22px] sm:rounded-[24px] shadow-[0_14px_38px_rgba(120,86,62,0.18)] text-center max-w-[210px] sm:max-w-[240px] text-[9.5px] sm:text-[10.5px] font-bold z-48 pointer-events-auto ring-4 ring-white/40"
+                className="absolute -top-10 sm:-top-20 bg-white/95 backdrop-blur-md border-2 border-rose-200 text-[#4B3A3A] px-3 sm:px-4 py-2.5 sm:py-3 rounded-[22px] sm:rounded-[24px] shadow-[0_14px_38px_rgba(120,86,62,0.18)] text-center max-w-[210px] sm:max-w-[240px] text-[9.5px] sm:text-[10.5px] font-bold z-48 pointer-events-auto ring-4 ring-white/40"
               >
                 <div className="relative text-center">
                   {dialogue}
