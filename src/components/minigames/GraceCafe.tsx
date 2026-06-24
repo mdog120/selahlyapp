@@ -278,7 +278,7 @@ const CustomerAnimal: React.FC<{ type: AnimalType; patience: number; state: Cust
 };
 
 export function GraceCafe() {
-  const [coins, setCoins] = useState(100);
+  const [coins, setCoins] = useState(50);
   const [day, setDay] = useState(1);
   const [rating, setRating] = useState(100);
   const [timeLeft, setTimeLeft] = useState(SHIFT_LENGTH);
@@ -362,7 +362,7 @@ export function GraceCafe() {
     try {
       const saved = JSON.parse(raw);
       setTimeout(() => {
-        setCoins(saved.coins ?? 100);
+        setCoins(saved.coins ?? 50);
         setDay(saved.day ?? 1);
         setRating(saved.rating ?? 100);
         setOwned(saved.owned ?? []);
