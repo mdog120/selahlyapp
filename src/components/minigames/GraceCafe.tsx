@@ -74,7 +74,17 @@ const MENU: MenuItem[] = [
   { id: "strawberry_cake", name: "Selah Strawberry Cake", emoji: "🍰", shortName: "Strawberry cake", station: "oven", ingredientCost: 45, price: 110, batch: 2, seconds: 8, unlockDay: 4, description: "Fresh strawberry layered cake." },
   { id: "bubble_tea", name: "Beatitude Bubble Tea", emoji: "🧋", shortName: "Bubble tea", station: "drinks", ingredientCost: 50, price: 120, batch: 2, seconds: 6, unlockDay: 4, description: "Refreshing bubble tea with tapioca pearls." },
   
-  { id: "hot_chocolate", name: "Heavenly Hot Chocolate", emoji: "🍫", shortName: "Hot chocolate", station: "drinks", ingredientCost: 60, price: 150, batch: 2, seconds: 5, unlockDay: 5, description: "Hot cocoa topped with whipped cream." }
+  { id: "heavenly_waffles", name: "Heavenly Waffles", emoji: "🧇", shortName: "Waffles", station: "oven", ingredientCost: 70, price: 180, batch: 3, seconds: 6, unlockDay: 5, description: "Fluffy honey-glazed waffles straight from heaven." },
+  { id: "hot_chocolate", name: "Heavenly Hot Chocolate", emoji: "🍫", shortName: "Hot chocolate", station: "drinks", ingredientCost: 60, price: 150, batch: 2, seconds: 5, unlockDay: 5, description: "Hot cocoa topped with whipped cream." },
+  
+  { id: "sacred_scones", name: "Sacred Blueberry Scones", emoji: "🥮", shortName: "Blueberry scones", station: "oven", ingredientCost: 80, price: 210, batch: 4, seconds: 7, unlockDay: 6, description: "Warm butter scones infused with sacred berries." },
+  { id: "peace_matcha", name: "Peaceful Matcha Latte", emoji: "🍵", shortName: "Matcha latte", station: "drinks", ingredientCost: 90, price: 240, batch: 2, seconds: 5, unlockDay: 6, description: "Wholesome green tea latte for a quiet spirit." },
+  
+  { id: "grace_macarons", name: "Graceful French Macarons", emoji: "🍥", shortName: "Macarons", station: "oven", ingredientCost: 110, price: 300, batch: 6, seconds: 8, unlockDay: 7, description: "Colorfully delicate French macarons packed with grace." },
+  { id: "eden_smoothie", name: "Eden Garden Green Smoothie", emoji: "🥤", shortName: "Green smoothie", station: "drinks", ingredientCost: 120, price: 330, batch: 2, seconds: 6, unlockDay: 7, description: "Fresh blended organic fruits and greens from Eden." },
+  
+  { id: "revelation_cake", name: "Revelation Lava Cake", emoji: "🎂", shortName: "Lava cake", station: "oven", ingredientCost: 150, price: 420, batch: 2, seconds: 10, unlockDay: 8, description: "Rich chocolate lava cake revealing sweet molten goodness." },
+  { id: "seraphim_shake", name: "Seraphim Gold Shake", emoji: "🧋", shortName: "Gold milkshake", station: "drinks", ingredientCost: 160, price: 450, batch: 2, seconds: 7, unlockDay: 8, description: "Spiced golden milkshake fit for angels." }
 ];
 
 const SCRAMBLE_WORDS: ScrambleWord[] = [
@@ -620,6 +630,24 @@ export function GraceCafe() {
     setMessage(`Preparing: ${item.name} batch (${item.station === "oven" ? "baking" : "brewing"})...`);
   };
 
+  const handleRecipeClick = (item: MenuItem) => {
+    const locked = item.unlockDay > day;
+    if (locked) {
+      setMessage(`🔒 The ${item.name} unlocks on Day ${item.unlockDay}!`);
+      return;
+    }
+    const busy = isStationBusy(item.station);
+    if (busy) {
+      setMessage(`⚠️ The ${item.station === "oven" ? "Stone Oven" : "Espresso Machine"} is busy cooking or has ready items!`);
+      return;
+    }
+    if (coins < item.ingredientCost) {
+      setMessage(`⚠️ You need 🪙${item.ingredientCost} Gold Coins to buy ingredients for ${item.shortName}!`);
+      return;
+    }
+    startCooking(item);
+  };
+
   const serveCustomer = (customer: Customer) => {
     if (customer.state !== "waiting") return;
 
@@ -1055,12 +1083,35 @@ export function GraceCafe() {
             {/* Stone Hearth Baking Oven */}
             <div className="flex flex-col items-center relative">
               <span className="text-[8px] font-black text-white bg-[#6F5144] px-2 py-0.5 rounded-md mb-1.5 shadow-sm">Stone Oven</span>
-              <div className="h-20 w-20 rounded-t-3xl border-4 border-[#6F5144] bg-[#89544F] shadow-md flex items-center justify-center text-4xl relative">
-                {hasUpgrade("oven_pro") ? "🍯" : "♨️"}
-                {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "oven") && (
-                  <div className="absolute inset-2 bg-orange-500/20 border border-orange-400 rounded-full animate-ping pointer-events-none" />
-                )}
-              </div>
+              {(() => {
+                const completedOvenJob = completedJobs.find(j => MENU.find(m => m.id === j.itemId)?.station === "oven");
+                const ovenItem = completedOvenJob ? MENU.find(m => m.id === completedOvenJob.itemId) : null;
+                
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (ovenItem) {
+                        collectCompleted("oven");
+                      } else {
+                        setMessage("Stone Oven: Select a baking recipe below to start baking!");
+                      }
+                    }}
+                    className="h-20 w-20 rounded-t-3xl border-4 border-[#6F5144] bg-[#89544F] shadow-md flex items-center justify-center text-4xl relative cursor-pointer hover:brightness-105 active:scale-95 transition-all z-20"
+                  >
+                    {ovenItem ? (
+                      <span className="animate-pulse">{ovenItem.emoji}</span>
+                    ) : hasUpgrade("oven_pro") ? (
+                      "🍯"
+                    ) : (
+                      "♨️"
+                    )}
+                    {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "oven") && (
+                      <div className="absolute inset-2 bg-orange-500/20 border border-orange-400 rounded-full animate-ping pointer-events-none" />
+                    )}
+                  </button>
+                );
+              })()}
               
               {/* Collection Indicator Badge */}
               {(() => {
@@ -1082,12 +1133,35 @@ export function GraceCafe() {
             {/* Brass Espresso Maker */}
             <div className="flex flex-col items-center relative">
               <span className="text-[8px] font-black text-white bg-[#6F5144] px-2 py-0.5 rounded-md mb-1.5 shadow-sm">Espresso Machine</span>
-              <div className="h-20 w-20 rounded-t-[28px] border-4 border-[#6F5144] bg-[#6C9794] shadow-md flex items-center justify-center text-4xl relative">
-                {hasUpgrade("espresso_pro") ? "☁️" : "☕"}
-                {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "drinks") && (
-                  <div className="absolute inset-2 bg-teal-500/20 border border-teal-400 rounded-full animate-ping pointer-events-none" />
-                )}
-              </div>
+              {(() => {
+                const completedDrinksJob = completedJobs.find(j => MENU.find(m => m.id === j.itemId)?.station === "drinks");
+                const drinksItem = completedDrinksJob ? MENU.find(m => m.id === completedDrinksJob.itemId) : null;
+                
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (drinksItem) {
+                        collectCompleted("drinks");
+                      } else {
+                        setMessage("Espresso Machine: Select a beverage recipe below to start brewing!");
+                      }
+                    }}
+                    className="h-20 w-20 rounded-t-[28px] border-4 border-[#6F5144] bg-[#6C9794] shadow-md flex items-center justify-center text-4xl relative cursor-pointer hover:brightness-105 active:scale-95 transition-all z-20"
+                  >
+                    {drinksItem ? (
+                      <span className="animate-pulse">{drinksItem.emoji}</span>
+                    ) : hasUpgrade("espresso_pro") ? (
+                      "☁️"
+                    ) : (
+                      "☕"
+                    )}
+                    {jobs.some(j => MENU.find(m => m.id === j.itemId)?.station === "drinks") && (
+                      <div className="absolute inset-2 bg-teal-500/20 border border-teal-400 rounded-full animate-ping pointer-events-none" />
+                    )}
+                  </button>
+                );
+              })()}
 
               {/* Collection Indicator Badge */}
               {(() => {
@@ -1228,20 +1302,21 @@ export function GraceCafe() {
               </button>
             </div>
           ) : (
-            <div className="rounded-2xl border-2 border-[#9A7662] bg-[#FFFAF0] p-3 shadow-[2px_3px_0_#D6B294] text-left">
+            <div className="rounded-2xl border-2 border-[#9A7662] bg-[#FFFAF0] p-3 shadow-[2px_3px_0_#D6B294] text-left flex-1 flex flex-col">
               <p className="mb-2 flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-wider text-[#A36D61]"><ChefHat className="h-3 w-3" /> Prep Recipes Book</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 max-h-[140px] overflow-y-auto pr-1">
                 {MENU.map((item) => {
                   const locked = item.unlockDay > day;
                   const busy = isStationBusy(item.station);
-                  const disabled = locked || busy || coins < item.ingredientCost;
+                  const cantCook = locked || busy || coins < item.ingredientCost;
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      disabled={disabled}
-                      onClick={() => startCooking(item)}
-                      className="relative min-h-[72px] rounded-xl border-2 border-[#C99E7F] bg-[#F8E6CA] p-2 text-left shadow-[2px_2px_0_#C99E7F] transition enabled:hover:-translate-y-0.5 enabled:hover:bg-[#FCEFDC] disabled:cursor-not-allowed disabled:opacity-45 cursor-pointer"
+                      onClick={() => handleRecipeClick(item)}
+                      className={`relative min-h-[72px] rounded-xl border-2 border-[#C99E7F] bg-[#F8E6CA] p-2 text-left shadow-[2px_2px_0_#C99E7F] transition enabled:hover:-translate-y-0.5 enabled:hover:bg-[#FCEFDC] cursor-pointer ${
+                        cantCook ? "opacity-60" : ""
+                      }`}
                     >
                       {locked ? <Lock className="mb-1 h-3.5 w-3.5 text-stone-400" /> : <span className="text-lg">{item.emoji}</span>}
                       <span className="block truncate text-[8.5px] font-black">{locked ? `Day ${item.unlockDay} Unlock` : item.shortName}</span>
