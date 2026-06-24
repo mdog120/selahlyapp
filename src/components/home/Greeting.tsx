@@ -49,7 +49,7 @@ export function Greeting({ displayName }: { displayName: string }) {
                         type="button"
                         onClick={handleClickEmoji}
                         className={`relative inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-stone-100/50 active:scale-95 transition-all duration-300 focus:outline-none ${
-                            isBouncing ? "animate-[selahly-hop_0.5s_ease-in-out]" : ""
+                            isBouncing ? "animate-[selahly-hop_0.5s_ease-in-out]" : "animate-wiggle-periodic"
                         }`}
                         title={eventKind === "world-cup" ? "Make a World Cup winner prediction" : "Selahly Event Accent"}
                     >
