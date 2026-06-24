@@ -125,3 +125,79 @@ export const EVENT_EMOJIS: Record<DecorationKind, string> = {
     "new-years-eve": "🎉",
     "daylight-savings": "☀️"
 };
+
+export interface EventDetail {
+    title: string;
+    message: string;
+}
+
+export const EVENT_DETAILS: Record<DecorationKind, EventDetail> = {
+    "new-year": {
+        title: "Happy New Year! ౨ৎ",
+        message: "May this year be filled with His grace, wisdom, and peace. Let us step into this new season with hopeful hearts. 'Forget the former things; do not dwell on the past. See, I am doing a new thing!' — Isaiah 43:18-19"
+    },
+    "valentines": {
+        title: "Happy Valentine's Day! ౨ৎ",
+        message: "Remember that you are deeply and unconditionally loved by your Creator. 'We love because He first loved us.' — 1 John 4:19"
+    },
+    "palm-sunday": {
+        title: "Blessed Palm Sunday! ౨ৎ",
+        message: "Reflecting on Jesus' humble entry and celebrating Him as our King. 'Hosanna! Blessed is he who comes in the name of the Lord!' — John 12:13"
+    },
+    "easter": {
+        title: "He is Risen! ౨ৎ",
+        message: "Celebrate the victory, hope, and new life we have in Jesus today. 'He is not here; he has risen, just as he said!' — Matthew 28:6"
+    },
+    "mothers-day": {
+        title: "Happy Mother's Day! ౨ৎ",
+        message: "Celebrating the strength, wisdom, and gentle love of mothers and mentors. 'Her children arise and call her blessed; her husband also, and he praises her.' — Proverbs 31:28"
+    },
+    "memorial-day": {
+        title: "Memorial Day ౨ৎ",
+        message: "Taking a quiet moment to remember and give thanks for those who laid down their lives in service and sacrifice."
+    },
+    "juneteenth": {
+        title: "Celebrating Juneteenth! ౨ৎ",
+        message: "Remembering freedom, resilience, and hope. 'Now the Lord is the Spirit, and where the Spirit of the Lord is, there is freedom.' — 2 Corinthians 3:17"
+    },
+    "fathers-day": {
+        title: "Happy Father's Day! ౨ৎ",
+        message: "Honoring the dedication, guidance, and strength of fathers and reflecting on our Heavenly Father's perfect love."
+    },
+    "world-cup": {
+        title: "World Cup Winner Prediction ⚽",
+        message: "Lock in your prediction for the winning team!"
+    },
+    "july-fourth": {
+        title: "Happy 4th of July! 🎆",
+        message: "Celebrating freedom, community, and His abundant blessings upon us."
+    },
+    "labor-day": {
+        title: "Happy Labor Day! 🌾",
+        message: "Taking a peaceful pause to rest and reflect on God's faithful provision in our work and daily life."
+    },
+    "veterans-day": {
+        title: "Veterans Day 🎖️",
+        message: "Honoring and praying for all who served our country with bravery, dedication, and honor."
+    },
+    "thanksgiving": {
+        title: "Happy Thanksgiving! 🦃",
+        message: "Giving thanks for His endless goodness and love. 'Give thanks to the Lord, for he is good; his love endures forever.' — Psalm 107:1"
+    },
+    "advent": {
+        title: "Blessed Advent Season! 🕯️",
+        message: "A sacred time of expectation, hope, and waiting as we prepare our hearts to celebrate the birth of our Savior."
+    },
+    "christmas": {
+        title: "Merry Christmas! 🎄",
+        message: "Celebrating the greatest Gift of all: God with us. 'For unto us a child is born, unto us a son is given...' — Isaiah 9:6"
+    },
+    "new-years-eve": {
+        title: "New Year's Eve ౨ৎ",
+        message: "Reflecting on God's faithfulness through every season of the past year and looking forward to the future with hope."
+    },
+    "daylight-savings": {
+        title: "Daylight Savings ☀️",
+        message: "Enjoying the warm sunlight and the beautiful rhythms of His creation. 'The heavens declare the glory of God; the skies proclaim the work of his hands.' — Psalm 19:1"
+    }
+};

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDecorationKind, EVENT_EMOJIS, DecorationKind } from "@/lib/eventDecorations";
+import { getDecorationKind, EVENT_EMOJIS, EVENT_DETAILS, DecorationKind } from "@/lib/eventDecorations";
 
 const WORLD_CUP_TEAMS = ["Brazil", "USA", "France", "Argentina", "England", "Spain"];
 
@@ -10,6 +10,7 @@ export function Greeting({ displayName }: { displayName: string }) {
     const [emoji, setEmoji] = useState("☁️");
     const [eventKind, setEventKind] = useState<DecorationKind | null>(null);
     const [isWorldCupPromptOpen, setIsWorldCupPromptOpen] = useState(false);
+    const [isGeneralModalOpen, setIsGeneralModalOpen] = useState(false);
     const [teamPick, setTeamPick] = useState<string | null>(null);
     const [isBouncing, setIsBouncing] = useState(false);
 
@@ -30,12 +31,15 @@ export function Greeting({ displayName }: { displayName: string }) {
     }, []);
 
     const handleClickEmoji = () => {
+        // Trigger visual hop feedback on click
+        setIsBouncing(true);
+        setTimeout(() => setIsBouncing(false), 500);
+
+        // Open appropriate lightbox modal
         if (eventKind === "world-cup") {
             setIsWorldCupPromptOpen(true);
         } else {
-            // Trigger a cute bounce animation for non-modal emojis
-            setIsBouncing(true);
-            setTimeout(() => setIsBouncing(false), 500);
+            setIsGeneralModalOpen(true);
         }
     };
 
@@ -65,15 +69,28 @@ export function Greeting({ displayName }: { displayName: string }) {
                 </span>
             </h1>
 
+            {/* World Cup Prediction Lightbox */}
             {isWorldCupPromptOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-warm-grey/20 px-4 backdrop-blur-sm">
-                    <div className="w-full max-w-sm rounded-3xl border border-white/70 bg-warm-paper p-6 text-center shadow-xl">
-                        <p className="text-4xl" aria-hidden="true">⚽</p>
-                        <h2 className="mt-3 font-serif text-2xl text-warm-cocoa">
-                            Which team do you think will win?
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 px-4 backdrop-blur-sm animate-fade-in">
+                    <div className="relative w-full max-w-sm rounded-[2.5rem] border border-white/70 bg-warm-paper p-8 text-center shadow-2xl animate-scale-in">
+                        <div className="mb-4 text-center">
+                            <span className="relative inline-flex items-center justify-center w-14 h-14 bg-white/80 rounded-full shadow-sm">
+                                <span className="absolute top-[2px] left-[2px] text-xs font-serif text-muted-rose font-bold select-none rotate-[-15deg]">
+                                    ౨ৎ
+                                </span>
+                                <span className="text-3xl select-none">{emoji}</span>
+                            </span>
+                        </div>
+                        
+                        <h2 className="font-serif text-2xl text-warm-cocoa font-bold mb-3">
+                            {eventKind && EVENT_DETAILS[eventKind] ? EVENT_DETAILS[eventKind].title : "World Cup Winner"}
                         </h2>
 
-                        <div className="mt-5 grid grid-cols-2 gap-2">
+                        <p className="text-warm-grey text-sm leading-relaxed mb-5 font-sans">
+                            Which team do you think will win the World Cup?
+                        </p>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
                             {WORLD_CUP_TEAMS.map((team) => (
                                 <button
                                     key={team}
@@ -99,7 +116,39 @@ export function Greeting({ displayName }: { displayName: string }) {
                         <button
                             type="button"
                             onClick={() => setIsWorldCupPromptOpen(false)}
-                            className="mt-5 text-xs font-bold uppercase tracking-widest text-warm-grey/50 transition-colors hover:text-warm-cocoa"
+                            className="mt-6 w-full rounded-full bg-warm-cocoa px-5 py-2.5 text-xs font-bold text-white hover:bg-warm-cocoa/90 transition-all active:scale-98"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* General Themed Lightbox for other events & the default cloud */}
+            {isGeneralModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 px-4 backdrop-blur-sm animate-fade-in">
+                    <div className="relative w-full max-w-sm rounded-[2.5rem] border border-white/75 bg-warm-paper p-8 text-center shadow-2xl animate-scale-in">
+                        <div className="mb-4 text-center">
+                            <span className="relative inline-flex items-center justify-center w-14 h-14 bg-white/80 rounded-full shadow-sm">
+                                <span className="absolute top-[2px] left-[2px] text-xs font-serif text-muted-rose font-bold select-none rotate-[-15deg]">
+                                    ౨ৎ
+                                </span>
+                                <span className="text-3xl select-none">{emoji}</span>
+                            </span>
+                        </div>
+                        
+                        <h2 className="font-serif text-2xl text-warm-cocoa font-bold mb-3 leading-snug">
+                            {eventKind && EVENT_DETAILS[eventKind] ? EVENT_DETAILS[eventKind].title : "Selahly Sanctuary ౨ৎ"}
+                        </h2>
+                        
+                        <p className="text-warm-grey text-sm leading-relaxed mb-6 font-sans">
+                            {eventKind && EVENT_DETAILS[eventKind] ? EVENT_DETAILS[eventKind].message : "Take a slow breath, rest in His presence, and remember: 'She is clothed with strength and dignity; she can laugh at the days to come.' — Proverbs 31:25"}
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={() => setIsGeneralModalOpen(false)}
+                            className="w-full rounded-full bg-warm-cocoa px-5 py-2.5 text-xs font-bold text-white hover:bg-warm-cocoa/90 transition-all active:scale-98"
                         >
                             Close
                         </button>
