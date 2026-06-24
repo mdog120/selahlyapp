@@ -8,8 +8,8 @@ import Image from "next/image";
 type Direction = "down" | "up" | "left" | "right";
 type GamePhase = "explore" | "casting" | "bite" | "caught" | "missed";
 type Rarity = "common" | "blessed" | "miracle";
-type BaitId = "plain" | "honey" | "pearl" | "miracle";
-type RodId = "reed" | "cedar" | "silver" | "golden";
+type BaitId = "plain" | "honey" | "pearl" | "miracle" | "royal";
+type RodId = "reed" | "cedar" | "silver" | "golden" | "sapphire";
 
 interface CatchItem {
   id: string;
@@ -105,7 +105,7 @@ const CATCHES: CatchItem[] = [
     verse: "Peace I leave with you; my peace I give unto you.",
     reference: "John 14:27",
     color: "#a7f3d0",
-    description: "A calm green-blue minnow that swims slowly near quiet water and brings a peaceful bonus to your journal.",
+    description: "A calm green-blue minnow that swims slowly near quiet water.",
   },
   {
     id: "mercy",
@@ -115,7 +115,67 @@ const CATCHES: CatchItem[] = [
     verse: "His mercies are new every morning.",
     reference: "Lamentations 3:23",
     color: "#f9a8d4",
-    description: "A rosy koi with gentle fins, usually found when the water is still and the cast is steady.",
+    description: "A rosy koi with gentle fins, usually found when the water is still.",
+  },
+  {
+    id: "patience",
+    name: "Patience Perch",
+    rarity: "common",
+    points: 13,
+    verse: "In your patience possess ye your souls.",
+    reference: "Luke 21:19",
+    color: "#fbcfe8",
+    description: "A slow perch that teaches the value of quiet waiting on the shore.",
+  },
+  {
+    id: "joy",
+    name: "Joy Guppy",
+    rarity: "common",
+    points: 14,
+    verse: "For the joy of the Lord is your strength.",
+    reference: "Nehemiah 8:10",
+    color: "#fed7aa",
+    description: "A cheerful guppy that leaps out of the water, spreading pure joy.",
+  },
+  {
+    id: "grace",
+    name: "Grace Goldfish",
+    rarity: "common",
+    points: 15,
+    verse: "For by grace are ye saved through faith.",
+    reference: "Ephesians 2:8",
+    color: "#fde68a",
+    description: "A glittering goldfish that represents abundant, free gift catches.",
+  },
+  {
+    id: "hope",
+    name: "Hope Halibut",
+    rarity: "common",
+    points: 16,
+    verse: "Which hope we have as an anchor of the soul.",
+    reference: "Hebrews 6:19",
+    color: "#bae6fd",
+    description: "A steady bottom-dwelling halibut that remains anchored in the shallows.",
+  },
+  {
+    id: "truth",
+    name: "Truth Trout",
+    rarity: "common",
+    points: 17,
+    verse: "And ye shall know the truth, and the truth shall make you free.",
+    reference: "John 8:32",
+    color: "#99f6e4",
+    description: "A silver trout that swims in straight paths against active shore currents.",
+  },
+  {
+    id: "kindness",
+    name: "Kindness Carp",
+    rarity: "common",
+    points: 18,
+    verse: "Put on therefore... kindness, humbleness of mind.",
+    reference: "Colossians 3:12",
+    color: "#f5d0fe",
+    description: "A friendly, social carp that travels peacefully in shallow waters.",
   },
   {
     id: "loaves",
@@ -125,7 +185,7 @@ const CATCHES: CatchItem[] = [
     verse: "They did all eat, and were filled.",
     reference: "Matthew 14:20",
     color: "#fde047",
-    description: "A blessed basket catch from deeper water, treasured because it points to provision and overflow.",
+    description: "A blessed basket catch from deeper water, representing overflow and providence.",
   },
   {
     id: "pearl",
@@ -135,7 +195,57 @@ const CATCHES: CatchItem[] = [
     verse: "The kingdom of heaven is like unto a merchant seeking goodly pearls.",
     reference: "Matthew 13:45",
     color: "#e9d5ff",
-    description: "A rare shining catch with pearl colors, best found with better bait and a patient reel.",
+    description: "A rare shining catch with pearl colors, representing value beyond measure.",
+  },
+  {
+    id: "praise",
+    name: "Praise Pike",
+    rarity: "blessed",
+    points: 25,
+    verse: "Let every thing that hath breath praise the Lord.",
+    reference: "Psalm 150:6",
+    color: "#a7f3d0",
+    description: "A strong, active pike that fights hard and leaps for joy.",
+  },
+  {
+    id: "wisdom",
+    name: "Wisdom Wrasse",
+    rarity: "blessed",
+    points: 26,
+    verse: "Happy is the man that findeth wisdom.",
+    reference: "Proverbs 3:13",
+    color: "#ddd6fe",
+    description: "A clever, colorful fish that hides among deeper lake corals.",
+  },
+  {
+    id: "shepherd",
+    name: "Shepherd Salmon",
+    rarity: "blessed",
+    points: 27,
+    verse: "The Lord is my shepherd; I shall not want.",
+    reference: "Psalm 23:1",
+    color: "#fca5a5",
+    description: "A migrating salmon that instinctively knows the safe path home.",
+  },
+  {
+    id: "covenant",
+    name: "Covenant Catfish",
+    rarity: "blessed",
+    points: 28,
+    verse: "I do set my bow in the cloud... for a token of a covenant.",
+    reference: "Genesis 9:13",
+    color: "#fed7aa",
+    description: "A patient whiskered catfish that rests near deep-water covenants.",
+  },
+  {
+    id: "tabernacle",
+    name: "Tabernacle Tilapia",
+    rarity: "blessed",
+    points: 30,
+    verse: "And let them make me a sanctuary; that I may dwell among them.",
+    reference: "Exodus 25:8",
+    color: "#cbd5e1",
+    description: "Also known as St. Peter's fish, a native Galilee tilapia representing sanctuary.",
   },
   {
     id: "net",
@@ -145,7 +255,47 @@ const CATCHES: CatchItem[] = [
     verse: "They enclosed a great multitude of fishes.",
     reference: "Luke 5:6",
     color: "#c4b5fd",
-    description: "A miracle catch that strains the net, appearing only when the timing, rod, and water feel just right.",
+    description: "A miracle catch that strains the net, appearing when gear and timing align.",
+  },
+  {
+    id: "livingwater",
+    name: "Living Water Bass",
+    rarity: "miracle",
+    points: 45,
+    verse: "The water that I shall give him shall be in him a well of water springing up.",
+    reference: "John 4:14",
+    color: "#67e8f9",
+    description: "A glowing bass that shines from within, caught only in the deepest, cleanest waters.",
+  },
+  {
+    id: "temple",
+    name: "Temple Tuna",
+    rarity: "miracle",
+    points: 48,
+    verse: "Know ye not that your body is the temple of the Holy Ghost?",
+    reference: "1 Corinthians 6:19",
+    color: "#c084fc",
+    description: "A massive, powerful tuna that requires advanced rod handling and endurance.",
+  },
+  {
+    id: "anchor",
+    name: "Anchor Sturgeon",
+    rarity: "miracle",
+    points: 50,
+    verse: "Which hope we have as an anchor of the soul, both sure and steadfast.",
+    reference: "Hebrews 6:19",
+    color: "#94a3b8",
+    description: "An ancient, heavy sturgeon that represents steadfast hope in deep waters.",
+  },
+  {
+    id: "lightray",
+    name: "Light of the World Ray",
+    rarity: "miracle",
+    points: 52,
+    verse: "Ye are the light of the world. A city that is set on a hill cannot be hid.",
+    reference: "Matthew 5:14",
+    color: "#fde047",
+    description: "An ethereal golden ray that glides gracefully in the deep east waters.",
   },
 ];
 
@@ -154,6 +304,7 @@ const BAITS: BaitItem[] = [
   { id: "honey", name: "Honey Bait", price: 18, bonus: 0.08, description: "Sweet bait that slightly improves your bite chance." },
   { id: "pearl", name: "Pearl Bait", price: 42, bonus: 0.16, description: "Shimmering bait that helps blessed catches show up more often." },
   { id: "miracle", name: "Miracle Bait", price: 75, bonus: 0.25, description: "Rare bait with the best chance for unusual fish." },
+  { id: "royal", name: "Royal Nectar", price: 120, bonus: 0.38, description: "Ethereal bait that deeply attracts blessed and miracle fish." },
 ];
 
 const RODS: RodItem[] = [
@@ -161,6 +312,7 @@ const RODS: RodItem[] = [
   { id: "cedar", name: "Cedar Rod", price: 90, biteBonus: 0.06, reelBonus: 0.06, description: "A smoother rod with a steadier cast." },
   { id: "silver", name: "Silverline Rod", price: 180, biteBonus: 0.1, reelBonus: 0.12, description: "A polished rod with better bite and reel control." },
   { id: "golden", name: "Golden Net Rod", price: 320, biteBonus: 0.16, reelBonus: 0.18, description: "A top-tier rod made for deep water and miracle catches." },
+  { id: "sapphire", name: "Sapphire Miracle Rod", price: 500, biteBonus: 0.24, reelBonus: 0.28, description: "An ancient blue-gemmed rod. Perfect line tension and near-instant bites." },
 ];
 
 const COIN_PACKS: CoinPack[] = [
@@ -440,7 +592,7 @@ export function GalileeFishing() {
   const [basket, setBasket] = useState<CatchItem[]>([]);
   const [showJournal, setShowJournal] = useState(false);
   const [showShop, setShowShop] = useState(false);
-  const [baitInventory, setBaitInventory] = useState<Record<BaitId, number>>({ plain: 999, honey: 0, pearl: 0, miracle: 0 });
+  const [baitInventory, setBaitInventory] = useState<Record<BaitId, number>>({ plain: 999, honey: 0, pearl: 0, miracle: 0, royal: 0 });
   const [selectedBait, setSelectedBait] = useState<BaitId>("plain");
   const [ownedRods, setOwnedRods] = useState<RodId[]>(["reed"]);
   const [selectedRod, setSelectedRod] = useState<RodId>("reed");
@@ -486,7 +638,14 @@ export function GalileeFishing() {
         setCoins(saved.coins ?? 75);
         setLifetime(saved.lifetime ?? 0);
         setJournal(saved.journal ?? []);
-        setBaitInventory({ plain: 999, honey: 0, pearl: 0, miracle: 0, ...saved.baitInventory });
+        const savedInv = saved.baitInventory || {};
+        setBaitInventory({
+          plain: 999,
+          honey: savedInv.honey ?? 0,
+          pearl: savedInv.pearl ?? 0,
+          miracle: savedInv.miracle ?? 0,
+          royal: savedInv.royal ?? 0,
+        });
         setSelectedBait(saved.selectedBait ?? "plain");
         setOwnedRods(saved.ownedRods?.length ? saved.ownedRods : ["reed"]);
         setSelectedRod(saved.selectedRod ?? "reed");
@@ -525,7 +684,7 @@ export function GalileeFishing() {
 
     const bait = BAITS.find((item) => item.id === selectedBait) ?? BAITS[0];
     const rod = RODS.find((item) => item.id === selectedRod) ?? RODS[0];
-    if (Math.random() > Math.min(0.82, 0.62 + bait.bonus * 0.35 + rod.reelBonus)) {
+    if (Math.random() > Math.min(0.96, 0.62 + bait.bonus * 0.45 + rod.reelBonus * 0.8)) {
       finishMiss("So close. The line tugged hard, but the fish got free.");
       return;
     }
@@ -642,7 +801,7 @@ export function GalileeFishing() {
       setMessage("Bite! Press Fish or Space now.");
       biteTimerRef.current = setTimeout(() => {
         finishMiss("Too slow. The bobber sank and the fish swam off.");
-      }, 900 + activeRod.reelBonus * 900);
+      }, 950 + activeRod.reelBonus * 2200);
     }, biteDelay);
   }, [activeBait, activeRod, baitInventory, clearFishingTimers, finishMiss, reel, selectedBait]);
 
