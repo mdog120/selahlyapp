@@ -2,188 +2,383 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Anchor, BookOpen, Fish, Sparkles, Waves } from "lucide-react";
+import { BookOpen, Fish, Waves } from "lucide-react";
+import Image from "next/image";
 
-type Phase = "ready" | "casting" | "waiting" | "hook" | "reeling" | "caught" | "lost";
+type Direction = "down" | "up" | "left" | "right";
+type GamePhase = "explore" | "casting" | "bite" | "caught" | "missed";
 type Rarity = "common" | "blessed" | "miracle";
 
 interface CatchItem {
   id: string;
   name: string;
-  emoji: string;
   rarity: Rarity;
   points: number;
   verse: string;
   reference: string;
-  gradient: string;
+  color: string;
 }
 
 interface SaveData {
   pearls?: number;
-  bestStreak?: number;
   lifetime?: number;
   journal?: string[];
 }
 
-interface BasketItem extends CatchItem {
-  catchId: string;
+interface WaterZone {
+  id: string;
+  minX: number;
+  maxX: number;
+  label: string;
+  rarityBias: Rarity;
 }
 
-const SAVE_KEY = "selahly_galilee_fishing_v3";
+interface Player {
+  x: number;
+  y: number;
+  direction: Direction;
+  walking: boolean;
+}
+
+const SAVE_KEY = "selahly_galilee_fishing_v5";
+const STEP = 1.7;
+const BRIDGE_MIN_X = 8;
+const BRIDGE_MAX_X = 92;
+const BRIDGE_MIN_Y = 39;
+const BRIDGE_MAX_Y = 52;
+const SHORE_MIN_Y = 63;
 
 const CATCHES: CatchItem[] = [
   {
     id: "faith",
     name: "Faith Fish",
-    emoji: "🐟",
     rarity: "common",
     points: 10,
     verse: "Follow me, and I will make you fishers of men.",
     reference: "Matthew 4:19",
-    gradient: "from-sky-200 to-cyan-300",
+    color: "#73d2de",
   },
   {
     id: "peace",
     name: "Peace Minnow",
-    emoji: "🐠",
     rarity: "common",
     points: 11,
     verse: "Peace I leave with you; my peace I give unto you.",
     reference: "John 14:27",
-    gradient: "from-teal-200 to-emerald-300",
+    color: "#a7f3d0",
   },
   {
     id: "mercy",
     name: "Mercy Koi",
-    emoji: "🐡",
     rarity: "common",
     points: 12,
     verse: "His mercies are new every morning.",
     reference: "Lamentations 3:23",
-    gradient: "from-rose-200 to-orange-200",
+    color: "#f9a8d4",
   },
   {
     id: "loaves",
     name: "Loaves & Fishes Basket",
-    emoji: "🧺",
     rarity: "blessed",
     points: 24,
     verse: "They did all eat, and were filled.",
     reference: "Matthew 14:20",
-    gradient: "from-amber-200 to-yellow-300",
+    color: "#fde047",
   },
   {
     id: "pearl",
     name: "Pearl of Great Price",
-    emoji: "🦪",
     rarity: "blessed",
     points: 28,
     verse: "The kingdom of heaven is like unto a merchant seeking goodly pearls.",
     reference: "Matthew 13:45",
-    gradient: "from-violet-200 to-rose-200",
+    color: "#e9d5ff",
   },
   {
     id: "net",
     name: "Overflowing Net",
-    emoji: "🕸️",
     rarity: "miracle",
     points: 46,
     verse: "They enclosed a great multitude of fishes.",
     reference: "Luke 5:6",
-    gradient: "from-indigo-200 via-sky-200 to-amber-200",
+    color: "#c4b5fd",
   },
 ];
 
-const RARITY_META: Record<Rarity, { label: string; badge: string; taps: number; zone: number; speed: number; seconds: number; pearls: number }> = {
-  common: {
-    label: "Gentle",
-    badge: "border-sky-200 bg-sky-50 text-sky-700",
-    taps: 2,
-    zone: 36,
-    speed: 2.8,
-    seconds: 15,
-    pearls: 1,
-  },
-  blessed: {
-    label: "Blessed",
-    badge: "border-amber-200 bg-amber-50 text-amber-800",
-    taps: 3,
-    zone: 30,
-    speed: 3.5,
-    seconds: 14,
-    pearls: 3,
-  },
-  miracle: {
-    label: "Miracle",
-    badge: "border-violet-200 bg-violet-50 text-violet-800",
-    taps: 4,
-    zone: 24,
-    speed: 4.3,
-    seconds: 13,
-    pearls: 5,
-  },
+const WATER_ZONES: WaterZone[] = [
+  { id: "west", minX: 8, maxX: 34, label: "west shallows", rarityBias: "common" },
+  { id: "middle", minX: 34, maxX: 67, label: "deep middle water", rarityBias: "blessed" },
+  { id: "east", minX: 67, maxX: 92, label: "quiet east water", rarityBias: "miracle" },
+];
+
+const PLAYER_FRAMES: Record<Direction, string[]> = {
+  up: ["a1", "a2", "a3", "a4"],
+  down: ["c1", "c6", "c7", "c8"],
+  left: ["b1", "b2", "b6", "b7"],
+  right: ["d1", "d2", "d6", "d7"],
 };
 
-const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const isOnBridge = (player: Player) =>
+  player.x >= BRIDGE_MIN_X && player.x <= BRIDGE_MAX_X && player.y >= BRIDGE_MIN_Y && player.y <= BRIDGE_MAX_Y;
+const isWalkable = (player: Player) => isOnBridge(player) || player.y >= SHORE_MIN_Y;
 
-function chooseCatch(streak: number) {
+function getWaterZone(player: Player) {
+  if (!isOnBridge(player)) return null;
+  return WATER_ZONES.find((zone) => player.x >= zone.minX && player.x < zone.maxX) ?? WATER_ZONES[1];
+}
+
+function chooseCatch(zone: WaterZone) {
   const roll = Math.random();
-  const miracleChance = Math.min(0.035 + streak * 0.007, 0.12);
-  const blessedChance = Math.min(0.22 + streak * 0.012, 0.36);
+  const miracleChance = zone.rarityBias === "miracle" ? 0.13 : zone.rarityBias === "blessed" ? 0.06 : 0.025;
+  const blessedChance = zone.rarityBias === "miracle" ? 0.28 : zone.rarityBias === "blessed" ? 0.36 : 0.17;
   const rarity: Rarity = roll < miracleChance ? "miracle" : roll < blessedChance ? "blessed" : "common";
   const pool = CATCHES.filter((item) => item.rarity === rarity);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function PixelFish({ color = "#73d2de", flip = false }: { color?: string; flip?: boolean }) {
+  return (
+    <div className="pixel-sprite relative h-5 w-9" style={{ transform: flip ? "scaleX(-1)" : undefined }}>
+      <div className="absolute left-1 top-1 h-3 w-6 border-2 border-[#2f2a2d]" style={{ background: color }} />
+      <div className="absolute right-0 top-2 h-2 w-2 rotate-45 border-r-2 border-t-2 border-[#2f2a2d]" style={{ background: color }} />
+      <div className="absolute left-2 top-2 h-1 w-1 bg-[#2f2a2d]" />
+      <div className="absolute left-4 top-0 h-1 w-2 bg-white/75" />
+    </div>
+  );
+}
+
+function PixelPlayer({
+  direction,
+  walking,
+  casting,
+  pulse,
+}: {
+  direction: Direction;
+  walking: boolean;
+  casting: boolean;
+  pulse: number;
+}) {
+  const frames = PLAYER_FRAMES[direction];
+  const costume = casting ? "playerhold" : frames[walking ? Math.floor(pulse / 2) % frames.length : 0];
+
+  return (
+    <motion.div
+      className="pixel-sprite relative h-[78px] w-[60px]"
+      animate={{ y: walking ? [0, -2, 0] : 0 }}
+      transition={{ repeat: walking ? Infinity : 0, duration: 0.34, ease: "linear" }}
+    >
+      <Image
+        alt=""
+        src={`/minigames/fishing/player_${costume}.png`}
+        className="absolute bottom-0 left-1/2 max-w-none -translate-x-1/2 object-contain"
+        width={88}
+        height={144}
+        unoptimized
+        style={{
+          width: casting ? 70 : 52,
+          height: "auto",
+          imageRendering: "pixelated",
+        }}
+      />
+    </motion.div>
+  );
+}
+
+function PixelMap({
+  player,
+  phase,
+  caught,
+  onSwipe,
+  pulse,
+}: {
+  player: Player;
+  phase: GamePhase;
+  caught: CatchItem | null;
+  onSwipe: (direction: Direction) => void;
+  pulse: number;
+}) {
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const rodTipX = clamp(player.x + (player.direction === "left" ? -4 : player.direction === "right" ? 4 : 5), 4, 96);
+  const rodTipY = player.y - 8;
+  const bobberX = clamp(player.x + (player.direction === "left" ? -12 : player.direction === "right" ? 12 : 8), 6, 94);
+  const bobberY = player.direction === "up" ? 28 : 58;
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointerStart.current) return;
+    const dx = event.clientX - pointerStart.current.x;
+    const dy = event.clientY - pointerStart.current.y;
+    pointerStart.current = null;
+    if (Math.hypot(dx, dy) < 18) return;
+    onSwipe(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up");
+  };
+
+  return (
+    <div
+      className="pixel-map relative h-[640px] overflow-hidden border-[5px] border-[#2f2a2d] bg-[#77cbd6] shadow-[7px_7px_0_#2f2a2d]"
+      onPointerDown={(event) => {
+        pointerStart.current = { x: event.clientX, y: event.clientY };
+      }}
+      onPointerUp={handlePointerUp}
+    >
+      <div className="absolute inset-x-0 top-0 h-[66%] scratch-water" />
+      <div className="absolute inset-x-0 top-[60%] h-[8%] scratch-sand" />
+      <div className="absolute inset-x-0 top-[64%] h-[36%] scratch-grass" />
+
+      {Array.from({ length: 20 }).map((_, index) => (
+        <div
+          key={index}
+          className="absolute h-2 bg-[#d9fbff]/60"
+          style={{
+            left: `${5 + ((index * 17) % 88)}%`,
+            top: `${8 + (index % 8) * 5}%`,
+            width: `${24 + (index % 4) * 18}px`,
+          }}
+        />
+      ))}
+
+      {Array.from({ length: 8 }).map((_, index) => (
+        <motion.div
+          key={index}
+          className="absolute h-3 w-8 opacity-50"
+          style={{
+            left: `${10 + index * 11}%`,
+            top: `${18 + (index % 3) * 9}%`,
+            background: index % 2 ? "#348da0" : "#3aa7a7",
+          }}
+          animate={{ x: [0, 8, 0], opacity: [0.25, 0.55, 0.25] }}
+          transition={{ repeat: Infinity, duration: 4 + index * 0.35, ease: "linear" }}
+        />
+      ))}
+
+      <div className="absolute left-[4%] right-[4%] top-[40%] h-[13%] border-y-[5px] border-[#2f2a2d] bg-[#b67a4a] shadow-[0_9px_0_#7f5238]">
+        {Array.from({ length: 13 }).map((_, index) => (
+          <div key={index} className="absolute top-0 h-full w-[3px] bg-[#7f5238]" style={{ left: `${index * 8}%` }} />
+        ))}
+        <div className="absolute inset-x-0 top-1/2 h-[4px] bg-[#e2aa6b]" />
+      </div>
+      <div className="absolute left-[2%] top-[36%] h-[21%] w-[4%] border-[5px] border-[#2f2a2d] bg-[#91613e]" />
+      <div className="absolute right-[2%] top-[36%] h-[21%] w-[4%] border-[5px] border-[#2f2a2d] bg-[#91613e]" />
+
+      <div className="absolute left-[7%] bottom-[15%] h-8 w-8 bg-[#6a7d36] shadow-[14px_6px_0_#8ba545,29px_-2px_0_#526c31]" />
+      <div className="absolute right-[14%] bottom-[19%] h-7 w-11 bg-[#607a32] shadow-[-14px_6px_0_#8faa4f]" />
+      {Array.from({ length: 28 }).map((_, index) => {
+        const colors = ["#fff7ad", "#f8a5c8", "#c7b6ff", "#ffffff"];
+        return (
+          <div
+            key={index}
+            className="pixel-flower absolute z-10"
+            style={{
+              left: `${7 + ((index * 19) % 86)}%`,
+              top: `${68 + ((index * 11) % 25)}%`,
+              color: colors[index % colors.length],
+            }}
+          />
+        );
+      })}
+
+      <AnimatePresence>
+        {(phase === "casting" || phase === "bite") && (
+          <>
+            <svg className="pointer-events-none absolute inset-0 z-40 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <motion.line
+                x1={rodTipX}
+                y1={rodTipY}
+                x2={bobberX}
+                y2={bobberY}
+                stroke="#2f2a2d"
+                strokeWidth="0.35"
+                strokeLinecap="square"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35 }}
+              />
+            </svg>
+            <motion.div
+              className="absolute z-40 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${bobberX}%`, top: `${bobberY}%` }}
+              initial={{ opacity: 0, y: -22, scale: 0.7 }}
+              animate={{
+                opacity: 1,
+                y: phase === "bite" ? [0, 7, -2, 6, 0] : [0, -3, 0],
+                rotate: phase === "bite" ? [0, -8, 8, -6, 0] : 0,
+              }}
+              exit={{ opacity: 0, scale: 0.4 }}
+              transition={{ repeat: Infinity, duration: phase === "bite" ? 0.42 : 1.35, ease: "linear" }}
+            >
+              <div className="relative h-7 w-4">
+                <div className="absolute left-1 top-0 h-3 w-2 border-2 border-[#2f2a2d] bg-[#fff3d6]" />
+                <div className={`absolute left-0 top-3 h-4 w-4 border-2 border-[#2f2a2d] ${phase === "bite" ? "bg-[#e84d5b]" : "bg-[#f7c76d]"}`} />
+              </div>
+              {phase === "bite" && (
+                <>
+                  <div className="absolute -left-4 top-4 h-1 w-3 bg-[#d9fbff]" />
+                  <div className="absolute left-5 top-5 h-1 w-4 bg-[#d9fbff]" />
+                </>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {phase === "caught" && caught && (
+          <motion.div
+            className="absolute z-50 -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${player.x}%`, top: `${player.y - 11}%` }}
+            initial={{ y: 8, opacity: 0, scale: 0.6 }}
+            animate={{ y: -24, opacity: 1, scale: 1.15 }}
+            exit={{ opacity: 0, scale: 0.4 }}
+          >
+            <PixelFish color={caught.color} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        className="absolute z-50 -translate-x-1/2 -translate-y-full"
+        style={{ left: `${player.x}%`, top: `${player.y}%` }}
+        transition={{ type: "spring", stiffness: 460, damping: 36 }}
+      >
+        <PixelPlayer direction={player.direction} walking={player.walking} casting={phase === "casting" || phase === "bite"} pulse={pulse} />
+      </motion.div>
+
+    </div>
+  );
+}
+
 export function GalileeFishing() {
-  const [phase, setPhase] = useState<Phase>("ready");
-  const [message, setMessage] = useState("Cast from the shore. Watch the bobber, then set the hook when the ripple blooms.");
-  const [currentCatch, setCurrentCatch] = useState<CatchItem | null>(null);
+  const [player, setPlayer] = useState<Player>({ x: 50, y: 46, direction: "down", walking: false });
+  const [phase, setPhase] = useState<GamePhase>("explore");
+  const [message, setMessage] = useState("Walk the bridge. Cast only when your line can land in the water.");
+  const [caught, setCaught] = useState<CatchItem | null>(null);
   const [score, setScore] = useState(0);
   const [pearls, setPearls] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [journal, setJournal] = useState<string[]>([]);
-  const [basket, setBasket] = useState<BasketItem[]>([]);
+  const [basket, setBasket] = useState<CatchItem[]>([]);
   const [showJournal, setShowJournal] = useState(false);
+  const [pulse, setPulse] = useState(0);
 
-  const [bobberX, setBobberX] = useState(56);
-  const [rippleX, setRippleX] = useState(56);
-  const [hookWindow, setHookWindow] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [meterCursor, setMeterCursor] = useState(10);
-  const [targetStart, setTargetStart] = useState(40);
-  const [targetWidth, setTargetWidth] = useState(22);
-  const [reelHits, setReelHits] = useState(0);
-  const [requiredHits, setRequiredHits] = useState(3);
-  const [mistakes, setMistakes] = useState(0);
-  const [tension, setTension] = useState(42);
+  const keysRef = useRef(new Set<string>());
+  const castTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const biteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playerRef = useRef(player);
+  const phaseRef = useRef(phase);
+  const activeZoneRef = useRef<WaterZone | null>(null);
 
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
-  const cursorRef = useRef(10);
-  const cursorDirectionRef = useRef<1 | -1>(1);
-  const targetStartRef = useRef(40);
-  const targetWidthRef = useRef(22);
-  const activeCatchRef = useRef<CatchItem | null>(null);
-
+  const waterZone = useMemo(() => getWaterZone(player), [player]);
+  const canFish = Boolean(waterZone && phase === "explore");
   const discovered = useMemo(() => CATCHES.filter((item) => journal.includes(item.id)), [journal]);
 
-  const clearClock = useCallback(() => {
-    timersRef.current.forEach(clearTimeout);
-    intervalsRef.current.forEach(clearInterval);
-    timersRef.current = [];
-    intervalsRef.current = [];
-  }, []);
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
 
-  const addTimer = useCallback((timer: ReturnType<typeof setTimeout>) => {
-    timersRef.current.push(timer);
-  }, []);
-
-  const addInterval = useCallback((interval: ReturnType<typeof setInterval>) => {
-    intervalsRef.current.push(interval);
-  }, []);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   useEffect(() => {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -193,7 +388,6 @@ export function GalileeFishing() {
       const saved = JSON.parse(raw) as SaveData;
       queueMicrotask(() => {
         setPearls(saved.pearls ?? 0);
-        setBestStreak(saved.bestStreak ?? 0);
         setLifetime(saved.lifetime ?? 0);
         setJournal(saved.journal ?? []);
       });
@@ -203,574 +397,350 @@ export function GalileeFishing() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ pearls, bestStreak, lifetime, journal }));
-  }, [bestStreak, journal, lifetime, pearls]);
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ pearls, lifetime, journal }));
+  }, [journal, lifetime, pearls]);
 
-  useEffect(() => () => clearClock(), [clearClock]);
+  const clearFishingTimers = useCallback(() => {
+    if (castTimerRef.current) clearTimeout(castTimerRef.current);
+    if (biteTimerRef.current) clearTimeout(biteTimerRef.current);
+    castTimerRef.current = null;
+    biteTimerRef.current = null;
+  }, []);
 
-  const resetRound = useCallback((text = "The water is calm again. Cast when you are ready.") => {
-    clearClock();
-    activeCatchRef.current = null;
-    setCurrentCatch(null);
-    setHookWindow(0);
-    setTimeLeft(0);
-    setReelHits(0);
-    setMistakes(0);
-    setTension(42);
-    setPhase("ready");
+  const finishMiss = useCallback((text = "The fish slipped away. Wait for the bite, then reel fast.") => {
+    clearFishingTimers();
+    setPhase("missed");
+    setCaught(null);
     setMessage(text);
-  }, [clearClock]);
+    castTimerRef.current = setTimeout(() => {
+      setPhase("explore");
+      setMessage("Walk along the bridge and try another cast into the water.");
+    }, 1100);
+  }, [clearFishingTimers]);
 
-  const loseRound = useCallback((text: string) => {
-    clearClock();
-    setPhase("lost");
-    setStreak(0);
-    setMessage(text);
-    addTimer(setTimeout(() => resetRound("Try again with a slower rhythm. Grace, not panic."), 1500));
-  }, [addTimer, clearClock, resetRound]);
+  const reel = useCallback(() => {
+    if (phaseRef.current !== "bite" || !activeZoneRef.current) return;
+    clearFishingTimers();
 
-  const finishCatch = useCallback((catchItem: CatchItem) => {
-    clearClock();
-    const meta = RARITY_META[catchItem.rarity];
-    const earned = catchItem.points + Math.min(streak * 3, 24);
-    const caught: BasketItem = { ...catchItem, catchId: crypto.randomUUID() };
+    if (Math.random() > 0.62) {
+      finishMiss("So close. The line tugged hard, but the fish got free.");
+      return;
+    }
 
+    const catchItem = chooseCatch(activeZoneRef.current);
+    const earned = catchItem.points;
+    setCaught(catchItem);
     setPhase("caught");
     setScore((value) => value + earned);
-    setPearls((value) => value + meta.pearls);
+    setPearls((value) => value + (catchItem.rarity === "miracle" ? 5 : catchItem.rarity === "blessed" ? 3 : 1));
     setLifetime((value) => value + 1);
-    setStreak((value) => {
-      const next = value + 1;
-      setBestStreak((best) => Math.max(best, next));
-      return next;
-    });
     setJournal((items) => Array.from(new Set([...items, catchItem.id])));
-    setBasket((items) => [caught, ...items].slice(0, 4));
-    setMessage(`${catchItem.emoji} ${catchItem.name} landed! +${earned} points • ${catchItem.reference}`);
-    addTimer(setTimeout(() => resetRound("Beautiful catch. The lake is ready for another cast."), 2100));
-  }, [addTimer, clearClock, resetRound, streak]);
+    setBasket((items) => [catchItem, ...items].slice(0, 5));
+    setMessage(`${catchItem.name} caught! +${earned} points. ${catchItem.reference}`);
 
-  const startReeling = useCallback((catchItem: CatchItem) => {
-    clearClock();
-    const meta = RARITY_META[catchItem.rarity];
-    const start = 12 + Math.random() * (80 - meta.zone);
+    castTimerRef.current = setTimeout(() => {
+      setPhase("explore");
+      setCaught(null);
+      setMessage("Walk the bridge to fish a different part of the water.");
+    }, 1700);
+  }, [clearFishingTimers, finishMiss]);
 
-    activeCatchRef.current = catchItem;
-    cursorRef.current = 8;
-    cursorDirectionRef.current = 1;
-    targetStartRef.current = start;
-    targetWidthRef.current = meta.zone;
+  const cast = useCallback(() => {
+    if (phaseRef.current === "bite") {
+      reel();
+      return;
+    }
 
-    setPhase("reeling");
-    setMeterCursor(8);
-    setTargetStart(start);
-    setTargetWidth(meta.zone);
-    setReelHits(0);
-    setRequiredHits(meta.taps);
-    setMistakes(0);
-    setTension(34);
-    setTimeLeft(meta.seconds);
-    setMessage("Now reel steadily. Tap only when the marker passes through the gold zone.");
+    const zone = getWaterZone(playerRef.current);
+    if (!zone || phaseRef.current !== "explore") {
+      setMessage(zone ? "Let this cast finish first." : "You can only fish from the bridge where the line lands in water.");
+      return;
+    }
 
-    addInterval(setInterval(() => {
-      cursorRef.current += meta.speed * cursorDirectionRef.current;
-      if (cursorRef.current >= 98) {
-        cursorRef.current = 98;
-        cursorDirectionRef.current = -1;
-      }
-      if (cursorRef.current <= 2) {
-        cursorRef.current = 2;
-        cursorDirectionRef.current = 1;
-      }
-      setMeterCursor(cursorRef.current);
-      setTension((value) => clamp(value + 1.4));
-      setTimeLeft((value) => {
-        if (value <= 1) {
-          loseRound("The fish dove deep and the line went slack.");
-          return 0;
-        }
-        return value - 1;
-      });
-    }, 650));
-  }, [addInterval, clearClock, loseRound]);
-
-  const beginBite = useCallback(() => {
-    clearClock();
-    const catchItem = chooseCatch(streak);
-    const ripple = 24 + Math.random() * 52;
-    const bobber = clamp(ripple + (Math.random() * 14 - 7), 18, 82);
-
-    activeCatchRef.current = catchItem;
-    setCurrentCatch(catchItem);
-    setRippleX(ripple);
-    setBobberX(bobber);
-    setHookWindow(100);
-    setTimeLeft(5);
-    setPhase("hook");
-    setMessage("Bite! Wait until the bobber is close to the glowing ripple, then set the hook.");
-
-    addInterval(setInterval(() => {
-      setBobberX((value) => clamp(value + (Math.random() * 10 - 5), 16, 84));
-      setHookWindow((value) => Math.max(0, value - 13));
-      setTimeLeft((value) => Math.max(0, value - 1));
-    }, 600));
-
-    addTimer(setTimeout(() => {
-      loseRound("Too slow — the fish felt the hook and slipped away.");
-    }, 5200));
-  }, [addInterval, addTimer, clearClock, loseRound, streak]);
-
-  const castLine = () => {
-    if (phase !== "ready") return;
-
-    clearClock();
+    activeZoneRef.current = zone;
     setPhase("casting");
-    setCurrentCatch(null);
-    setRippleX(55);
-    setBobberX(55);
-    setMessage("Casting...");
+    setCaught(null);
+    setMessage(`Casting into the ${zone.label}. Wait for the bobber to turn red.`);
+    clearFishingTimers();
 
-    addTimer(setTimeout(() => {
-      setPhase("waiting");
-      setMessage("Line is in. Watch the bobber and wait for a bite.");
-      addTimer(setTimeout(beginBite, 1300 + Math.random() * 1800));
-    }, 700));
-  };
-
-  const setHook = () => {
-    if (phase !== "hook" || !activeCatchRef.current) return;
-
-    const accuracy = Math.abs(bobberX - rippleX);
-    if (accuracy > 22 || hookWindow <= 0) {
-      loseRound("Missed hook set. Wait for the bobber to line up with the ripple.");
-      return;
-    }
-
-    startReeling(activeCatchRef.current);
-  };
-
-  const reel = () => {
-    const catchItem = activeCatchRef.current;
-    if (phase !== "reeling" || !catchItem) return;
-
-    const inZone =
-      cursorRef.current >= targetStartRef.current &&
-      cursorRef.current <= targetStartRef.current + targetWidthRef.current;
-
-    if (!inZone) {
-      const nextMistakes = mistakes + 1;
-      setMistakes(nextMistakes);
-      setTension((value) => clamp(value + 9));
-      setMessage(nextMistakes >= 5 ? "Too many rough pulls — the line snapped." : "Easy. Wait for the gold zone before reeling.");
-      if (nextMistakes >= 5) {
-        loseRound("The line snapped from rough reeling.");
+    const biteDelay = 1600 + Math.random() * 2200;
+    castTimerRef.current = setTimeout(() => {
+      if (Math.random() < 0.27) {
+        finishMiss("No bite this time. Try another part of the bridge.");
+        return;
       }
-      return;
-    }
 
-    const nextHits = reelHits + 1;
-    const meta = RARITY_META[catchItem.rarity];
-    const nextZone = Math.max(20, meta.zone - nextHits * 1.2);
-    const nextTarget = 8 + Math.random() * (86 - nextZone);
+      setPhase("bite");
+      setMessage("Bite! Press Fish or Space now.");
+      biteTimerRef.current = setTimeout(() => {
+        finishMiss("Too slow. The bobber sank and the fish swam off.");
+      }, 900);
+    }, biteDelay);
+  }, [clearFishingTimers, finishMiss, reel]);
 
-    setReelHits(nextHits);
-    setMistakes(0);
-    setTension((value) => clamp(value - 18));
-    setTargetStart(nextTarget);
-    setTargetWidth(nextZone);
-    targetStartRef.current = nextTarget;
-    targetWidthRef.current = nextZone;
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", " "].includes(key)) {
+        event.preventDefault();
+      }
+      keysRef.current.add(key === " " ? "space" : key);
+    };
 
-    if (nextHits >= requiredHits) {
-      finishCatch(catchItem);
-    } else {
-      setMessage(`Good pull. ${requiredHits - nextHits} more clean reel${requiredHits - nextHits === 1 ? "" : "s"}.`);
-    }
+    const onKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      keysRef.current.delete(key === " " ? "space" : key);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
+
+  const movePlayer = useCallback((direction: Direction, amount = STEP) => {
+    if (phaseRef.current !== "explore") return;
+    setPulse((value) => value + 1);
+    setPlayer((current) => {
+      const next = {
+        x: clamp(current.x + (direction === "left" ? -amount : direction === "right" ? amount : 0), 7, 93),
+        y: clamp(current.y + (direction === "up" ? -amount : direction === "down" ? amount : 0), BRIDGE_MIN_Y, 88),
+        direction,
+        walking: true,
+      };
+      return isWalkable(next) ? next : { ...current, direction, walking: false };
+    });
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const keys = keysRef.current;
+      if (keys.has("space")) {
+        keys.delete("space");
+        cast();
+      }
+
+      if (phaseRef.current !== "explore") return;
+
+      let dx = 0;
+      let dy = 0;
+      if (keys.has("arrowleft") || keys.has("a")) dx -= STEP;
+      if (keys.has("arrowright") || keys.has("d")) dx += STEP;
+      if (keys.has("arrowup") || keys.has("w")) dy -= STEP;
+      if (keys.has("arrowdown") || keys.has("s")) dy += STEP;
+
+      if (dx === 0 && dy === 0) {
+        setPlayer((current) => (current.walking ? { ...current, walking: false } : current));
+        return;
+      }
+
+      setPulse((value) => value + 1);
+      setPlayer((current) => {
+        const direction: Direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
+        const next = {
+          x: clamp(current.x + dx, 7, 93),
+          y: clamp(current.y + dy, BRIDGE_MIN_Y, 88),
+          direction,
+          walking: true,
+        };
+        return isWalkable(next) ? next : { ...current, direction, walking: false };
+      });
+    }, 70);
+
+    return () => clearInterval(interval);
+  }, [cast]);
+
+  useEffect(() => () => clearFishingTimers(), [clearFishingTimers]);
+
+  const moveBy = (direction: Direction) => {
+    movePlayer(direction, 4.5);
+    window.setTimeout(() => setPlayer((current) => ({ ...current, walking: false })), 180);
   };
 
-  const phaseLabel: Record<Phase, string> = {
-    ready: "Ready",
-    casting: "Casting",
-    waiting: "Waiting",
-    hook: "Set hook",
-    reeling: "Reeling",
-    caught: "Caught",
-    lost: "Lost",
-  };
-
-  const hookAccuracy = clamp(100 - Math.abs(bobberX - rippleX) * 3.7);
+  const fishButtonLabel = phase === "bite" ? "Reel" : phase === "casting" ? "Wait" : "Fish";
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 text-warm-cocoa">
-      <section className="relative overflow-hidden rounded-[38px] border-[6px] border-white/85 bg-gradient-to-br from-[#fff1d6] via-[#e9f8ff] to-[#c7efe8] p-4 shadow-[0_30px_90px_rgba(47,85,111,0.24)] ring-1 ring-sky-100/70">
-        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl" />
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-200/55 blur-3xl" />
-        <div className="absolute bottom-0 left-1/4 h-44 w-96 rounded-full bg-emerald-200/20 blur-3xl" />
-
-        <div className="relative z-10 grid gap-4 lg:grid-cols-[1fr_270px]">
-          <div className="overflow-hidden rounded-[32px] border-4 border-white/85 bg-[#bde6f2] shadow-[inset_0_0_0_1px_rgba(255,255,255,.45),0_18px_50px_rgba(41,90,115,.2)]">
-            <div className="relative h-[500px] overflow-hidden">
-              <svg className="absolute inset-0 h-full w-full" viewBox="0 0 760 460" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="fofSky" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#fff0bd" />
-                    <stop offset="42%" stopColor="#9edcf2" />
-                    <stop offset="100%" stopColor="#55b7d1" />
-                  </linearGradient>
-                  <linearGradient id="fofWater" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#76d3e5" />
-                    <stop offset="54%" stopColor="#238caf" />
-                    <stop offset="100%" stopColor="#0d4d67" />
-                  </linearGradient>
-                  <linearGradient id="fofRod" x1="0" x2="1" y1="1" y2="0">
-                    <stop offset="0%" stopColor="#2b1f1a" />
-                    <stop offset="55%" stopColor="#7a4b2d" />
-                    <stop offset="100%" stopColor="#1f1713" />
-                  </linearGradient>
-                  <linearGradient id="fofSkin" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#c88c63" />
-                    <stop offset="100%" stopColor="#8f593f" />
-                  </linearGradient>
-                  <radialGradient id="fofSunGlow" cx="15%" cy="18%" r="32%">
-                    <stop offset="0%" stopColor="#fff8b8" stopOpacity="0.95" />
-                    <stop offset="100%" stopColor="#fff8b8" stopOpacity="0" />
-                  </radialGradient>
-                  <linearGradient id="fofShore" x1="0" x2="1" y1="0" y2="0">
-                    <stop offset="0%" stopColor="#3c332c" />
-                    <stop offset="48%" stopColor="#a7774e" />
-                    <stop offset="100%" stopColor="#46382d" />
-                  </linearGradient>
-                </defs>
-
-                <rect width="760" height="460" fill="url(#fofSky)" />
-                <rect width="760" height="220" fill="url(#fofSunGlow)" />
-                <circle cx="112" cy="82" r="34" fill="#ffe680" />
-                <circle cx="112" cy="82" r="88" fill="#ffe680" opacity="0.15" />
-                <path d="M210 86 Q228 68 252 78 Q266 58 292 76 Q315 76 326 96 L200 96 Q202 88 210 86Z" fill="#ffffff" opacity="0.72" />
-                <path d="M515 78 Q532 62 552 71 Q567 54 588 72 Q608 72 618 90 L505 90 Q508 82 515 78Z" fill="#ffffff" opacity="0.62" />
-                <path d="M350 108 q8 -9 16 0 q8 -9 16 0" fill="none" stroke="#4e6b70" strokeWidth="2" opacity="0.35" strokeLinecap="round" />
-                <path d="M412 84 q7 -8 14 0 q7 -8 14 0" fill="none" stroke="#4e6b70" strokeWidth="2" opacity="0.3" strokeLinecap="round" />
-                <path d="M0 166 C110 112 171 144 256 104 C340 66 418 106 504 86 C614 61 684 88 760 50 L760 232 L0 232Z" fill="#806c53" opacity="0.45" />
-                <path d="M0 194 C98 145 177 169 276 137 C376 105 462 148 552 121 C638 95 696 118 760 92 L760 232 L0 232Z" fill="#534335" opacity="0.48" />
-                <rect y="218" width="760" height="242" fill="url(#fofWater)" />
-                <path d="M530 210 C570 198 615 199 646 211 L629 226 L548 226Z" fill="#4c3b2d" opacity="0.78" />
-                <path d="M584 173 L584 214" stroke="#4c3b2d" strokeWidth="4" strokeLinecap="round" opacity="0.75" />
-                <path d="M587 178 C610 188 614 203 587 211Z" fill="#fff4d6" opacity="0.8" />
-                {Array.from({ length: 9 }).map((_, index) => (
-                  <path
-                    key={index}
-                    d={`M ${-120 + index * 58} ${252 + index * 20} C ${76 + index * 22} ${232 + index * 12}, ${245 + index * 25} ${278 + index * 9}, ${900 - index * 38} ${252 + index * 18}`}
-                    fill="none"
-                    stroke={index % 2 === 0 ? "#d9fbff" : "#92ddeb"}
-                    strokeWidth={index < 4 ? 2.2 : 1.3}
-                    opacity={0.24}
-                  />
-                ))}
-                <path d="M52 284 C110 276 154 284 204 276" fill="none" stroke="#efffff" strokeWidth="3" opacity="0.25" strokeLinecap="round" />
-                <path d="M356 315 C430 302 492 320 568 303" fill="none" stroke="#efffff" strokeWidth="3" opacity="0.22" strokeLinecap="round" />
-                <path d="M0 408 C145 360 282 420 428 382 C548 350 644 374 760 348 L760 460 L0 460Z" fill="url(#fofShore)" opacity="0.95" />
-                <path d="M0 424 C110 398 175 414 260 394 C352 374 440 423 542 393 C642 365 704 388 760 374 L760 460 L0 460Z" fill="#302923" opacity="0.4" />
-                <g opacity="0.8">
-                  <path d="M44 420 Q48 378 56 420" stroke="#436b3f" strokeWidth="5" strokeLinecap="round" />
-                  <path d="M62 423 Q68 376 74 422" stroke="#567b45" strokeWidth="5" strokeLinecap="round" />
-                  <path d="M690 402 Q700 354 706 405" stroke="#436b3f" strokeWidth="5" strokeLinecap="round" />
-                  <circle cx="86" cy="411" r="4" fill="#f9a8d4" />
-                  <circle cx="670" cy="398" r="4" fill="#fde68a" />
-                </g>
-              </svg>
-
-              <div className="absolute left-4 top-4 rounded-2xl border border-white/75 bg-white/82 px-3 py-2 shadow-sm backdrop-blur-md">
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-sky-700">
-                  <Waves className="h-3.5 w-3.5" /> Sea of Galilee
-                </div>
-                <div className="font-serif text-lg font-black text-[#3f332e]">Fishers of Faith</div>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 text-warm-cocoa">
+      <section className="relative overflow-hidden border-[6px] border-[#fff3d6] bg-[#f4c7d8] p-3 shadow-[0_28px_80px_rgba(70,96,112,0.22)] sm:p-4">
+        <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "linear-gradient(45deg, #fff 25%, transparent 25%), linear-gradient(-45deg, #fff 25%, transparent 25%)", backgroundSize: "12px 12px" }} />
+        <div className="relative z-10 grid gap-4 xl:grid-cols-[1fr_300px]">
+          <div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#2b7885]">8-bit bridge fishing</p>
+                <h2 className="font-serif text-2xl font-black text-[#2f2a2d]">Pixel Galilee</h2>
               </div>
-
-              <div className="absolute right-4 top-4 rounded-2xl border border-white/75 bg-white/82 px-3 py-2 text-right shadow-sm backdrop-blur-md">
-                <div className="text-[8px] font-black uppercase tracking-[0.18em] text-warm-grey/55">Phase</div>
-                <div className="text-sm font-black text-[#3f332e]">{phaseLabel[phase]}</div>
-                <div className="mt-1 text-[8px] font-black uppercase tracking-wider text-emerald-700">Forgiving Mode</div>
+              <div className="flex gap-2 text-[10px] font-black uppercase tracking-wider">
+                <span className="border-2 border-[#2f2a2d] bg-[#fff3d6] px-3 py-1 shadow-[2px_2px_0_#2f2a2d]">Score {score}</span>
+                <span className="border-2 border-[#2f2a2d] bg-[#fff3d6] px-3 py-1 shadow-[2px_2px_0_#2f2a2d]">Pearls {pearls}</span>
               </div>
+            </div>
 
-              <AnimatePresence>
-                {phase === "hook" && (
-                  <motion.div
-                    className="absolute z-20 h-24 w-24 -translate-x-1/2 rounded-full border-4 border-amber-200/80 bg-amber-100/20 shadow-[0_0_35px_rgba(251,191,36,0.42)]"
-                    style={{ left: `${rippleX}%`, top: "232px" }}
-                    initial={{ opacity: 0, scale: 0.45 }}
-                    animate={{ opacity: [0.9, 0.35, 0.9], scale: [0.72, 1.28, 0.86] }}
-                    exit={{ opacity: 0, scale: 0.3 }}
-                    transition={{ repeat: Infinity, duration: 0.82 }}
-                  />
-                )}
-              </AnimatePresence>
+            <PixelMap player={player} phase={phase} caught={caught} onSwipe={moveBy} pulse={pulse} />
 
-              {(phase === "waiting" || phase === "hook" || phase === "reeling") && (
-                <motion.div
-                  className="absolute z-30 -translate-x-1/2 text-3xl drop-shadow-lg"
-                  style={{ left: `${bobberX}%`, top: "255px" }}
-                  animate={{ y: phase === "hook" ? [0, -16, 10, -5, 0] : [0, 4, 0], rotate: phase === "hook" ? [-8, 14, -12, 6, 0] : 0 }}
-                  transition={{ repeat: Infinity, duration: phase === "hook" ? 0.54 : 1.8 }}
-                >
-                  🪝
-                </motion.div>
-              )}
-
-              <motion.svg
-                className="absolute inset-x-0 bottom-0 z-40 h-52 w-full overflow-visible"
-                viewBox="0 0 760 210"
-                preserveAspectRatio="none"
-                animate={phase === "casting" ? { y: [0, -12, 0] } : phase === "reeling" ? { x: [-2, 3, -2, 1, 0] } : {}}
-                transition={{ duration: phase === "casting" ? 0.75 : 0.42, repeat: phase === "reeling" ? Infinity : 0 }}
+            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <div className="border-[3px] border-[#2f2a2d] bg-[#fff3d6] px-4 py-3 shadow-[4px_4px_0_#2f2a2d]">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#2b7885]">Guide</p>
+                <p className="mt-1 min-h-10 text-[12px] font-bold leading-relaxed text-[#4f3b34]">{message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={cast}
+                disabled={(!canFish && phase !== "bite") || phase === "casting" || phase === "caught" || phase === "missed"}
+                className="border-[3px] border-[#2f2a2d] bg-[#f2a8bd] px-8 py-3 text-[11px] font-black uppercase tracking-widest text-[#2f2a2d] shadow-[4px_4px_0_#2f2a2d] transition active:translate-y-0.5 active:shadow-none disabled:opacity-45"
               >
-                <ellipse cx="382" cy="208" rx="230" ry="42" fill="#1d1714" opacity="0.24" />
-                <path d="M292 205 C275 153 297 110 342 120 C383 129 389 171 369 220Z" fill="url(#fofSkin)" />
-                <path d="M432 220 C396 173 405 124 448 116 C490 109 511 159 482 220Z" fill="url(#fofSkin)" />
-                <ellipse cx="350" cy="135" rx="36" ry="22" fill="#d79a70" opacity="0.92" />
-                <ellipse cx="444" cy="134" rx="38" ry="23" fill="#d79a70" opacity="0.92" />
-                <path d="M384 142 C480 78 560 29 720 -58" fill="none" stroke="url(#fofRod)" strokeWidth="13" strokeLinecap="round" />
-                <path d="M403 146 C497 87 583 38 730 -50" fill="none" stroke="#f6d7a0" strokeWidth="2" strokeLinecap="round" opacity="0.42" />
-                {(phase === "waiting" || phase === "hook" || phase === "reeling") && (
-                  <path d={`M710 -54 C662 62, 612 155, ${bobberX * 7.6} 290`} fill="none" stroke="#fff8df" strokeWidth="1.45" strokeDasharray="4 5" opacity="0.9" />
-                )}
-                <circle cx="405" cy="140" r="27" fill="none" stroke="#261c17" strokeWidth="8" />
-                <circle cx="405" cy="140" r="10" fill="#d89b56" stroke="#261c17" strokeWidth="4" />
-              </motion.svg>
-
-              {phase === "reeling" && (
-                <div className="absolute bottom-24 left-5 right-5 z-50 rounded-[22px] border border-white/80 bg-white/86 p-4 shadow-xl backdrop-blur-md">
-                  <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wider text-[#4d4039]">
-                    <span>Reel timing</span>
-                    <span>{reelHits}/{requiredHits} pulls • {mistakes}/5 misses</span>
-                  </div>
-                  <div className="relative h-9 overflow-hidden rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-white to-sky-100">
-                    <div
-                      className="absolute top-0 h-full rounded-full bg-gradient-to-r from-amber-300 to-emerald-300 shadow-[0_0_18px_rgba(52,211,153,.4)]"
-                      style={{ left: `${targetStart}%`, width: `${targetWidth}%` }}
-                    />
-                    <div
-                      className="absolute top-[-5px] h-11 w-1.5 rounded-full bg-[#3f332e] shadow-lg transition-all duration-100"
-                      style={{ left: `${meterCursor}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <AnimatePresence>
-                {(phase === "caught" || phase === "lost") && (
-                  <motion.div
-                    className="absolute left-1/2 top-[118px] z-[60] w-[min(86%,380px)] -translate-x-1/2 rounded-[28px] border-4 border-white bg-white/92 px-6 py-4 text-center shadow-2xl"
-                    initial={{ y: 18, scale: 0.82, opacity: 0 }}
-                    animate={{ y: 0, scale: 1, opacity: 1 }}
-                    exit={{ y: -12, scale: 0.86, opacity: 0 }}
-                  >
-                    <div className="text-5xl">{phase === "caught" && currentCatch ? currentCatch.emoji : "🌊"}</div>
-                    <div className="mt-1 font-serif text-xl font-black text-[#3f332e]">
-                      {phase === "caught" && currentCatch ? currentCatch.name : "It slipped away"}
-                    </div>
-                    <p className="mt-1 text-[10px] font-bold italic leading-relaxed text-warm-grey/70">
-                      {phase === "caught" && currentCatch ? `“${currentCatch.verse}” — ${currentCatch.reference}` : "Resetting the line..."}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                {fishButtonLabel}
+              </button>
             </div>
           </div>
 
           <aside className="flex flex-col gap-3">
-            <div className="rounded-[28px] border border-white/85 bg-white/78 p-4 shadow-[0_14px_36px_rgba(75,104,119,0.12)] backdrop-blur-md">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-sky-700">Guide</span>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-emerald-700">Easier</span>
+            <div className="border-[3px] border-[#2f2a2d] bg-[#fff3d6] p-4 shadow-[4px_4px_0_#2f2a2d]">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#2b7885]">
+                  <Waves className="h-4 w-4" /> Controls
+                </span>
+                <span className="bg-[#cfeeed] px-2 py-1 text-[8px] font-black uppercase">Swipe</span>
               </div>
-              <p className="min-h-[54px] text-[11px] font-bold leading-relaxed text-[#4f433d]">{message}</p>
-
-              {phase === "hook" && (
-                <div className="mt-3">
-                  <div className="mb-1 flex justify-between text-[9px] font-black uppercase tracking-wider text-warm-grey/55">
-                    <span>Hook window</span>
-                    <span>{timeLeft}s</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-sky-100">
-                    <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-emerald-300" style={{ width: `${Math.min(hookAccuracy, hookWindow)}%` }} />
-                  </div>
-                </div>
-              )}
-
-              {phase === "reeling" && (
-                <div className="mt-3">
-                  <div className="mb-1 flex justify-between text-[9px] font-black uppercase tracking-wider text-warm-grey/55">
-                    <span>Tension</span>
-                    <span>{timeLeft}s</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-sky-100">
-                    <div className={`h-full rounded-full ${tension > 78 ? "bg-rose-400" : tension > 55 ? "bg-amber-400" : "bg-emerald-400"}`} style={{ width: `${tension}%` }} />
-                  </div>
-                </div>
-              )}
+              <div className="grid grid-cols-3 gap-2">
+                <span />
+                <button className="pixel-control" type="button" onClick={() => moveBy("up")}>↑</button>
+                <span />
+                <button className="pixel-control" type="button" onClick={() => moveBy("left")}>←</button>
+                <button className="pixel-control" type="button" onClick={() => moveBy("down")}>↓</button>
+                <button className="pixel-control" type="button" onClick={() => moveBy("right")}>→</button>
+              </div>
+              <p className="mt-3 text-[10px] font-bold leading-relaxed text-[#5f4d43]">Move with WASD, arrows, buttons, or swipe on the map. Fish only from the bridge when the line lands in water.</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-2xl border border-white/80 bg-white/76 px-2 py-2 shadow-sm">
-                <span className="block text-[8px] font-black uppercase tracking-wider text-sky-700/65">Points</span>
-                <span className="text-sm font-black">{score}</span>
+            <div className="border-[3px] border-[#2f2a2d] bg-[#f7dfbe] p-4 shadow-[4px_4px_0_#2f2a2d]">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#8f4f73]">
+                  <Fish className="h-4 w-4" /> Basket
+                </span>
+                <span className="text-[9px] font-black uppercase text-[#5f4d43]">{lifetime} caught</span>
               </div>
-              <div className="rounded-2xl border border-white/80 bg-white/76 px-2 py-2 shadow-sm">
-                <span className="block text-[8px] font-black uppercase tracking-wider text-amber-700/65">Pearls</span>
-                <span className="text-sm font-black">{pearls}</span>
-              </div>
-              <div className="rounded-2xl border border-white/80 bg-white/76 px-2 py-2 shadow-sm">
-                <span className="block text-[8px] font-black uppercase tracking-wider text-rose-700/65">Streak</span>
-                <span className="text-sm font-black">{streak}/{bestStreak}</span>
+              <div className="space-y-2">
+                {basket.length ? basket.map((item, index) => (
+                  <div key={`${item.id}-${index}-${pulse}`} className="flex items-center gap-2 border-2 border-[#2f2a2d]/25 bg-[#fff3d6] px-2 py-2">
+                    <PixelFish color={item.color} flip={index % 2 === 0} />
+                    <div className="min-w-0">
+                      <p className="truncate text-[10px] font-black text-[#2f2a2d]">{item.name}</p>
+                      <p className="text-[8px] font-bold uppercase text-[#8f4f73]">{item.rarity}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="border-2 border-dashed border-[#2f2a2d]/25 bg-[#fff3d6]/70 px-3 py-4 text-center text-[10px] font-bold italic text-[#715f56]">Your basket is waiting.</p>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={castLine}
-                disabled={phase !== "ready"}
-                className={`rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${phase === "ready" ? "bg-gradient-to-r from-sky-600 to-cyan-500 shadow-sky-300/40 animate-pulse" : "bg-gradient-to-r from-sky-600 to-cyan-500"}`}
-              >
-                Cast
-              </button>
-              <button
-                type="button"
-                onClick={setHook}
-                disabled={phase !== "hook"}
-                className={`rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${phase === "hook" ? "bg-gradient-to-r from-amber-500 to-rose-400 shadow-amber-300/50 animate-pulse" : "bg-gradient-to-r from-amber-500 to-rose-400"}`}
-              >
-                Set Hook
-              </button>
-              <button
-                type="button"
-                onClick={reel}
-                disabled={phase !== "reeling"}
-                className={`rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${phase === "reeling" ? "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-300/50 animate-pulse" : "bg-gradient-to-r from-emerald-500 to-teal-500"}`}
-              >
-                Reel
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowJournal(true)}
-                className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-[#4d4039] shadow-sm transition active:scale-95"
-              >
-                Journal
-              </button>
-            </div>
-
-            {currentCatch && (phase === "hook" || phase === "reeling") && (
-              <div className="rounded-[22px] border border-white/80 bg-white/70 p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-2xl">{currentCatch.emoji}</span>
-                  <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${RARITY_META[currentCatch.rarity].badge}`}>
-                    {RARITY_META[currentCatch.rarity].label}
-                  </span>
-                </div>
-                <div className="mt-1 text-xs font-black">{currentCatch.name}</div>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowJournal(true)}
+              className="flex items-center justify-center gap-2 border-[3px] border-[#2f2a2d] bg-[#cfeeed] px-4 py-3 text-[10px] font-black uppercase tracking-widest shadow-[4px_4px_0_#2f2a2d] active:translate-y-0.5 active:shadow-none"
+            >
+              <BookOpen className="h-4 w-4" /> Fish Journal
+            </button>
           </aside>
         </div>
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-4">
-        <div className="rounded-3xl border border-white/70 bg-white/60 p-4 shadow-sm sm:col-span-2">
-          <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-sky-700">
-            <Fish className="h-4 w-4" /> Basket
-          </div>
-          <div className="flex min-h-14 flex-wrap gap-2">
-            {basket.length === 0 ? (
-              <p className="text-[11px] italic text-warm-grey/50">No catches yet. Start with a clean cast and steady timing.</p>
-            ) : (
-              basket.map((item) => (
-                <div key={item.catchId} className={`rounded-2xl border bg-gradient-to-br ${item.gradient} px-3 py-2 shadow-sm`}>
-                  <span className="mr-1 text-lg">{item.emoji}</span>
-                  <span className="text-[10px] font-black">{item.name}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-white/70 bg-white/60 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-amber-700">
-            <Anchor className="h-4 w-4" /> Lifetime
-          </div>
-          <p className="text-2xl font-black">{lifetime}</p>
-          <p className="text-[10px] text-warm-grey/55">fish and treasures caught</p>
-        </div>
-
-        <div className="rounded-3xl border border-white/70 bg-white/60 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-violet-700">
-            <Sparkles className="h-4 w-4" /> Discovery
-          </div>
-          <p className="text-2xl font-black">{discovered.length}/{CATCHES.length}</p>
-          <p className="text-[10px] text-warm-grey/55">journal entries found</p>
-        </div>
-      </div>
-
       <AnimatePresence>
         {showJournal && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+          <div className="fixed inset-0 z-50 grid place-items-center bg-[#263238]/50 p-4 backdrop-blur-sm">
             <motion.div
-              className="max-h-[82vh] w-full max-w-lg overflow-y-auto rounded-[34px] border border-white/80 bg-[#fffaf0] p-5 shadow-2xl"
-              initial={{ scale: 0.94, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.94, y: 20 }}
+              initial={{ y: 24, opacity: 0, scale: 0.96 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 18, opacity: 0, scale: 0.96 }}
+              className="w-full max-w-xl border-4 border-[#2f2a2d] bg-[#fff3d6] p-5 shadow-2xl"
             >
-              <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-amber-700">
-                    <BookOpen className="h-4 w-4" /> Scripture Catch Journal
-                  </div>
-                  <h3 className="font-serif text-xl font-black text-[#4e3a31]">Treasures from the Lake</h3>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#2b7885]">Collection</p>
+                  <h3 className="font-serif text-xl font-black text-[#2f2a2d]">Fish Journal</h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowJournal(false)}
-                  className="rounded-full bg-white px-3 py-1 text-xs font-black text-warm-cocoa shadow-sm"
-                >
-                  Close
-                </button>
+                <button type="button" onClick={() => setShowJournal(false)} className="border-2 border-[#2f2a2d] bg-[#f2a8bd] px-3 py-1 text-[10px] font-black">Close</button>
               </div>
-
-              <div className="grid gap-3">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {CATCHES.map((item) => {
-                  const isFound = journal.includes(item.id);
+                  const found = discovered.some((entry) => entry.id === item.id);
                   return (
-                    <div
-                      key={item.id}
-                      className={`rounded-3xl border p-4 transition-all ${isFound ? "border-white bg-white/70 shadow-sm" : "border-stone-200 bg-stone-100/70 opacity-60"}`}
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{isFound ? item.emoji : "❔"}</span>
-                          <div>
-                            <p className="text-sm font-black">{isFound ? item.name : "Undiscovered Catch"}</p>
-                            <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${RARITY_META[item.rarity].badge}`}>
-                              {RARITY_META[item.rarity].label}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-xs font-black text-amber-700">+{item.points}</span>
+                    <div key={item.id} className={`border-2 border-[#2f2a2d] p-3 ${found ? "bg-[#f7dfbe]" : "bg-[#d9cfc2] opacity-60"}`}>
+                      <div className="mb-2 flex items-center gap-2">
+                        {found ? <PixelFish color={item.color} /> : <div className="h-5 w-9 border-2 border-[#2f2a2d] bg-[#8f8379]" />}
+                        <p className="text-[11px] font-black">{found ? item.name : "Unknown catch"}</p>
                       </div>
-                      <p className="text-[11px] font-bold italic leading-relaxed text-warm-grey/70">
-                        {isFound ? `“${item.verse}” — ${item.reference}` : "Catch this treasure to reveal its verse."}
-                      </p>
+                      <p className="text-[9px] font-bold leading-relaxed text-[#5f4d43]">{found ? `"${item.verse}" - ${item.reference}` : "Keep fishing different parts of the water."}</p>
                     </div>
                   );
                 })}
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
+
+      <style jsx global>{`
+        .pixel-map,
+        .pixel-sprite,
+        .pixel-grid {
+          image-rendering: pixelated;
+          image-rendering: crisp-edges;
+          touch-action: none;
+        }
+        .scratch-water {
+          background-color: #75ced9;
+          background-image: url("/minigames/fishing/water_tile.png");
+          background-size: 192px 192px;
+          background-position: center;
+        }
+        .scratch-sand {
+          background-color: #dfc184;
+          background-image: url("/minigames/fishing/sand_tile.png");
+          background-size: 192px 94px;
+          background-position: center;
+        }
+        .scratch-grass {
+          background-color: #6eb242;
+          background-image: url("/minigames/fishing/grass_tile.png");
+          background-size: 192px 192px;
+          background-position: center;
+        }
+        .pixel-flower {
+          width: 4px;
+          height: 4px;
+          background: currentColor;
+          box-shadow:
+            4px 0 0 currentColor,
+            -4px 0 0 currentColor,
+            0 4px 0 currentColor,
+            0 -4px 0 currentColor,
+            0 0 0 2px #5f8d39;
+        }
+        .pixel-grid {
+          background-image:
+            linear-gradient(rgba(255,255,255,.7) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.7) 1px, transparent 1px);
+          background-size: 16px 16px;
+        }
+        .pixel-control {
+          height: 44px;
+          border: 3px solid #2f2a2d;
+          background: #fff3d6;
+          box-shadow: 4px 4px 0 #2f2a2d;
+          border-radius: 0;
+          font-weight: 900;
+          color: #2f2a2d;
+        }
+        .pixel-control:active {
+          transform: translate(2px, 2px);
+          box-shadow: 2px 2px 0 #2f2a2d;
+        }
+      `}</style>
     </div>
   );
 }
