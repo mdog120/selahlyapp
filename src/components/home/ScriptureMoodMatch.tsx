@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Heart, RefreshCw } from "lucide-react";
 
 const MOOD_MATCHES = [
@@ -45,11 +46,102 @@ const MOOD_MATCHES = [
 export function ScriptureMoodMatch() {
     const [selectedMood, setSelectedMood] = useState(MOOD_MATCHES[0].mood);
     const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const selected = useMemo(
         () => MOOD_MATCHES.find((match) => match.mood === selectedMood) ?? MOOD_MATCHES[0],
         [selectedMood]
     );
+
+    const renderMobileModal = () => {
+        if (!mounted || !isMobileModalOpen) return null;
+
+        return createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-4 backdrop-blur-sm lg:hidden animate-fade-in">
+                <div className="relative w-full max-w-sm rounded-3xl border border-white/75 bg-warm-paper p-6 shadow-2xl animate-scale-in">
+                    {/* Modal Header */}
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                        <div className="text-left">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-rose/70">
+                                Scripture Match
+                            </p>
+                            <h2 className="font-serif text-xl text-warm-cocoa">How is your heart?</h2>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileModalOpen(false)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 hover:bg-stone-200 text-warm-grey transition-colors text-xs font-bold"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    {/* Mood selections */}
+                    <div className="mb-5 grid grid-cols-2 gap-2">
+                        {MOOD_MATCHES.map((match) => {
+                            const isSelected = selected.mood === match.mood;
+
+                            return (
+                                <button
+                                    key={match.mood}
+                                    type="button"
+                                    onClick={() => setSelectedMood(match.mood)}
+                                    className={`rounded-full border px-3 py-2.5 text-xs font-semibold transition-all ${
+                                        isSelected
+                                            ? "border-muted-rose/40 bg-soft-blush/70 text-warm-cocoa shadow-sm"
+                                            : "border-warm-grey/10 bg-white/70 text-warm-grey/65 hover:border-muted-rose/30 hover:text-warm-cocoa"
+                                    }`}
+                                >
+                                    {match.mood}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Scripture result card */}
+                    <div className="rounded-2xl border border-soft-blush/50 bg-soft-blush/20 p-4 text-left">
+                        <p className="font-serif text-base leading-relaxed text-warm-cocoa">
+                            &ldquo;{selected.verse}&rdquo;
+                        </p>
+                        <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey/50">
+                            {selected.reference}
+                        </p>
+                        <p className="mt-3 text-sm leading-relaxed text-warm-grey/75">
+                            {selected.note}
+                        </p>
+                    </div>
+
+                    {/* Modal Footer actions */}
+                    <div className="mt-5 flex items-center justify-between">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const currentIndex = MOOD_MATCHES.findIndex((match) => match.mood === selected.mood);
+                                const next = MOOD_MATCHES[(currentIndex + 1) % MOOD_MATCHES.length];
+                                setSelectedMood(next.mood);
+                            }}
+                            className="inline-flex items-center gap-2 text-xs font-bold text-warm-grey/55 transition-colors hover:text-warm-cocoa"
+                        >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Another mood
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileModalOpen(false)}
+                            className="rounded-full bg-warm-cocoa px-4 py-2 text-xs font-bold text-white hover:bg-warm-cocoa/90 transition-colors"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        );
+    };
 
     return (
         <>
@@ -131,87 +223,8 @@ export function ScriptureMoodMatch() {
                 </div>
             </button>
 
-            {/* Mobile Modal/Lightbox (visible only when open on mobile/tablet) */}
-            {isMobileModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-4 backdrop-blur-sm lg:hidden animate-fade-in">
-                    <div className="relative w-full max-w-sm rounded-3xl border border-white/75 bg-warm-paper p-6 shadow-2xl animate-scale-in">
-                        {/* Modal Header */}
-                        <div className="mb-5 flex items-center justify-between gap-3">
-                            <div className="text-left">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-rose/70">
-                                    Scripture Match
-                                </p>
-                                <h2 className="font-serif text-xl text-warm-cocoa">How is your heart?</h2>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setIsMobileModalOpen(false)}
-                                className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 hover:bg-stone-200 text-warm-grey transition-colors text-xs font-bold"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        {/* Mood selections */}
-                        <div className="mb-5 grid grid-cols-2 gap-2">
-                            {MOOD_MATCHES.map((match) => {
-                                const isSelected = selected.mood === match.mood;
-
-                                return (
-                                    <button
-                                        key={match.mood}
-                                        type="button"
-                                        onClick={() => setSelectedMood(match.mood)}
-                                        className={`rounded-full border px-3 py-2.5 text-xs font-semibold transition-all ${
-                                            isSelected
-                                                ? "border-muted-rose/40 bg-soft-blush/70 text-warm-cocoa shadow-sm"
-                                                : "border-warm-grey/10 bg-white/70 text-warm-grey/65 hover:border-muted-rose/30 hover:text-warm-cocoa"
-                                        }`}
-                                    >
-                                        {match.mood}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Scripture result card */}
-                        <div className="rounded-2xl border border-soft-blush/50 bg-soft-blush/20 p-4 text-left">
-                            <p className="font-serif text-base leading-relaxed text-warm-cocoa">
-                                &ldquo;{selected.verse}&rdquo;
-                            </p>
-                            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey/50">
-                                {selected.reference}
-                            </p>
-                            <p className="mt-3 text-sm leading-relaxed text-warm-grey/75">
-                                {selected.note}
-                            </p>
-                        </div>
-
-                        {/* Modal Footer actions */}
-                        <div className="mt-5 flex items-center justify-between">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const currentIndex = MOOD_MATCHES.findIndex((match) => match.mood === selected.mood);
-                                    const next = MOOD_MATCHES[(currentIndex + 1) % MOOD_MATCHES.length];
-                                    setSelectedMood(next.mood);
-                                }}
-                                className="inline-flex items-center gap-2 text-xs font-bold text-warm-grey/55 transition-colors hover:text-warm-cocoa"
-                            >
-                                <RefreshCw className="h-3.5 w-3.5" />
-                                Another mood
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsMobileModalOpen(false)}
-                                className="rounded-full bg-warm-cocoa px-4 py-2 text-xs font-bold text-white hover:bg-warm-cocoa/90 transition-colors"
-                            >
-                                Done
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Mobile Modal/Lightbox */}
+            {renderMobileModal()}
         </>
     );
 }
