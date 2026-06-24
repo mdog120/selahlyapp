@@ -36,7 +36,7 @@ export function DailyVerseCard() {
 
     return (
         <div 
-            className="group relative overflow-hidden p-6 rounded-3xl border shadow-sm transition-all duration-300 hover:shadow-md"
+            className="group relative z-30 overflow-hidden p-6 rounded-3xl border shadow-sm transition-all duration-300 hover:shadow-md"
             style={getCardStyles()}
         >
             {/* Top Washi Tape accent */}

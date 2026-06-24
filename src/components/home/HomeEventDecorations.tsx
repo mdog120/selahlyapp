@@ -123,7 +123,7 @@ const DECORATIONS: Record<DecorationKind, { items: string[]; className: string }
     },
     "world-cup": {
         items: ["⚽", "⚽", "⚽", "⚽", "⚽", "⚽"],
-        className: "animate-[selahly-float_7s_ease-in-out_infinite]"
+        className: "animate-soccer-fall"
     },
     "july-fourth": {
         items: ["✦", "✺", "✦", "✹", "✦", "✺"],
@@ -203,14 +203,23 @@ export function HomeEventDecorations() {
     return (
         <>
             <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[34rem] overflow-hidden"
+                className={
+                    isWorldCup
+                        ? "pointer-events-none absolute inset-0 z-20 overflow-hidden"
+                        : "pointer-events-none absolute inset-x-0 top-0 z-20 h-[34rem] overflow-hidden"
+                }
                 aria-hidden={isWorldCup ? undefined : "true"}
             >
                 {decoration.items.map((item, index) => {
                     const className = `absolute select-none text-2xl opacity-70 md:text-3xl ${POSITIONS[index % POSITIONS.length]} ${decoration.className}`;
-                    const style = {
-                        animationDelay: `${index * 0.55}s`
-                    };
+                    const style = isWorldCup
+                        ? {
+                            animationDelay: `${index * 2.5}s`,
+                            animationDuration: `${14 + (index % 3) * 4}s`
+                          }
+                        : {
+                            animationDelay: `${index * 0.55}s`
+                          };
 
                     if (isWorldCup) {
                         return (

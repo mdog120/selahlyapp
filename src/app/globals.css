@@ -388,6 +388,35 @@ body.theme-night button:hover {
   }
 }
 
+@keyframes selahly-soccer-fall {
+  0% {
+    top: -5%;
+    transform: translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateX(-20px) rotate(360deg);
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    top: 105%;
+    transform: translateX(20px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-soccer-fall {
+  animation-name: selahly-soccer-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: backwards;
+}
+
 /* Wobble animation for failed combinations */
 @keyframes wobble {
   0%, 100% { transform: translateX(0); }
