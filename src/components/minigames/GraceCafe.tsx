@@ -67,21 +67,26 @@ const MENU: MenuItem[] = [
   { id: "pentecost_pancakes", name: "Pentecost Pancakes", emoji: "🥞", shortName: "Pentecost pancakes", station: "oven", ingredientCost: 25, price: 50, batch: 2, seconds: 6, unlockDay: 2, description: "Fluffy pancakes served with maple syrup." },
   { id: "divine_donuts", name: "Divine Donuts", emoji: "🍩", shortName: "Divine donuts", station: "oven", ingredientCost: 25, price: 40, batch: 3, seconds: 5, unlockDay: 2, description: "Glazed donuts with divine sprinkles." },
   { id: "green_tea", name: "Living Water Green Tea", emoji: "🍵", shortName: "Green tea", station: "drinks", ingredientCost: 30, price: 60, batch: 2, seconds: 5, unlockDay: 2, description: "A calming green tea brewed with living water." },
+  { id: "matcha_boba", name: "Sanctuary Matcha Boba", emoji: "🧋🍵", shortName: "Matcha boba", station: "drinks", ingredientCost: 35, price: 80, batch: 2, seconds: 5, unlockDay: 2, description: "Creamy stone-ground green tea boba with tapioca pearls." },
   
   { id: "grace_rolls", name: "Grace Cinnamon Rolls", emoji: "🍥", shortName: "Cinnamon rolls", station: "oven", ingredientCost: 35, price: 75, batch: 4, seconds: 7, unlockDay: 3, description: "Frosted warm rolls packed with grace." },
   { id: "manna_milkshake", name: "Manna Milkshake", emoji: "🥤", shortName: "Manna milkshake", station: "drinks", ingredientCost: 40, price: 90, batch: 2, seconds: 4, unlockDay: 3, description: "Rich creamy milkshake made of manna." },
+  { id: "dirty_boba", name: "Heavenly Dirty Boba", emoji: "🧋🍮", shortName: "Dirty boba", station: "drinks", ingredientCost: 45, price: 110, batch: 2, seconds: 5, unlockDay: 3, description: "Rich brown sugar milk tea with caramel walling and warm boba." },
   
   { id: "strawberry_cake", name: "Selah Strawberry Cake", emoji: "🍰", shortName: "Strawberry cake", station: "oven", ingredientCost: 45, price: 110, batch: 2, seconds: 8, unlockDay: 4, description: "Fresh strawberry layered cake." },
-  { id: "bubble_tea", name: "Beatitude Bubble Tea", emoji: "🧋", shortName: "Bubble tea", station: "drinks", ingredientCost: 50, price: 120, batch: 2, seconds: 6, unlockDay: 4, description: "Refreshing bubble tea with tapioca pearls." },
+  { id: "mango_boba", name: "Eden Mango Boba", emoji: "🧋🥭", shortName: "Mango boba", station: "drinks", ingredientCost: 55, price: 130, batch: 2, seconds: 5, unlockDay: 4, description: "Sweet tropical mango nectar blended with milk and boba." },
   
   { id: "heavenly_waffles", name: "Heavenly Waffles", emoji: "🧇", shortName: "Waffles", station: "oven", ingredientCost: 70, price: 180, batch: 3, seconds: 6, unlockDay: 5, description: "Fluffy honey-glazed waffles straight from heaven." },
   { id: "hot_chocolate", name: "Heavenly Hot Chocolate", emoji: "🍫", shortName: "Hot chocolate", station: "drinks", ingredientCost: 60, price: 150, batch: 2, seconds: 5, unlockDay: 5, description: "Hot cocoa topped with whipped cream." },
+  { id: "strawberry_boba", name: "Selah Strawberry Boba", emoji: "🧋🍓", shortName: "Strawberry boba", station: "drinks", ingredientCost: 65, price: 160, batch: 2, seconds: 6, unlockDay: 5, description: "Fresh strawberry puree layered with creamy milk and tapioca." },
   
   { id: "sacred_scones", name: "Sacred Blueberry Scones", emoji: "🥮", shortName: "Blueberry scones", station: "oven", ingredientCost: 80, price: 210, batch: 4, seconds: 7, unlockDay: 6, description: "Warm butter scones infused with sacred berries." },
   { id: "peace_matcha", name: "Peaceful Matcha Latte", emoji: "🍵", shortName: "Matcha latte", station: "drinks", ingredientCost: 90, price: 240, batch: 2, seconds: 5, unlockDay: 6, description: "Wholesome green tea latte for a quiet spirit." },
+  { id: "vietnamese_boba", name: "Covenant Vietnam Boba", emoji: "🧋☕", shortName: "Vietnam boba", station: "drinks", ingredientCost: 85, price: 220, batch: 2, seconds: 6, unlockDay: 6, description: "Strong drip coffee with sweet condensed milk and chewy boba." },
   
   { id: "grace_macarons", name: "Graceful French Macarons", emoji: "🍥", shortName: "Macarons", station: "oven", ingredientCost: 110, price: 300, batch: 6, seconds: 8, unlockDay: 7, description: "Colorfully delicate French macarons packed with grace." },
   { id: "eden_smoothie", name: "Eden Garden Green Smoothie", emoji: "🥤", shortName: "Green smoothie", station: "drinks", ingredientCost: 120, price: 330, batch: 2, seconds: 6, unlockDay: 7, description: "Fresh blended organic fruits and greens from Eden." },
+  { id: "slushie_boba", name: "Beatitude Slushie Boba", emoji: "🧋❄️", shortName: "Slushie boba", station: "drinks", ingredientCost: 115, price: 290, batch: 2, seconds: 6, unlockDay: 7, description: "Icy blended fruit slushie topped with popping honey boba." },
   
   { id: "revelation_cake", name: "Revelation Lava Cake", emoji: "🎂", shortName: "Lava cake", station: "oven", ingredientCost: 150, price: 420, batch: 2, seconds: 10, unlockDay: 8, description: "Rich chocolate lava cake revealing sweet molten goodness." },
   { id: "seraphim_shake", name: "Seraphim Gold Shake", emoji: "🧋", shortName: "Gold milkshake", station: "drinks", ingredientCost: 160, price: 450, batch: 2, seconds: 7, unlockDay: 8, description: "Spiced golden milkshake fit for angels." }
