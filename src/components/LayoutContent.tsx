@@ -24,7 +24,8 @@ export function LayoutContent({ children }: LayoutContentProps) {
     if (isGraceInhale) {
         return (
             <div className="flex flex-col min-h-screen">
-                <main className="flex-1 w-full h-full">
+                <Navbar />
+                <main className="flex-1 w-full h-full md:pt-[calc(4rem+env(safe-area-inset-top,0px))]">
                     {children}
                 </main>
             </div>
@@ -35,7 +36,8 @@ export function LayoutContent({ children }: LayoutContentProps) {
     if (isMultiplayerRoom) {
         return (
             <div className="flex flex-col min-h-screen">
-                <main className="flex-1 w-full h-full">
+                <Navbar />
+                <main className="flex-1 w-full h-full md:pt-[calc(4rem+env(safe-area-inset-top,0px))]">
                     {children}
                 </main>
             </div>
