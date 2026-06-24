@@ -1093,7 +1093,7 @@ export function GalileeFishing() {
               initial={{ y: 24, opacity: 0, scale: 0.96 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 18, opacity: 0, scale: 0.96 }}
-              className="w-full max-w-xl border-4 border-[#2f2a2d] bg-[#fff3d6] p-5 shadow-2xl"
+              className="max-h-[88vh] w-full max-w-xl overflow-y-auto border-4 border-[#2f2a2d] bg-[#fff3d6] p-5 shadow-2xl"
             >
               <div className="mb-4 flex items-center justify-between">
                 <div>
