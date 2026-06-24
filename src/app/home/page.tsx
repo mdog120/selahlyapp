@@ -84,9 +84,7 @@ export default async function UserHome(props: {
                         {/* Selah Sister Feature */}
                         <SelahSisterCard />
 
-                        <div className="block lg:hidden">
-                            <ScriptureMoodMatch />
-                        </div>
+
 
                         {/* Feed Header */}
                         <div className="flex items-center justify-between mb-2">
