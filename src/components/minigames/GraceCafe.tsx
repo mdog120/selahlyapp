@@ -110,174 +110,178 @@ const TABLES = [
 const SAVE_KEY = "selahly_grace_cafe_v3";
 const SHIFT_LENGTH = 300; // standard 5m shift
 
-// --- Cute Animal SVG Component ---
-const CustomerAnimal: React.FC<{ type: AnimalType; patience: number; state: CustState }> = ({ type, patience, state }) => {
-  const isSad = patience < 35 && state !== "eating";
-  const isEating = state === "eating";
+// --- Scratch-inspired animal character components ---
+const CHARACTER_STYLES: Record<AnimalType, {
+  body: string;
+  outline: string;
+  inner: string;
+  blush: string;
+  outfit: string;
+  accent: string;
+}> = {
+  bunny: { body: "#fff7f8", outline: "#6b4a3a", inner: "#ffd8df", blush: "#f4b4bf", outfit: "#dfead2", accent: "#9ab684" },
+  bear: { body: "#d7aa83", outline: "#5b3525", inner: "#f2d0b0", blush: "#e9a79b", outfit: "#fff7e6", accent: "#b98562" },
+  kitty: { body: "#f5f0e9", outline: "#574132", inner: "#f8cbc6", blush: "#eeb2ad", outfit: "#e6f3e1", accent: "#98b89a" },
+  fox: { body: "#d9824e", outline: "#5b3322", inner: "#fff5df", blush: "#efaa92", outfit: "#f9e0a8", accent: "#a35e37" },
+  lamb: { body: "#fffaf0", outline: "#6a5547", inner: "#f2dbc4", blush: "#f2b8ad", outfit: "#dce8f2", accent: "#9fb9c9" }
+};
+
+type StaffKey = "muffin" | "cherry" | "floofer" | "goldie" | "flash";
+
+const StaffAnimal: React.FC<{ staff: StaffKey; className?: string }> = ({ staff, className = "w-14 h-14" }) => {
+  const staffToType: Record<StaffKey, AnimalType> = {
+    muffin: "bunny",
+    cherry: "kitty",
+    floofer: "bear",
+    goldie: "bear",
+    flash: "lamb"
+  };
 
   return (
-    <svg viewBox="0 0 100 100" className="w-14 h-14 filter drop-shadow-md select-none pointer-events-none">
-      {/* 1. Bunny */}
-      {type === "bunny" && (
-        <g>
-          <ellipse cx="38" cy="22" rx="7" ry="20" fill="#FFF0F5" stroke="#F5D3E3" strokeWidth="1.5" />
-          <ellipse cx="38" cy="24" rx="4" ry="14" fill="#FFD2E5" opacity="0.6" />
-          
-          <ellipse cx="62" cy="22" rx="7" ry="20" fill="#FFF0F5" stroke="#F5D3E3" strokeWidth="1.5" />
-          <ellipse cx="62" cy="24" rx="4" ry="14" fill="#FFD2E5" opacity="0.6" />
-          
-          <circle cx="50" cy="55" r="24" fill="#FFF8FB" stroke="#F5D3E3" strokeWidth="1.5" />
-          {isEating ? (
-            <>
-              <path d="M 38 48 Q 41 53 44 48" fill="none" stroke="#4A343F" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 56 48 Q 59 53 62 48" fill="none" stroke="#4A343F" strokeWidth="2.5" strokeLinecap="round" />
-            </>
-          ) : isSad ? (
-            <>
-              <path d="M 38 52 Q 43 47 45 53" fill="none" stroke="#4A343F" strokeWidth="2" strokeLinecap="round" />
-              <path d="M 55 53 Q 57 47 62 52" fill="none" stroke="#4A343F" strokeWidth="2" strokeLinecap="round" />
-            </>
-          ) : (
-            <>
-              <circle cx="41" cy="50" r="3.5" fill="#4A343F" />
-              <circle cx="39.5" cy="48.5" r="1.2" fill="#FFF" />
-              <circle cx="59" cy="50" r="3.5" fill="#4A343F" />
-              <circle cx="57.5" cy="48.5" r="1.2" fill="#FFF" />
-            </>
-          )}
-          <circle cx="34" cy="58" r="3" fill="#FFB7D5" opacity="0.6" />
-          <circle cx="66" cy="58" r="3" fill="#FFB7D5" opacity="0.6" />
-          <path d="M 48 57 Q 50 60 52 57" fill="none" stroke="#4A343F" strokeWidth="1.5" strokeLinecap="round" />
-        </g>
-      )}
+    <div className={className}>
+      <CustomerAnimal
+        type={staffToType[staff]}
+        patience={100}
+        state="waiting"
+        accessory={staff === "cherry" ? "bow" : staff === "goldie" ? "coin" : staff === "flash" ? "cap" : staff === "floofer" ? "apron" : "kerchief"}
+      />
+    </div>
+  );
+};
 
-      {/* 2. Bear */}
-      {type === "bear" && (
-        <g>
-          <circle cx="32" cy="36" r="8" fill="#D7CCC8" stroke="#BCAAA4" strokeWidth="1.5" />
-          <circle cx="32" cy="36" r="4.5" fill="#FFCDD2" opacity="0.5" />
-          <circle cx="68" cy="36" r="8" fill="#D7CCC8" stroke="#BCAAA4" strokeWidth="1.5" />
-          <circle cx="68" cy="36" r="4.5" fill="#FFCDD2" opacity="0.5" />
-          
-          <circle cx="50" cy="58" r="22" fill="#EFEBE9" stroke="#D7CCC8" strokeWidth="1.5" />
-          <ellipse cx="50" cy="64" rx="8" ry="6" fill="#FFF" stroke="#E0D7D7" strokeWidth="1" />
-          {isEating ? (
-            <>
-              <path d="M 38 50 Q 41 54 44 50" fill="none" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 56 50 Q 59 54 62 50" fill="none" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
-            </>
-          ) : isSad ? (
-            <>
-              <path d="M 39 54 L 44 54" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 56 54 L 61 54" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
-            </>
-          ) : (
-            <>
-              <circle cx="41" cy="52" r="3" fill="#5D4037" />
-              <circle cx="59" cy="52" r="3" fill="#5D4037" />
-            </>
-          )}
-          <ellipse cx="50" cy="62" rx="2" ry="1.5" fill="#5D4037" />
-          <path d="M 48 66 Q 50 68 52 66" fill="none" stroke="#5D4037" strokeWidth="1.2" strokeLinecap="round" />
-        </g>
-      )}
+const getStaffKey = (upgradeId: string): StaffKey | null => {
+  if (upgradeId === "staff_muffin") return "muffin";
+  if (upgradeId === "staff_cherry") return "cherry";
+  if (upgradeId === "staff_floofer") return "floofer";
+  if (upgradeId === "staff_goldie") return "goldie";
+  if (upgradeId === "staff_flash") return "flash";
+  return null;
+};
 
-      {/* 3. Kitty */}
-      {type === "kitty" && (
-        <g>
-          <polygon points="26,45 22,25 42,39" fill="#ECEFF1" stroke="#CFD8DC" strokeWidth="1.5" />
-          <polygon points="27,41 25,29 38,37" fill="#FFCDD2" opacity="0.5" />
-          <polygon points="74,45 78,25 58,39" fill="#ECEFF1" stroke="#CFD8DC" strokeWidth="1.5" />
-          <polygon points="73,41 75,29 62,37" fill="#FFCDD2" opacity="0.5" />
-          
-          <ellipse cx="50" cy="58" rx="23" ry="20" fill="#F5F5F5" stroke="#E0E0E0" strokeWidth="1.5" />
-          {isEating ? (
-            <>
-              <path d="M 37 50 Q 40 55 43 50" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 57 50 Q 60 55 63 50" fill="none" stroke="#37474F" strokeWidth="2.5" strokeLinecap="round" />
-            </>
-          ) : isSad ? (
-            <>
-              <path d="M 37 54 C 37 50, 43 50, 43 54" fill="none" stroke="#37474F" strokeWidth="2" strokeLinecap="round" />
-              <path d="M 57 54 C 57 50, 63 50, 63 54" fill="none" stroke="#37474F" strokeWidth="2" strokeLinecap="round" />
-            </>
-          ) : (
-            <>
-              <circle cx="40" cy="52" r="3.5" fill="#37474F" />
-              <circle cx="60" cy="52" r="3.5" fill="#37474F" />
-            </>
-          )}
-          <polygon points="48,58 52,58 50,60" fill="#FF8A80" />
-          <line x1="24" y1="58" x2="14" y2="57" stroke="#B0BEC5" strokeWidth="1.5" />
-          <line x1="24" y1="62" x2="12" y2="63" stroke="#B0BEC5" strokeWidth="1.5" />
-          <line x1="76" y1="58" x2="86" y2="57" stroke="#B0BEC5" strokeWidth="1.5" />
-          <line x1="76" y1="62" x2="88" y2="63" stroke="#B0BEC5" strokeWidth="1.5" />
-          <path d="M 47 62 Q 50 64 53 62" fill="none" stroke="#37474F" strokeWidth="1.2" strokeLinecap="round" />
-        </g>
-      )}
+const CustomerAnimal: React.FC<{
+  type: AnimalType;
+  patience: number;
+  state: CustState;
+  accessory?: "bow" | "coin" | "cap" | "apron" | "kerchief";
+}> = ({ type, patience, state, accessory }) => {
+  const isSad = patience < 35 && state !== "eating";
+  const isEating = state === "eating";
+  const style = CHARACTER_STYLES[type];
+  const eyeStroke = style.outline;
 
-      {/* 4. Fox */}
-      {type === "fox" && (
-        <g>
-          <polygon points="24,42 16,22 38,36" fill="#FF7043" stroke="#E64A19" strokeWidth="1.5" />
-          <polygon points="76,42 84,22 62,36" fill="#FF7043" stroke="#E64A19" strokeWidth="1.5" />
-          
-          <polygon points="26,50 74,50 50,78" fill="#FF7043" stroke="#E64A19" strokeWidth="1.5" />
-          <polygon points="26,50 38,50 28,64" fill="#FFF" />
-          <polygon points="74,50 62,50 72,64" fill="#FFF" />
-          
-          {isEating ? (
-            <>
-              <path d="M 35 45 Q 39 49 43 45" fill="none" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 57 45 Q 61 49 65 45" fill="none" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
-            </>
-          ) : isSad ? (
-            <>
-              <path d="M 36 48 L 42 50" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 64 48 L 58 50" stroke="#3E2723" strokeWidth="2.5" strokeLinecap="round" />
-            </>
-          ) : (
-            <>
-              <circle cx="39" cy="47" r="3.2" fill="#3E2723" />
-              <circle cx="61" cy="47" r="3.2" fill="#3E2723" />
-            </>
-          )}
-          <circle cx="50" cy="74" r="2.5" fill="#212121" />
-        </g>
-      )}
+  const eyes = (() => {
+    if (isEating) {
+      return (
+        <>
+          <path d="M34 42 Q38 47 42 42" fill="none" stroke={eyeStroke} strokeWidth="3.4" strokeLinecap="round" />
+          <path d="M58 42 Q62 47 66 42" fill="none" stroke={eyeStroke} strokeWidth="3.4" strokeLinecap="round" />
+        </>
+      );
+    }
 
-      {/* 5. Lamb */}
-      {type === "lamb" && (
-        <g>
-          <path d="M 24 45 Q 12 43 14 53 Q 22 55 24 49 Z" fill="#FFF" stroke="#E0D3D3" strokeWidth="1" />
-          <path d="M 76 45 Q 88 43 86 53 Q 78 55 76 49 Z" fill="#FFF" stroke="#E0D3D3" strokeWidth="1" />
-          
-          <circle cx="40" cy="38" r="8" fill="#FFF" stroke="#ECEFF1" strokeWidth="1" />
-          <circle cx="50" cy="36" r="9" fill="#FFF" stroke="#ECEFF1" strokeWidth="1" />
-          <circle cx="60" cy="38" r="8" fill="#FFF" stroke="#ECEFF1" strokeWidth="1" />
-          
-          <ellipse cx="50" cy="56" rx="20" ry="17" fill="#FFFAFA" stroke="#E6D3D3" strokeWidth="1.5" />
-          {isEating ? (
-            <>
-              <path d="M 39 49 Q 42 53 45 49" fill="none" stroke="#4E342E" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 55 49 Q 58 53 61 49" fill="none" stroke="#4E342E" strokeWidth="2.5" strokeLinecap="round" />
-            </>
-          ) : isSad ? (
-            <>
-              <path d="M 40 54 Q 44 50 46 55" fill="none" stroke="#4E342E" strokeWidth="2" strokeLinecap="round" />
-              <path d="M 60 54 Q 56 50 54 55" fill="none" stroke="#4E342E" strokeWidth="2" strokeLinecap="round" />
-            </>
-          ) : (
-            <>
-              <circle cx="42" cy="51" r="3" fill="#4E342E" />
-              <circle cx="58" cy="51" r="3" fill="#4E342E" />
-            </>
-          )}
-          <circle cx="36" cy="59" r="2" fill="#FFCDD2" opacity="0.6" />
-          <circle cx="64" cy="59" r="2" fill="#FFCDD2" opacity="0.6" />
-          <path d="M 48 59 Q 50 61 52 59" fill="none" stroke="#4E342E" strokeWidth="1" strokeLinecap="round" />
-        </g>
-      )}
+    if (isSad) {
+      return (
+        <>
+          <path d="M34 45 Q38 40 43 45" fill="none" stroke={eyeStroke} strokeWidth="3" strokeLinecap="round" />
+          <path d="M57 45 Q62 40 66 45" fill="none" stroke={eyeStroke} strokeWidth="3" strokeLinecap="round" />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <ellipse cx="38" cy="43" rx="3.4" ry="5.2" fill={eyeStroke} />
+        <ellipse cx="62" cy="43" rx="3.4" ry="5.2" fill={eyeStroke} />
+        <circle cx="36.8" cy="41" r="1.1" fill="#fffdf7" />
+        <circle cx="60.8" cy="41" r="1.1" fill="#fffdf7" />
+      </>
+    );
+  })();
+
+  return (
+    <svg viewBox="0 0 100 110" className="h-16 w-16 select-none overflow-visible drop-shadow-md pointer-events-none">
+      <g stroke={style.outline} strokeLinecap="round" strokeLinejoin="round">
+        {type === "bunny" && (
+          <>
+            <ellipse cx="35" cy="20" rx="8" ry="19" fill={style.body} strokeWidth="3" transform="rotate(-8 35 20)" />
+            <ellipse cx="65" cy="20" rx="8" ry="19" fill={style.body} strokeWidth="3" transform="rotate(8 65 20)" />
+            <ellipse cx="35" cy="22" rx="3.8" ry="12" fill={style.inner} stroke="none" transform="rotate(-8 35 22)" />
+            <ellipse cx="65" cy="22" rx="3.8" ry="12" fill={style.inner} stroke="none" transform="rotate(8 65 22)" />
+          </>
+        )}
+
+        {type === "bear" && (
+          <>
+            <circle cx="30" cy="33" r="10" fill={style.body} strokeWidth="3" />
+            <circle cx="70" cy="33" r="10" fill={style.body} strokeWidth="3" />
+            <circle cx="30" cy="34" r="5" fill={style.inner} stroke="none" />
+            <circle cx="70" cy="34" r="5" fill={style.inner} stroke="none" />
+          </>
+        )}
+
+        {type === "kitty" && (
+          <>
+            <path d="M28 42 L25 20 L43 34 Z" fill={style.body} strokeWidth="3" />
+            <path d="M72 42 L75 20 L57 34 Z" fill={style.body} strokeWidth="3" />
+            <path d="M30 36 L28 26 L39 34 Z" fill={style.inner} stroke="none" />
+            <path d="M70 36 L72 26 L61 34 Z" fill={style.inner} stroke="none" />
+          </>
+        )}
+
+        {type === "fox" && (
+          <>
+            <path d="M28 42 L18 22 L40 34 Z" fill={style.body} strokeWidth="3" />
+            <path d="M72 42 L82 22 L60 34 Z" fill={style.body} strokeWidth="3" />
+            <path d="M28 37 L23 28 L36 35 Z" fill={style.inner} stroke="none" />
+            <path d="M72 37 L77 28 L64 35 Z" fill={style.inner} stroke="none" />
+          </>
+        )}
+
+        {type === "lamb" && (
+          <>
+            <circle cx="34" cy="30" r="8" fill="#fffdf7" strokeWidth="2.5" />
+            <circle cx="48" cy="25" r="9" fill="#fffdf7" strokeWidth="2.5" />
+            <circle cx="62" cy="30" r="8" fill="#fffdf7" strokeWidth="2.5" />
+            <path d="M27 40 Q14 41 17 53 Q27 54 31 46" fill={style.body} strokeWidth="2.5" />
+            <path d="M73 40 Q86 41 83 53 Q73 54 69 46" fill={style.body} strokeWidth="2.5" />
+          </>
+        )}
+
+        <ellipse cx="50" cy="55" rx="25" ry="22" fill={style.body} strokeWidth="3" />
+        <path d="M27 52 Q50 71 73 52 L68 82 Q50 94 32 82 Z" fill={style.outfit} strokeWidth="3" />
+        <path d="M37 83 Q33 94 24 91" fill="none" strokeWidth="5" />
+        <path d="M63 83 Q67 94 76 91" fill="none" strokeWidth="5" />
+        <ellipse cx="34" cy="92" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" />
+        <ellipse cx="66" cy="92" rx="8" ry="4.5" fill="#fffaf0" strokeWidth="3" />
+        <ellipse cx="50" cy="60" rx="12" ry="9" fill={type === "fox" ? "#fff8e9" : style.inner} strokeWidth="2" />
+
+        {eyes}
+        <circle cx="31" cy="54" r="3.2" fill={style.blush} stroke="none" opacity="0.85" />
+        <circle cx="69" cy="54" r="3.2" fill={style.blush} stroke="none" opacity="0.85" />
+        <path d="M47 57 Q50 60 53 57" fill="none" strokeWidth="2" />
+        <path d={isSad ? "M43 66 Q50 62 57 66" : "M43 65 Q50 70 57 65"} fill="none" strokeWidth="2.4" />
+
+        {type === "kitty" && (
+          <>
+            <path d="M25 55 H14" strokeWidth="1.8" />
+            <path d="M25 61 L13 63" strokeWidth="1.8" />
+            <path d="M75 55 H86" strokeWidth="1.8" />
+            <path d="M75 61 L87 63" strokeWidth="1.8" />
+          </>
+        )}
+
+        {accessory === "bow" && (
+          <g>
+            <path d="M40 25 Q30 18 31 31 Q35 36 43 30 Z" fill="#d66f68" strokeWidth="2.5" />
+            <path d="M60 25 Q70 18 69 31 Q65 36 57 30 Z" fill="#d66f68" strokeWidth="2.5" />
+            <circle cx="50" cy="28" r="5" fill="#f3c0b8" strokeWidth="2.5" />
+          </g>
+        )}
+        {accessory === "coin" && <circle cx="70" cy="25" r="8" fill="#f2ce74" strokeWidth="3" />}
+        {accessory === "cap" && <path d="M33 31 Q50 19 67 31 L62 38 Q50 34 38 38 Z" fill="#91b681" strokeWidth="3" />}
+        {accessory === "apron" && <path d="M39 58 H61 L65 86 Q50 94 35 86 Z" fill="#fffaf0" strokeWidth="2.5" />}
+        {accessory === "kerchief" && <path d="M38 67 L50 78 L62 67" fill="#f2ce74" strokeWidth="2.5" />}
+      </g>
     </svg>
   );
 };
@@ -1189,7 +1193,9 @@ export function GraceCafe() {
             {hasUpgrade("staff_muffin") && (
               <div className="flex flex-col items-center">
                 <span className="text-[8px] font-black text-[#58704D] bg-[#F4F7E9] px-2 py-0.5 rounded-md mb-1 shadow-sm">Helper</span>
-                <span className="text-4xl animate-bounce">🐰</span>
+                <div className="animate-bounce">
+                  <StaffAnimal staff="muffin" className="h-16 w-16" />
+                </div>
               </div>
             )}
           </div>
@@ -1358,9 +1364,12 @@ export function GraceCafe() {
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 {upgradesList.map((upgrade) => {
                   const purchased = owned.includes(upgrade.id);
+                  const staffKey = getStaffKey(upgrade.id);
                   return (
                     <div key={upgrade.id} className="flex items-center gap-3 rounded-2xl border-2 border-[#D0AA8B] bg-[#F9E8CF] p-3 text-left">
-                      <span className="grid h-11 w-11 place-items-center rounded-full border-2 border-[#9B765F] bg-[#FFF8E8] text-2xl">{upgrade.emoji}</span>
+                      <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-[#9B765F] bg-[#FFF8E8] text-2xl">
+                        {staffKey ? <StaffAnimal staff={staffKey} className="h-12 w-12" /> : upgrade.emoji}
+                      </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-black">{upgrade.name}</p>
                         <p className="text-[9px] text-[#8D7064] leading-tight">{upgrade.description}</p>
