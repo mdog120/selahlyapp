@@ -7,6 +7,7 @@ import { CreatePost } from "./CreatePost";
 import { PostPreviewCard } from "./PostPreviewCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Heart, Clock } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 type Post = {
     id: string;
@@ -34,6 +35,17 @@ export function SocialFeed() {
     const [isFeedLocked, setIsFeedLocked] = useState(false);
     const justClosedRef = useRef(false);
     const supabase = createClient();
+    const searchParams = useSearchParams();
+    const postIdParam = searchParams.get("postId");
+
+    useEffect(() => {
+        if (postIdParam && posts.length > 0) {
+            const matchedPost = posts.find(p => p.id === postIdParam);
+            if (matchedPost) {
+                setSelectedPost(matchedPost);
+            }
+        }
+    }, [postIdParam, posts]);
 
     const fetchPosts = async (skipSyncActivePost = false) => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -100,6 +112,12 @@ export function SocialFeed() {
         justClosedRef.current = true;
         setSelectedPost(null);
         setIsFeedLocked(true);
+
+        // Remove search param from URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete("postId");
+        window.history.pushState({}, "", url.toString());
+
         fetchPosts(true); // Skip syncing active post since we are closing it
         setTimeout(() => {
             justClosedRef.current = false;
