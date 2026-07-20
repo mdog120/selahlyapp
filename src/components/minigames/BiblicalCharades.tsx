@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Play, RotateCw, Check, Sparkles, RefreshCw, Trophy, Heart, HelpCircle, Timer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import confetti from "canvas-confetti";
+import { selahSisters } from "@/data/selahSisters";
 
 interface WomanCharacter {
     name: string;
@@ -11,26 +12,44 @@ interface WomanCharacter {
     category: "Famous" | "Brave & Wise" | "Prophetesses";
 }
 
-const CHARACTERS: WomanCharacter[] = [
-    { name: "Esther", desc: "Queen of Persia, saved her nation from Haman, 'for such a time as this.'", category: "Brave & Wise" },
-    { name: "Ruth", desc: "Loyal daughter-in-law of Naomi, gleaned fields of Boaz, ancestor of David.", category: "Famous" },
-    { name: "Deborah", desc: "Judges prophetess and judge of Israel who led victory alongside Barak.", category: "Prophetesses" },
-    { name: "Hannah", desc: "Prayed fervently for a child at Shiloh, mother of Samuel.", category: "Famous" },
-    { name: "Mary (Mother of Jesus)", desc: "Chosen virgin, sang the Magnificat, kept things in her heart.", category: "Famous" },
-    { name: "Abigail", desc: "Wise wife who brought gifts of food to appease David's anger.", category: "Brave & Wise" },
-    { name: "Lydia", desc: "Merchant of purple fabrics in Philippi, first convert in Europe.", category: "Brave & Wise" },
-    { name: "Sarah", desc: "Wife of Abraham, gave birth to Isaac in her old age, laughed at the promise.", category: "Famous" },
-    { name: "Miriam", desc: "Sister of Moses, led women dancing with timbrels after crossing Red Sea.", category: "Prophetesses" },
-    { name: "Priscilla", desc: "Teacher and tentmaker who instructed Apollos with husband Aquila.", category: "Brave & Wise" },
-    { name: "Jael", desc: "Brave heroine who defeated Sisera with a tent peg and mallet.", category: "Brave & Wise" },
-    { name: "Elizabeth", desc: "Mother of John the Baptist, cousin of Mary, righteous in old age.", category: "Famous" },
-    { name: "Tabitha (Dorcas)", desc: "Almsgiver raised from the dead by Peter, made coats for widows.", category: "Brave & Wise" },
-    { name: "Rebecca", desc: "Wife of Isaac, mother of Jacob and Esau, met at the well.", category: "Famous" },
-    { name: "Rachel", desc: "Beloved wife of Jacob, mother of Joseph, met at the well.", category: "Famous" },
-    { name: "Anna", desc: "Elderly prophetess in the temple who praised God on seeing baby Jesus.", category: "Prophetesses" },
-    { name: "Mary Magdalene", desc: "Devoted follower out of whom seven demons were cast, first to see the risen Christ.", category: "Famous" },
-    { name: "Rahab", desc: "Bravely hid Israelite spies in Jericho, ancestor of David and Jesus.", category: "Brave & Wise" }
-];
+const CHARACTERS: WomanCharacter[] = selahSisters.map(sister => {
+    let category: "Famous" | "Brave & Wise" | "Prophetesses" = "Famous";
+    const name = sister.name.toLowerCase();
+    
+    if (
+        name.includes("prophetess") || 
+        name.includes("miriam") || 
+        name.includes("deborah") || 
+        name.includes("huldah") || 
+        name.includes("anna") || 
+        name.includes("philip")
+    ) {
+        category = "Prophetesses";
+    } else if (
+        name.includes("jael") || 
+        name.includes("abigail") || 
+        name.includes("lydia") || 
+        name.includes("priscilla") || 
+        name.includes("dorcas") || 
+        name.includes("tabitha") || 
+        name.includes("shiphrah") || 
+        name.includes("puah") || 
+        name.includes("jochebed") || 
+        name.includes("jehosheba") || 
+        name.includes("rahab") || 
+        name.includes("tekoa") || 
+        name.includes("abel beth") || 
+        name.includes("pharaoh's daughter")
+    ) {
+        category = "Brave & Wise";
+    }
+
+    return {
+        name: sister.name,
+        desc: `${sister.biography} (Ref: ${sister.book} ${sister.chapter})`,
+        category: category
+    };
+});
 
 interface BiblicalCharadesProps {
     onBack?: () => void;
