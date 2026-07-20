@@ -25,7 +25,9 @@ const CATEGORIES: Record<string, { name: string; emoji: string; color: string; w
         verses: [
             { ref: "Isaiah 26:3", text: "Thou wilt keep him in perfect peace, whose mind is stayed on thee: because he trusteth in thee.", blanks: ["perfect", "peace", "trusteth"] },
             { ref: "John 14:27", text: "Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you.", blanks: ["Peace", "world", "give"] },
-            { ref: "Philippians 4:6-7", text: "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.", blanks: ["prayer", "thanksgiving", "requests"] }
+            { ref: "Philippians 4:6-7", text: "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.", blanks: ["prayer", "thanksgiving", "requests"] },
+            { ref: "Psalms 4:8", text: "I will both lay me down in peace, and sleep: for thou, Lord, only makest me dwell in safety.", blanks: ["peace", "sleep", "safety"] },
+            { ref: "Colossians 3:15", text: "And let the peace of God rule in your hearts, to the which also ye are called in one body; and be ye thankful.", blanks: ["peace", "hearts", "thankful"] }
         ]
     },
     strength: {
@@ -41,7 +43,9 @@ const CATEGORIES: Record<string, { name: string; emoji: string; color: string; w
         verses: [
             { ref: "Proverbs 31:25", text: "Strength and honour are her clothing; and she shall rejoice in time to come.", blanks: ["Strength", "clothing", "rejoice"] },
             { ref: "Isaiah 40:31", text: "But they that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles.", blanks: ["wait", "strength", "eagles"] },
-            { ref: "Joshua 1:9", text: "Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed.", blanks: ["commands", "strong", "afraid"] }
+            { ref: "Joshua 1:9", text: "Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed.", blanks: ["commanded", "strong", "afraid"] },
+            { ref: "Psalms 28:7", text: "The Lord is my strength and my shield; my heart trusted in him, and I am helped: therefore my heart greatly rejoiceth; and with my song will I praise him.", blanks: ["strength", "shield", "rejoiceth"] },
+            { ref: "Ephesians 6:10", text: "Finally, my brethren, be strong in the Lord, and in the power of his might.", blanks: ["strong", "power", "might"] }
         ]
     },
     love: {
@@ -57,7 +61,9 @@ const CATEGORIES: Record<string, { name: string; emoji: string; color: string; w
         verses: [
             { ref: "1 John 4:19", text: "We love him, because he first loved us.", blanks: ["love", "first", "loved"] },
             { ref: "1 Corinthians 13:4", text: "Charity suffereth long, and is kind; charity envieth not; charity vaunteth not itself, is not puffed up.", blanks: ["kind", "envieth", "puffed"] },
-            { ref: "Proverbs 17:17", text: "A friend loveth at all times, and a brother is born for adversity.", blanks: ["friend", "loveth", "adversity"] }
+            { ref: "Proverbs 17:17", text: "A friend loveth at all times, and a brother is born for adversity.", blanks: ["friend", "loveth", "adversity"] },
+            { ref: "John 15:13", text: "Greater love hath no man than this, that a man lay down his life for his friends.", blanks: ["love", "life", "friends"] },
+            { ref: "Proverbs 10:12", text: "Hatred stirreth up strifes: but love covereth all sins.", blanks: ["strifes", "love", "sins"] }
         ]
     },
     joy: {
@@ -73,7 +79,9 @@ const CATEGORIES: Record<string, { name: string; emoji: string; color: string; w
         verses: [
             { ref: "Nehemiah 8:10", text: "Go your way, eat the fat, and drink the sweet... for the joy of the Lord is your strength.", blanks: ["sweet", "joy", "strength"] },
             { ref: "Psalms 16:11", text: "Thou wilt shew me the path of life: in thy presence is fulness of joy; at thy right hand there are pleasures for evermore.", blanks: ["presence", "fulness", "pleasures"] },
-            { ref: "Romans 15:13", text: "Now the God of hope fill you with all joy and peace in believing, that ye may abound in hope.", blanks: ["hope", "joy", "abound"] }
+            { ref: "Romans 15:13", text: "Now the God of hope fill you with all joy and peace in believing, that ye may abound in hope.", blanks: ["hope", "joy", "abound"] },
+            { ref: "Psalms 30:5", text: "For his anger endureth but a moment; in his favour is life: weeping may endure for a night, but joy cometh in the morning.", blanks: ["life", "weeping", "joy"] },
+            { ref: "Philippians 4:4", text: "Rejoice in the Lord alway: and again I say, Rejoice.", blanks: ["Rejoice", "alway", "Rejoice"] }
         ]
     },
     wisdom: {
@@ -89,7 +97,9 @@ const CATEGORIES: Record<string, { name: string; emoji: string; color: string; w
         verses: [
             { ref: "Proverbs 3:5-6", text: "Trust in the Lord with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.", blanks: ["Trust", "understanding", "direct"] },
             { ref: "James 1:5", text: "If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him.", blanks: ["wisdom", "liberally", "given"] },
-            { ref: "Proverbs 4:7", text: "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.", blanks: ["principal", "wisdom", "understanding"] }
+            { ref: "Proverbs 4:7", text: "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.", blanks: ["principal", "wisdom", "understanding"] },
+            { ref: "James 3:17", text: "But the wisdom that is from above is first pure, then peaceable, gentle, and easy to be intreated, full of mercy and good fruits, without partiality, and without hypocrisy.", blanks: ["wisdom", "pure", "peaceable"] },
+            { ref: "Psalms 111:10", text: "The fear of the Lord is the beginning of wisdom: a good understanding have all they that do his commandments: his praise endureth for ever.", blanks: ["fear", "wisdom", "commandments"] }
         ]
     }
 };
@@ -106,6 +116,9 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
     const [earnedCoins, setEarnedCoins] = useState(0);
     const [coinsRewarded, setCoinsRewarded] = useState(false);
     const [isCompletedCategory, setIsCompletedCategory] = useState(false);
+
+    // Dynamic verification tracker: keeps indices of verses correctly solved in scramble mode
+    const [solvedCards, setSolvedCards] = useState<Set<number>>(new Set());
 
     // Scramble Mode States
     const [scrambleOptions, setScrambleOptions] = useState<string[]>([]);
@@ -132,6 +145,16 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
 
     useEffect(() => {
         getLambCoins();
+    }, [category]);
+
+    // Handle initial selection / resets when changing categories
+    useEffect(() => {
+        setSolvedCards(new Set());
+        setCurrentCardIndex(0);
+        setIsCompletedCategory(false);
+        setIsFlipped(false);
+        setEarnedCoins(0);
+        setGameMode("card");
     }, [category]);
 
     const addCoinsToLamb = (rewardAmount: number) => {
@@ -253,6 +276,13 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                     colors: ["#D4A5A5", "#E3E9E2", "#8D7B68", "#FCEADE"]
                 });
                 
+                // Add to solvedCards!
+                setSolvedCards(prev => {
+                    const next = new Set(prev);
+                    next.add(currentCardIndex);
+                    return next;
+                });
+
                 // Add coin reward!
                 if (!coinsRewarded) {
                     addCoinsToLamb(15);
@@ -293,12 +323,16 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                 spread: 70,
                 origin: { y: 0.6 }
             });
-            // Large completion bonus
-            addCoinsToLamb(50);
+            // Large completion bonus ONLY if they solved ALL cards in scramble mode!
+            const allSolved = solvedCards.size === activeCategory.verses.length;
+            if (allSolved) {
+                addCoinsToLamb(50);
+            }
         }
     };
 
     const handleResetCategory = () => {
+        setSolvedCards(new Set());
         setCurrentCardIndex(0);
         setIsCompletedCategory(false);
         setIsFlipped(false);
@@ -319,6 +353,8 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
         return text;
     };
 
+    const isAllCategorySolved = activeCategory ? solvedCards.size === activeCategory.verses.length : false;
+
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 animate-fade-in text-warm-grey">
             
@@ -335,12 +371,8 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                         ← Exit Category
                     </button>
                 ) : (
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-1 text-xs font-bold text-warm-grey/50 hover:text-warm-grey transition-colors cursor-pointer"
-                    >
-                        ← Back to Lobby
-                    </button>
+                    // Emit empty space instead of a duplicate Back to Lobby button
+                    <div />
                 )}
                 
                 <div className="flex items-center gap-2">
@@ -374,7 +406,6 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                                 key={key}
                                 onClick={() => {
                                     setCategory(key);
-                                    setCurrentCardIndex(0);
                                 }}
                                 className="group relative flex items-center justify-between p-5 rounded-3xl bg-white/60 hover:bg-white border border-white/80 hover:border-rose-250/20 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer text-left"
                             >
@@ -396,12 +427,16 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                 // ------------------ CATEGORY COMPLETED VIEW ------------------
                 <div className="flex flex-col items-center gap-5 text-center py-12 glass-card rounded-[2.5rem] bg-emerald-50/25 border border-emerald-100/40 animate-scale-up max-w-md mx-auto w-full px-6">
                     <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-3xl mb-1 animate-bounce">
-                        🏆
+                        {isAllCategorySolved ? "🏆" : "🌸"}
                     </div>
                     <div>
-                        <h4 className="font-serif text-xl font-bold text-emerald-800 mb-1">Topic Completed!</h4>
+                        <h4 className="font-serif text-xl font-bold text-emerald-800 mb-1">
+                            {isAllCategorySolved ? "Topic Fully Solved!" : "Practice Finished"}
+                        </h4>
                         <p className="text-xs text-warm-grey/60 max-w-xs mx-auto leading-relaxed">
-                            Praise God! You completed the **{activeCategory?.name}** set. You have successfully memorized the scriptures and earned bonuses!
+                            {isAllCategorySolved 
+                                ? `Praise God! You completed the **${activeCategory?.name}** set in interactive scramble mode and earned your completion bonus!` 
+                                : `You've run through all the cards in **${activeCategory?.name}**. Good job reviewing the scriptures!`}
                         </p>
                     </div>
 
@@ -411,14 +446,28 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                             <span className="font-medium text-warm-grey/70">{activeCategory?.name}</span>
                         </div>
                         <div className="flex justify-between items-center border-b pb-2 border-stone-100">
+                            <span className="font-bold text-warm-cocoa">Scramble Completed</span>
+                            <span className="font-bold text-warm-grey/70">{solvedCards.size} / {activeCategory?.verses.length} Verses</span>
+                        </div>
+                        <div className="flex justify-between items-center border-b pb-2 border-stone-100">
                             <span className="font-bold text-warm-cocoa">Completion Bonus</span>
-                            <span className="font-bold text-emerald-700 flex items-center gap-0.5">🪙 50 Gold Coins</span>
+                            {isAllCategorySolved ? (
+                                <span className="font-bold text-emerald-700 flex items-center gap-0.5">🪙 50 Gold Coins</span>
+                            ) : (
+                                <span className="font-bold text-red-500/70" title="Solve all cards in scramble mode to get this bonus">Locked (0/5 Solved)</span>
+                            )}
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="font-bold text-warm-cocoa">Session Earnings</span>
                             <span className="font-bold text-amber-700 flex items-center gap-0.5">🪙 {earnedCoins} Total</span>
                         </div>
                     </div>
+
+                    {!isAllCategorySolved && (
+                        <p className="text-[10px] text-warm-grey/50 italic leading-normal max-w-xs mt-1">
+                            💡 Tip: Switch to **Interactive Scramble** mode on all verses in this category to unlock the 50 Gold Coins completion bonus! Clicking "I Know It" on the flashcard side does not reward bonus coins.
+                        </p>
+                    )}
 
                     <div className="flex flex-col gap-2 w-full mt-2">
                         <Button 
@@ -445,17 +494,15 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                     
                     {/* Progress Bar / Verse count */}
                     <div className="flex flex-col gap-1 text-left px-1">
-                        <div className="flex flex-col gap-1 text-left px-1">
-                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-warm-cocoa/50">
-                                <span>Topic: {activeCategory?.name}</span>
-                                <span>Verse {currentCardIndex + 1} of {activeCategory?.verses.length}</span>
-                            </div>
-                            <div className="w-full h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                                <div 
-                                    className="h-full bg-muted-rose transition-all duration-500 ease-out" 
-                                    style={{ width: `${((currentCardIndex + 1) / (activeCategory?.verses.length || 1)) * 100}%` }}
-                                />
-                            </div>
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-warm-cocoa/50">
+                            <span>Topic: {activeCategory?.name}</span>
+                            <span>Verse {currentCardIndex + 1} of {activeCategory?.verses.length}</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                            <div 
+                                className="h-full bg-muted-rose transition-all duration-500 ease-out" 
+                                style={{ width: `${((currentCardIndex + 1) / (activeCategory?.verses.length || 1)) * 100}%` }}
+                            />
                         </div>
                     </div>
 
@@ -517,7 +564,7 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                                                 {currentVerse?.ref}
                                             </h3>
                                             <p className="text-[10px] text-warm-grey/40 italic">
-                                                Click to reveal scripture text ౨ৎ
+                                                {solvedCards.has(currentCardIndex) ? "✓ Solved in Scramble Mode" : "Click to reveal scripture text ౨ৎ"}
                                             </p>
                                         </div>
 
@@ -568,7 +615,7 @@ export function ScriptureFlashcards({ onBack }: ScriptureFlashcardsProps) {
                                     onClick={handleNextCard}
                                     className="flex-1 text-xs bg-warm-cocoa hover:bg-warm-cocoa/90 text-white"
                                 >
-                                    <Check className="w-3.5 h-3.5 mr-1.5" /> I Know It!
+                                    <Check className="w-3.5 h-3.5 mr-1.5" /> Next / Done
                                 </Button>
                             </div>
 
