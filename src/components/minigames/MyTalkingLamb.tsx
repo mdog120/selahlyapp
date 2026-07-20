@@ -97,7 +97,7 @@ export function MyTalkingLamb() {
   const [cleanliness, setCleanliness] = useState(80);
   const [energy, setEnergy] = useState(50);
   const [isSleeping, setIsSleeping] = useState(false);
-  const [accessory, setAccessory] = useState<"none" | "bow" | "bell" | "crown" | "scarf" | "royal">("none");
+  const [accessory, setAccessory] = useState<"none" | "bow" | "bell" | "crown" | "scarf" | "royal" | "glasses" | "sunhat" | "halo">("none");
   const [lastAction, setLastAction] = useState<"none" | "feeding" | "petting" | "bathing" | "sleeping" | "playing">("none");
 
   // ─── Fridge Inventory Stock ─────────────────────────────────
@@ -2232,6 +2232,45 @@ export function MyTalkingLamb() {
                   <circle cx="0" cy="-6" r="1.5" fill="#EC4899" />
                 </g>
               )}
+
+              {accessory === "glasses" && (
+                <g>
+                  {/* Left frame */}
+                  <circle cx="82" cy="112" r="11" fill="none" stroke="#8B5A2B" strokeWidth={2} />
+                  {/* Left shine */}
+                  <path d="M 76 106 Q 84 106 80 114" fill="none" stroke="white" strokeWidth={1} opacity={0.65} />
+                  {/* Right frame */}
+                  <circle cx="118" cy="112" r="11" fill="none" stroke="#8B5A2B" strokeWidth={2} />
+                  {/* Right shine */}
+                  <path d="M 112 106 Q 120 106 116 114" fill="none" stroke="white" strokeWidth={1} opacity={0.65} />
+                  {/* Bridge */}
+                  <path d="M 93 112 Q 100 107 107 112" fill="none" stroke="#8B5A2B" strokeWidth={2} />
+                  {/* Left arm */}
+                  <path d="M 71 112 Q 62 108 58 110" fill="none" stroke="#8B5A2B" strokeWidth={1.5} />
+                  {/* Right arm */}
+                  <path d="M 129 112 Q 138 108 142 110" fill="none" stroke="#8B5A2B" strokeWidth={1.5} />
+                </g>
+              )}
+
+              {accessory === "sunhat" && (
+                <g>
+                  {/* Dome of hat */}
+                  <path d="M 80 82 C 80 54, 120 54, 120 82 Z" fill="#EADCA6" stroke="#C4A484" strokeWidth={1} />
+                  {/* Ribbon band */}
+                  <path d="M 80 80 Q 100 86 120 80" fill="none" stroke="#EC4899" strokeWidth={3.5} />
+                  {/* Brim of hat */}
+                  <path d="M 66 84 Q 100 94 134 84 Q 100 86 66 84" fill="#EADCA6" stroke="#C4A484" strokeWidth={1} />
+                </g>
+              )}
+
+              {accessory === "halo" && (
+                <g>
+                  {/* Glowing yellow ring floating above head */}
+                  <ellipse cx="100" cy="62" rx="18" ry="4" fill="none" stroke="#FBBF24" strokeWidth={2.5} />
+                  {/* Halo glow rays overlay */}
+                  <ellipse cx="100" cy="62" rx="20" ry="5.2" fill="none" stroke="#FCD34D" strokeWidth={1} opacity={0.4} />
+                </g>
+              )}
             </svg>
           </button>
         </div>
@@ -2463,7 +2502,7 @@ export function MyTalkingLamb() {
               <div className="border-t pt-2 text-left">
                 <span className="text-[8.5px] uppercase font-bold text-warm-cocoa/40 tracking-wider mb-2.5 block">Accessory Wardrobe</span>
                 <div className="grid grid-cols-3 gap-1">
-                  {(["none", "bow", "bell", "crown", "scarf", "royal"] as const).map((acc) => {
+                  {(["none", "bow", "bell", "glasses", "scarf", "sunhat", "crown", "halo", "royal"] as const).map((acc) => {
                     const isOwned = purchasedAccessories.includes(acc);
                     return (
                       <button
@@ -2877,13 +2916,16 @@ export function MyTalkingLamb() {
               {/* Wardrobe Accessory Shop */}
               {activeShopTab === "wardrobe" && (
                 <div className="flex flex-col gap-2.5 text-left max-h-[220px] overflow-y-auto pr-1">
-                  {([
+                  {[
                     { id: "bow", name: "🎀 Pink Bow", cost: 0, desc: "A lovely pink ribbon bow" },
                     { id: "bell", name: "🔔 Golden Bell", cost: 25, desc: "Golden bell collar necklace" },
+                    { id: "glasses", name: "👓 Cozy Glasses", cost: 40, desc: "Cute round wire reading glasses" },
                     { id: "scarf", name: "🧣 Cozy Scarf", cost: 50, desc: "A warm knit pastel scarf" },
+                    { id: "sunhat", name: "👒 Straw Sunhat", cost: 60, desc: "Pastel straw hat with ribbon" },
                     { id: "crown", name: "🌸 Flower Crown", cost: 75, desc: "Woven pink/yellow flowers" },
+                    { id: "halo", name: "👼 Heavenly Halo", cost: 90, desc: "Glowing golden floating ring" },
                     { id: "royal", name: "👑 Royal Crown", cost: 120, desc: "Golden princess tiara" }
-                  ] as const).map((acc) => {
+                  ].map((acc) => {
                     const isOwned = purchasedAccessories.includes(acc.id);
                     return (
                       <div
