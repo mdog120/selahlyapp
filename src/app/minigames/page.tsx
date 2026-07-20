@@ -54,7 +54,7 @@ export default function MiniGamesPage() {
                             {/* Block Blast */}
                             <div
                                 onClick={() => setActiveTab("blockblast")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-rose-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -75,7 +75,7 @@ export default function MiniGamesPage() {
                             {/* Scripture Flashcards */}
                             <div
                                 onClick={() => setActiveTab("scriptureflashcards")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-rose-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -96,7 +96,7 @@ export default function MiniGamesPage() {
                             {/* Biblical Charades */}
                             <div
                                 onClick={() => setActiveTab("charades")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-rose-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -117,7 +117,7 @@ export default function MiniGamesPage() {
                             {/* Sudoku */}
                             <div
                                 onClick={() => setActiveTab("sudoku")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-emerald-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-emerald-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-emerald-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -138,7 +138,7 @@ export default function MiniGamesPage() {
                             {/* Word Search */}
                             <div
                                 onClick={() => setActiveTab("wordsearch")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-sky-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-sky-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-sky-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -159,7 +159,7 @@ export default function MiniGamesPage() {
                             {/* Crosswords */}
                             <div
                                 onClick={() => setActiveTab("crosswords")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-purple-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-purple-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-purple-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -180,7 +180,7 @@ export default function MiniGamesPage() {
                             {/* Grace Alchemy */}
                             <div
                                 onClick={() => setActiveTab("gracealchemy")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-amber-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-amber-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-amber-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -201,7 +201,7 @@ export default function MiniGamesPage() {
                             {/* Memory Match */}
                             <div
                                 onClick={() => setActiveTab("memorymatch")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-indigo-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-indigo-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-indigo-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -222,7 +222,7 @@ export default function MiniGamesPage() {
                             {/* Selah Garden */}
                             <div
                                 onClick={() => setActiveTab("garden")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-pink-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-pink-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-pink-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -243,7 +243,7 @@ export default function MiniGamesPage() {
                             {/* My Talking Lamb */}
                             <div
                                 onClick={() => setActiveTab("mytalkinglamb")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-pink-200/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-pink-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-pink-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -264,7 +264,7 @@ export default function MiniGamesPage() {
                             {/* Grace Cafe */}
                             <div
                                 onClick={() => setActiveTab("gracecafe")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-amber-200/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-amber-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-amber-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -285,7 +285,7 @@ export default function MiniGamesPage() {
                             {/* Galilee Fishing */}
                             <div
                                 onClick={() => setActiveTab("galileefishing")}
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-sky-200/50 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-sky-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-sky-100/30 to-amber-100/20 rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
@@ -306,7 +306,7 @@ export default function MiniGamesPage() {
                             {/* Multiplayer Games Link Card */}
                             <Link
                                 href="/minigames/multiplayer"
-                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-250/40 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left sm:col-span-2"
+                                className="group relative flex flex-col justify-between p-5 rounded-3xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-rose-200 transition-all duration-300 hover:scale-[1.01] hover:shadow-md cursor-pointer overflow-hidden text-left sm:col-span-2"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-rose-100/20 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500" />
                                 <div>
