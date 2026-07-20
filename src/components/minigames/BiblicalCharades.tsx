@@ -238,11 +238,7 @@ export function BiblicalCharades({ onBack }: BiblicalCharadesProps) {
         }
     };
 
-    const handleClaimCoins = () => {
-        const rewardCoins = score * 5;
-        if (rewardCoins > 0) {
-            addCoinsToLamb(rewardCoins);
-        }
+    const handleFinishGame = () => {
         setGameState("lobby");
     };
 
@@ -285,10 +281,6 @@ export function BiblicalCharades({ onBack }: BiblicalCharadesProps) {
                         <p className="text-xs text-warm-grey/60 leading-relaxed">
                             A cozy "Heads Up" party game! Hold the device facing your sisters. They must describe the virtuous biblical woman without saying her name! Guess as many as you can in 60 seconds.
                         </p>
-                        <div className="mt-3.5 pt-3 border-t border-stone-100 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-800">
-                            <span>🪙 Wallet:</span>
-                            <span>{lobbyCoins} Gold Coins</span>
-                        </div>
                     </div>
 
                     {/* Setup Controls */}
@@ -419,13 +411,9 @@ export function BiblicalCharades({ onBack }: BiblicalCharadesProps) {
                         </div>
 
                         <div className="w-full flex flex-col gap-2.5 mt-2 bg-white/60 p-4 rounded-2xl border border-stone-100 text-left text-xs">
-                            <div className="flex justify-between items-center border-b pb-2 border-stone-100">
-                                <span className="font-bold text-warm-cocoa">Guessed Correctly</span>
-                                <span className="font-medium text-warm-grey/70">{score} characters</span>
-                            </div>
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-warm-cocoa">Lamb Rewards</span>
-                                <span className="font-bold text-emerald-700 flex items-center gap-0.5">🪙 +{score * 5} Gold Coins</span>
+                                <span className="font-bold text-warm-cocoa">Guessed Correctly</span>
+                                <span className="font-bold text-emerald-700">{score} / {roundSummary.length} characters</span>
                             </div>
                         </div>
                     </div>
@@ -452,10 +440,10 @@ export function BiblicalCharades({ onBack }: BiblicalCharadesProps) {
                     )}
 
                     <Button
-                        onClick={handleClaimCoins}
+                        onClick={handleFinishGame}
                         className="bg-warm-cocoa hover:bg-warm-cocoa/90 text-white w-full rounded-2xl py-4 text-xs font-sans font-bold tracking-wide shadow-md"
                     >
-                        Claim Coins & Finish ౨ৎ
+                        Finish Game ౨ৎ
                     </Button>
                 </div>
             )}
